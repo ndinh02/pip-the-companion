@@ -56,6 +56,18 @@ export const UI = {
   replay: { en: "Replay", de: "Wiederholen", vi: "Xem lại" },
   notOnPitch: { en: "Not on the pitch right now.", de: "Gerade nicht auf dem Platz.", vi: "Hiện không có mặt trên sân." },
   loadingTracking: { en: "Loading positions…", de: "Positionen werden geladen …", vi: "Đang tải vị trí…" },
+  // What is happening during the stoppage (said on the TV and on phones that already answered). No outcome in here.
+  nowVar: { en: "VAR is checking the replay. The goal waits.", de: "Der VAR prüft die Wiederholung. Das Tor wartet.", vi: "VAR đang xem lại. Bàn thắng đang chờ." },
+  nowCorner: { en: "Players are packing the box for the corner.", de: "Die Spieler drängen sich im Strafraum für die Ecke.", vi: "Cầu thủ đang dồn vào vòng cấm chờ phạt góc." },
+  nowFreeKick: { en: "The wall is lining up for the free kick.", de: "Die Mauer stellt sich für den Freistoß auf.", vi: "Hàng rào đang xếp cho cú đá phạt." },
+  nowSub: { en: "A player is walking off, a fresh one is waiting.", de: "Ein Spieler geht vom Platz, ein frischer wartet.", vi: "Một cầu thủ rời sân, người mới đang chờ vào." },
+  goal: { en: "GOAL!", de: "TOR!", vi: "VÀO!" },
+  answeredOf: { en: "answered", de: "haben geantwortet", vi: "đã trả lời" },
+  pipThinks: { en: "Pip thinks", de: "Pip tippt auf", vi: "Pip nghĩ là" },
+  roomSoFar: { en: "The room so far", de: "Der Raum bisher", vi: "Cả nhà đến giờ" },
+  alertsOn: { en: "Buzz me when Pip asks", de: "Vibrieren, wenn Pip fragt", vi: "Rung khi Pip hỏi" },
+  alertsHint: { en: "Your phone buzzes (and chimes, if not on silent) when a question opens. The screen stays awake.", de: "Dein Handy vibriert (und klingt, wenn nicht stumm), sobald eine Frage kommt. Der Bildschirm bleibt an.", vi: "Điện thoại sẽ rung (và kêu, nếu không để im lặng) khi có câu hỏi. Màn hình sẽ luôn sáng." },
+  alertsOff: { en: "Alerts off", de: "Hinweise aus", vi: "Tắt báo" },
   openUntilRestart: { en: "Open until play restarts", de: "Offen, bis das Spiel weitergeht", vi: "Mở đến khi trận đấu tiếp tục" },
   answersClosed: { en: "Play is on: answers are locked. Watch!", de: "Es geht weiter: Antworten sind gesperrt. Schau hin!", vi: "Bóng đã lăn: đã khóa câu trả lời. Xem nào!" },
   tooQuick: { en: "Too quick this time. No call needed.", de: "Diesmal ging es zu schnell. Kein Problem.", vi: "Lần này nhanh quá. Không sao cả." },
@@ -70,4 +82,9 @@ export function ui(key: keyof typeof UI, lang: Lang): string {
 export function deviceLang(): Lang {
   const l = (navigator.language || "en").slice(0, 2);
   return l === "de" || l === "vi" ? l : "en";
+}
+
+/** The "what's happening now" line for a stoppage, or null when there is none for this kind of moment. */
+export function nowKey(trigger: string): keyof typeof UI | null {
+  return ({ var: "nowVar", corner: "nowCorner", free_kick: "nowFreeKick", substitution: "nowSub" } as const)[trigger as "var"] ?? null;
 }

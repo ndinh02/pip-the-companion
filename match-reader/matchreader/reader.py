@@ -549,6 +549,11 @@ def _build(match: Dict[str, Any],
         running[ev["team_id"]] += 1
         entry = {"from_min": clock_minutes(ev["t_ms"], match, ev["period"])}
         entry.update(running)
+        # Exact times let the screen show the goal like TV: scorer, celebration, then the kick-off restart.
+        restart = next((e["t_ms"] for e in match["events"]
+                        if e["t_ms"] > ev["t_ms"] and e.get("subtype") == "kick_off"), None)
+        entry.update({"t_ms": ev["t_ms"], "team_id": ev["team_id"], "player_id": ev["player_id"],
+                      "restart_ms": restart})
         timeline.append(entry)
     if dict(running) != {t: match["final_score"][t] for t in running}:
         raise ValueError("counted goals %s do not match final_score %s"

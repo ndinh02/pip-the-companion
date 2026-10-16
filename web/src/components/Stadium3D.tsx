@@ -23,15 +23,18 @@ export interface Stadium3DProps {
   running: boolean;
   camera: CameraId;
   /** What the auto-director should frame. */
-  focus: { kind: "play" | "setpiece" | "var" | "replay"; x?: number; y?: number; playerId?: string | null; defending?: string };
+  focus: { kind: "play" | "setpiece" | "var" | "replay" | "player"; x?: number; y?: number; playerId?: string | null; defending?: string };
   ringId?: string | null;
   followed?: Record<string, number>;
   /** Show the "REPLAY" badge. */
   replay?: boolean;
+  /** Goals: for a while after each, the scoring team celebrates and the other team hangs its heads (poses only). */
+  goals?: { t_ms: number; team_id: string; player_id: string }[];
   /** Broadcast-style badge, e.g. "REPLAY" or "VAR CHECK". */
   badge?: string | null;
 }
 
+const CELEBRATE_MS = 20_000; // match time players react to a goal
 const L = 105;
 const W = 68;
 // pitch metres (x along, y across, origin bottom-left) -> three.js (x right, y up, z towards the main stand)
@@ -262,6 +265,7 @@ interface Body {
   followCount: number;
   gait: GaitState;
   offset: [number, number]; // visual separation nudge (metres), eased
+  phase: number; // so celebrating players do not jump in step
 }
 
 function makeBody(id: string, team: Team | undefined): Body {
@@ -285,7 +289,7 @@ function makeBody(id: string, team: Team | undefined): Body {
   const label = numberSprite(id.split("-")[1], kit.secondary, kit.primary);
   label.position.y = 3.3;
   group.add(char.root, shadow, ring, follow, label);
-  return { group, char, label, ring, follow, followTag: null, followCount: 0, gait: newGait(), offset: [0, 0] };
+  return { group, char, label, ring, follow, followTag: null, followCount: 0, gait: newGait(), offset: [0, 0], phase: [...id].reduce((h, ch) => h + ch.charCodeAt(0) * 0.7, 0) % Math.PI };
 }
 
 /** Ball height is not in the 2D tracking: long, fast flights (crosses, clearances, long passes) get an arc. */
@@ -461,6 +465,7 @@ export default function Stadium3D(props: Stadium3DProps) {
       const spaced = separate(onPitch.map((l) => [l.x, l.z] as [number, number]));
 
       let ringPos: THREE.Vector3 | null = null;
+      const goal = p.goals?.find((g) => t >= g.t_ms && t < g.t_ms + CELEBRATE_MS);
       for (let k = 0; k < onPitch.length; k++) {
         const { id, b, x, z, vx, vz } = onPitch[k];
         const ease = Math.min(1, realDt * 10);
@@ -478,8 +483,24 @@ export default function Stadium3D(props: Stadium3DProps) {
         b.char.legs[1].rotation.set(pose.swingSide, 0, -pose.swingFwd);
         b.char.arms[0].rotation.z = -pose.swingFwd * 0.8;
         b.char.arms[1].rotation.z = pose.swingFwd * 0.8;
-        b.char.body.position.y = pose.hop;
-        b.char.root.rotation.z = -pose.lean; // lean into the run (local +x is forward)
+        // goal reactions: arms up and jumping for the scorers, heads down for the others (positions stay the data's)
+        const cel = goal ? Math.min(1, (t - goal.t_ms) / 400, (goal.t_ms + CELEBRATE_MS - t) / 3_000) : 0;
+        let lift = 0;
+        let jump = 0;
+        let droop = 0;
+        if (cel > 0) {
+          if (id.startsWith(`${goal!.team_id}-`)) {
+            const scorer = id === goal!.player_id;
+            const beat = Math.abs(Math.sin((t / 1000) * Math.PI * (scorer ? 2.4 : 1.9) + b.phase));
+            // arms out in a waving "V" (straight up would hide behind the big chibi heads)
+            lift = cel * (scorer ? 1.75 + 0.35 * beat : 1.45 + 0.3 * beat);
+            jump = cel * beat * (scorer ? 0.6 : 0.35);
+          } else droop = cel * 0.15;
+        }
+        b.char.arms[0].rotation.x = 0.25 + lift;
+        b.char.arms[1].rotation.x = -0.25 - lift;
+        b.char.body.position.y = pose.hop + jump;
+        b.char.root.rotation.z = -pose.lean - droop; // lean into the run (local +x is forward); slump after conceding
         b.group.rotation.y = pose.heading - Math.PI / 2;
 
         const isRing = p.ringId === id;
@@ -504,14 +525,15 @@ export default function Stadium3D(props: Stadium3DProps) {
       let cid: CameraId = p.camera;
       if (cid === "auto") {
         if (f.kind === "var") cid = "overhead";
-        else if (f.kind === "replay") cid = "close";
+        else if (f.kind === "replay" || f.kind === "player") cid = "close";
         else if (f.kind === "setpiece") cid = (f.x ?? bx) > L / 2 ? "goal-right" : "goal-left";
         else cid = "broadcast";
       }
       const fx = toX(bx);
       const fz = toZ(by);
       const followId = Object.entries(p.followed ?? {}).sort((x, y) => y[1] - x[1])[0]?.[0];
-      const subject = (f.kind === "replay" && ringPos) || (followId && bodies.get(followId)?.group.visible ? bodies.get(followId)!.group.position : null);
+      const picked = f.playerId ? bodies.get(f.playerId) : undefined;
+      const subject = ((f.kind === "replay" || f.kind === "player") && picked?.group.visible && picked.group.position) || (f.kind === "replay" && ringPos) || (followId && bodies.get(followId)?.group.visible ? bodies.get(followId)!.group.position : null);
       switch (cid) {
         case "broadcast":
           wantTarget.set(fx * 0.85, 0, fz * 0.35);

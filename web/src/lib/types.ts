@@ -37,7 +37,8 @@ export interface Match {
   venue: string;
   pitch: { length_m: number; width_m: number };
   teams: Team[];
-  score_timeline: { from_min: number; HAR: number; COP: number }[];
+  /** One entry per goal (after the 0-0 kick-off entry). Exact times are absent in the hand-written mock. */
+  score_timeline: { from_min: number; HAR: number; COP: number; t_ms?: number; team_id?: string; player_id?: string; restart_ms?: number | null }[];
   facts: Record<string, { value: number; source?: string }>;
   cards: Card[];
   /** Moments the reader found but did not turn into cards (match-reader output only). */

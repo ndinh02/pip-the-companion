@@ -10,8 +10,9 @@ import { addedHeadline } from "../lib/addedTime";
 import { useRoomChannel } from "../lib/channel";
 import { buildHalf, HALF_MIN } from "../lib/halfTime";
 import { advance, buildTimeline, clockLabel, clockMinute, skipAhead, startClock, viewAt, type Clock, type Mode } from "../lib/matchClock";
+import { deadShot, goalShot } from "../lib/deadTime";
 import { loadTracking, nearestToBall, positionsAt, type Tracking } from "../lib/tracking";
-import { ui } from "../lib/i18n";
+import { nowKey, ui } from "../lib/i18n";
 import { answerLabel, fill, loadAddedTime, loadMatch, randomRoom, ROOM_RE, scoreAt, t } from "../lib/match";
 import { LANGS, type AddedTime, type Lang, type Match, type Msg, type StateMsg } from "../lib/types";
 
@@ -22,6 +23,7 @@ const REPLAY_PRE_MS = 2_500; // a replay starts this long before play restarted
 const REPLAY_POST_MS = 2_000; // and runs this long past the outcome
 const REPLAY_SLOWMO = 0.5; // replays run at half speed, like TV
 const SPEEDS = [1, 4, 16];
+const GOAL_POP_MS = 8_000; // Pip celebrates in the corner this long after a goal
 
 export default function Tv() {
   const [params, setParams] = useSearchParams();
@@ -157,49 +159,52 @@ export default function Tv() {
   const replayLen = card ? card.reveal_ms + REPLAY_POST_MS - (card.restart_ms - REPLAY_PRE_MS) : 0;
   const intoReveal = card && phase === "reveal" ? clk.tMs - card.reveal_ms : -1;
   const replaying = !!card && phase === "reveal" && card.trigger !== "var" && card.trigger !== "substitution" && intoReveal >= 0 && intoReveal * REPLAY_SLOWMO < replayLen;
-  // VAR: while the check runs, show the frame it is judged on (the pass before the goal), like a VAR still.
-  const varStill = !!card && card.trigger === "var" && card.frame_ms !== undefined && (phase === "ask" || phase === "locked");
-  const viewMs = varStill && card ? card.frame_ms! : replaying && card ? card.restart_ms - REPLAY_PRE_MS + intoReveal * REPLAY_SLOWMO : clk.tMs;
+  // While the question is open the picture keeps moving: replays of what happened, then live (see lib/deadTime).
+  const shot = replaying ? null : deadShot(card, phase, clk.tMs) ?? (card ? null : goalShot(tl, clk.tMs));
+  const slow = replaying || !!shot?.slow;
+  const viewMs = shot ? shot.viewMs : replaying && card ? card.restart_ms - REPLAY_PRE_MS + intoReveal * REPLAY_SLOWMO : clk.tMs;
   const dots = tracking ? positionsAt(tracking, viewMs) : null;
   // The player who takes the set piece (or scored, for VAR), ringed while the moment plays out.
   const ringId = card && tracking ? nearestToBall(positionsAt(tracking, card.restart_ms), card.team_id) : null;
   const followed: Record<string, number> = {};
   follows.current.forEach((pid) => (followed[pid] = (followed[pid] ?? 0) + 1));
+  const goalNow = tl.goals.find((g) => clk.tMs >= g.t_ms && clk.tMs < g.t_ms + GOAL_POP_MS) ?? null;
+  const goalTeam = goalNow ? match.teams.find((x) => x.team_id === goalNow.team_id) : undefined;
+  const nowLine = card ? nowKey(card.trigger) : null;
   const setMode = (mode: Mode) => setClk((c) => ({ ...c, mode }));
   const now = Date.now();
 
   return (
-    <div className={`tv ${replaying ? "replaying" : ""}`}>
+    <div className={`tv ${slow ? "replaying" : ""}`}>
       {tracking && camera !== "tactical" ? (
         <Suspense fallback={<Pitch dots={dots} teams={match.teams} />}>
           <Stadium3D
             tracking={tracking}
             teams={match.teams}
             tMs={viewMs}
-            speed={replaying ? clk.speed * REPLAY_SLOWMO : clk.speed}
-            running={clk.running && clk.halfUntil === null && !varStill}
+            speed={slow ? clk.speed * REPLAY_SLOWMO : clk.speed}
+            running={clk.running && clk.halfUntil === null && (shot?.running ?? true)}
             camera={camera}
             focus={
               replaying
                 ? { kind: "replay", playerId: ringId }
-                : card && (phase === "ask" || phase === "locked")
-                  ? card.trigger === "var"
-                    ? { kind: "var", defending: match.teams.find((x) => x.team_id !== card.team_id)?.team_id }
-                    : card.trigger === "substitution"
-                      ? { kind: "play" }
-                      : { kind: "setpiece", x: card.pitch.x, y: card.pitch.y }
-                  : { kind: "play" }
+                : shot
+                  ? { kind: shot.focus, x: card?.pitch.x, y: card?.pitch.y, playerId: shot.playerId ?? null, defending: match.teams.find((x) => x.team_id !== card?.team_id)?.team_id }
+                  : card && phase === "locked" && card.trigger !== "substitution"
+                    ? { kind: "setpiece", x: card.pitch.x, y: card.pitch.y }
+                    : { kind: "play" }
             }
             ringId={card ? ringId : null}
+            goals={tl.goals}
             followed={followed}
-            replay={replaying}
-            badge={varStill ? "VAR CHECK" : replaying ? "REPLAY" : null}
+            replay={slow}
+            badge={shot ? shot.badge : replaying ? "REPLAY" : null}
           />
         </Suspense>
       ) : (
         <>
           <Pitch marker={card?.pitch} dots={dots} teams={match.teams} ringId={ringId} followed={followed} easeMs={TICK_MS} />
-          {replaying && <div className="replay-badge">REPLAY</div>}
+          {(shot?.badge || replaying) && <div className="replay-badge">{shot?.badge ?? "REPLAY"}</div>}
         </>
       )}
 
@@ -210,6 +215,16 @@ export default function Tv() {
         <span className="team" style={{ borderColor: away.kit.primary }}>{away.short_name}</span>
         <span className="clock">{clock}</span>
       </div>
+
+      {goalNow && (
+        <div className="goal-pop" role="status" key={goalNow.t_ms} style={{ borderColor: goalTeam?.kit.primary }}>
+          <Mascot pose="wow" size={72} />
+          <div>
+            <strong>{ui("goal", lang)}</strong>
+            <div>{goalTeam?.name} · {goalNow.player_id.split("-")[0]} #{goalNow.player_id.split("-")[1]}</div>
+          </div>
+        </div>
+      )}
 
       {clk.skipped && now < clk.skipped.until && (
         <div className="skip-note" role="status">{ui("skippingTo", lang)} {clockLabel(tl, clk.skipped.to)} ▸▸</div>
@@ -236,12 +251,16 @@ export default function Tv() {
 
           {(phase === "ask" || phase === "locked") && (
             <>
+              {phase === "ask" && nowLine && <p className="now-line">{ui(nowLine, lang)}</p>}
               <ul className="opts">
                 {card.question.options.map((o) => (
-                  <li key={o.id}>{t(o.label, lang)}<span className="count">{tally[o.id] ?? 0}</span></li>
+                  <li key={o.id}>{t(o.label, lang)}<span className="count" key={tally[o.id] ?? 0}>{tally[o.id] ?? 0}</span></li>
                 ))}
               </ul>
-              <p className="window-note">{phase === "ask" ? ui("openUntilRestart", lang) : ui("answersClosed", lang)}</p>
+              <p className="window-note">
+                {answered > 0 && <>{answered}/{Math.max(answered, devices.current.size)} {ui("answeredOf", lang)} · </>}
+                {phase === "ask" ? ui("openUntilRestart", lang) : ui("answersClosed", lang)}
+              </p>
             </>
           )}
 

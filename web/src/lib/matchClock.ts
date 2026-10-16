@@ -24,10 +24,19 @@ export interface Period {
   start_ms: number;
   end_ms: number;
 }
+export interface Goal {
+  t_ms: number;
+  team_id: string;
+  player_id: string;
+  restart_ms: number; // the kick-off after it
+}
+export const GOAL_WATCH_MS = 24_000; // highlights keep watching this long after a goal (celebration and replay)
+
 export interface Timeline {
   periods: Period[];
   cards: (Card & { dead_ms: number; restart_ms: number; reveal_ms: number })[];
   boards: { at_ms: number; board: AddedBoard }[];
+  goals: Goal[];
   hasFirstHalfCards: boolean;
 }
 
@@ -47,7 +56,10 @@ export function buildTimeline(match: Match, tracking: Tracking | null, added: Ad
     const p = periods.find((x) => x.id === b.period) ?? periods[0];
     return { at_ms: p.start_ms + 45 * 60_000, board: b };
   });
-  return { periods, cards, boards, hasFirstHalfCards: cards.some((c) => c.restart_ms < periods[1].start_ms) };
+  const goals: Goal[] = match.score_timeline
+    .filter((g) => g.t_ms !== undefined && g.team_id && g.player_id)
+    .map((g) => ({ t_ms: g.t_ms!, team_id: g.team_id!, player_id: g.player_id!, restart_ms: g.restart_ms ?? g.t_ms! + 45_000 }));
+  return { periods, cards, boards, goals, hasFirstHalfCards: cards.some((c) => c.restart_ms < periods[1].start_ms) };
 }
 
 function minuteToMatchMs(periods: Period[], minute: number): number {
@@ -110,6 +122,7 @@ function nextStop(tl: Timeline, clk: Clock): number | null {
   const items: { stop: number; at: number }[] = [];
   for (const c of tl.cards) items.push({ stop: c.dead_ms - LEAD_MS, at: c.dead_ms + DETECT_MS });
   for (const b of tl.boards) items.push({ stop: b.at_ms - 3_000, at: b.at_ms });
+  for (const g of tl.goals) items.push({ stop: g.t_ms - LEAD_MS, at: g.t_ms + GOAL_WATCH_MS });
   if (!clk.halfDone) items.push({ stop: tl.periods[0].end_ms - 3_000, at: tl.periods[0].end_ms });
   const end = tl.periods[tl.periods.length - 1].end_ms;
   items.push({ stop: end - 3_000, at: end });

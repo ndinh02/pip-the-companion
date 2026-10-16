@@ -11,7 +11,8 @@ import { deviceId, useRoomChannel } from "../lib/channel";
 import { NAME } from "../lib/brand";
 import { HALF_MIN, shareText } from "../lib/halfTime";
 import { clampMinute, followLine, loadFollow, saveFollow } from "../lib/whoThat";
-import { deviceLang, ui } from "../lib/i18n";
+import { deviceLang, nowKey, ui } from "../lib/i18n";
+import { alertsWanted, buzz, disableAlerts, enableAlerts, keepAwake, resumeSound } from "../lib/buzz";
 import { answerLabel, fill, loadMatch, loadPlayers, ROOM_RE, t } from "../lib/match";
 import { LANGS, type HalfSummary, type Lang, type Match, type Msg, type PlayersFeed, type StateMsg } from "../lib/types";
 
@@ -32,6 +33,7 @@ export default function Play() {
   const [followId, setFollowId] = useState<string | null>(loadFollow);
   const [copied, setCopied] = useState(false);
   const device = useMemo(deviceId, []);
+  const [alerts, setAlerts] = useState(alertsWanted);
 
   useEffect(() => {
     loadMatch()
@@ -75,6 +77,29 @@ export default function Play() {
   useEffect(() => {
     setDeep(false); // collapse "Go deeper" for each new card
   }, [state?.card?.card_id, state?.board?.period]);
+
+  // Wake the viewer when Pip asks (buzz + chime, opt-in), and softly when the match answers.
+  const askId = state?.phase === "ask" ? state.card?.card_id : undefined;
+  useEffect(() => {
+    if (askId) buzz("ask");
+  }, [askId]);
+  const revealId = state?.phase === "reveal" ? state.card?.card_id : undefined;
+  useEffect(() => {
+    if (revealId) buzz("reveal");
+  }, [revealId]);
+  // Sound is locked again after every page load until the next tap; the screen lock drops when the tab is hidden.
+  useEffect(() => {
+    if (!alerts) return;
+    const tap = () => void resumeSound();
+    const back = () => void keepAwake();
+    void keepAwake();
+    window.addEventListener("pointerdown", tap);
+    document.addEventListener("visibilitychange", back);
+    return () => {
+      window.removeEventListener("pointerdown", tap);
+      document.removeEventListener("visibilitychange", back);
+    };
+  }, [alerts]);
 
   // Bar drain: re-render ~10x/s only while a card is up.
   const [now, setNow] = useState(() => Date.now());
@@ -120,6 +145,13 @@ export default function Play() {
     setFollowId(id);
     saveFollow(id);
   };
+  const alertsOptIn = !alerts && (
+    <button className="alert-optin" onClick={() => { void enableAlerts(); setAlerts(true); }}>
+      <strong>🔔 {ui("alertsOn", lang)}</strong>
+      <span className="dim">{ui("alertsHint", lang)}</span>
+    </button>
+  );
+  const nowLine = card ? nowKey(card.trigger) : null;
   const whoButton = players && match && <button className="ghost" onClick={() => setShowWho(true)}>{ui("whosThat", lang)}</button>;
   const halfView = match && half && (
     <main>
@@ -142,6 +174,9 @@ export default function Play() {
         {followed && match && (
           <button className="follow-chip" aria-label={ui("yourPlayer", lang)} onClick={() => { setShowWho(false); setShowFollow(true); }}>★ {followed.team_id} #{followed.shirt_no}</button>
         )}
+        {alerts && (
+          <button className="alert-chip" aria-label={ui("alertsOff", lang)} title={ui("alertsOff", lang)} onClick={() => { disableAlerts(); setAlerts(false); }}>🔔</button>
+        )}
         <div className="langs">
           {LANGS.map((l) => (
             <button key={l} className={l === lang ? "on" : ""} onClick={() => setLang(l)} aria-pressed={l === lang}>{l.toUpperCase()}</button>
@@ -154,6 +189,7 @@ export default function Play() {
           <Mascot pose="thinks" />
           <h2>{ui("waitingTv", lang)}</h2>
           <p className="dim">{ui("waitingTvHint", lang)}</p>
+          {alertsOptIn}
         </main>
       )}
 
@@ -161,6 +197,7 @@ export default function Play() {
         <main className="center">
           <div className="sleep-dot" aria-hidden="true" />
           <p className="dim">{ui("eyesUp", lang)}</p>
+          {alertsOptIn}
           {half && <button className="ghost" onClick={() => setShowHalf(true)}>{ui("halfCard", lang)}</button>}
           {whoButton}
         </main>
@@ -184,10 +221,11 @@ export default function Play() {
       {state && state.phase === "half" && !showWho && !showFollow && halfView}
 
       {state && card && state.phase === "ask" && (
-        <main>
+        <main className="wake" key={card.card_id}>
           <Mascot pose="asks" size={96} />
           <div className="eyebrow">{ui("callIt", lang)}</div>
           <h2>{t(card.question.text, lang)}</h2>
+          {nowLine && <p className="now-line">{ui(nowLine, lang)}</p>}
           <div className="choices">
             {card.question.options.map((o) => (
               <button
@@ -203,7 +241,28 @@ export default function Play() {
               </button>
             ))}
           </div>
-          {mine ? <p className="dim">✓ {ui("locked", lang)} · {ui("lockedWait", lang)}</p> : <p className="dim">{ui("openUntilRestart", lang)}</p>}
+          {!mine && <p className="dim">{ui("openUntilRestart", lang)}</p>}
+          {mine && (
+            // Answered: while the ball is still dead, show the room filling up and Pip's own guess (never the outcome).
+            <>
+              <p className="dim">✓ {ui("locked", lang)} · {ui("lockedWait", lang)}</p>
+              <section className="tally" aria-label={ui("roomSoFar", lang)}>
+                <div className="eyebrow">{ui("roomSoFar", lang)} · {state.answered} {ui("answeredOf", lang)}</div>
+                {card.question.options.map((o) => {
+                  const n = state.tally[o.id] ?? 0;
+                  const pct = state.answered ? (n / state.answered) * 100 : 0;
+                  return (
+                    <div className="row" key={o.id}>
+                      <span>{t(o.label, lang)}{mine === o.id ? ` · ${ui("you", lang)}` : ""}</span>
+                      <span className="track"><i style={{ width: `${pct}%` }} /></span>
+                      <span className="n">{n}</span>
+                    </div>
+                  );
+                })}
+              </section>
+              <p className="pippi-call">🐤 {ui("pipThinks", lang)}: {answerLabel(card, card.question.pippi_call, lang)}</p>
+            </>
+          )}
         </main>
       )}
 
