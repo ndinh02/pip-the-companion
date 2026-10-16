@@ -20,6 +20,11 @@ export interface Card {
   t_in_min: number;
   /** Exact match time in ms (same clock as tracking); absent in the hand-written mock. */
   t_ms?: number;
+  /** Ball went dead (question opens), play restarted (answers close), outcome visible (reveal). Match ms. */
+  dead_ms?: number;
+  restart_ms?: number;
+  reveal_ms?: number;
+  expected_break_s?: number;
   team_id: string;
   pitch: { x: number; y: number };
   question: { text: I18n; options: Option[]; pippi_call: string };
@@ -90,13 +95,16 @@ export interface HalfSummary {
   rows: HalfRow[];
 }
 
-export type Phase = "play" | "ask" | "reveal" | "added" | "half" | "full";
+/** "locked": play has restarted, answers are closed, the outcome is coming. */
+export type Phase = "play" | "ask" | "locked" | "reveal" | "added" | "half" | "full";
 
 /** TV -> phones */
 export interface StateMsg {
   t: "state";
   phase: Phase;
   minute: number;
+  /** "23'", "45+2'" */
+  clock: string;
   card: Card | null;
   board: AddedBoard | null;
   half: HalfSummary | null;

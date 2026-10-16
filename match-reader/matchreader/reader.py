@@ -234,7 +234,7 @@ def candidates(match: Dict[str, Any],
         return period == 1 and t_in_min > 45.0
 
     # --- corners ---
-    corner_pref = ["far", "near", "short"]  # tie order for Pip's call
+    corner_pref = ["far", "near", "short", "central"]  # tie order for Pip's call
     for ev in events:
         if ev["type"] != "corner":
             continue
@@ -250,13 +250,9 @@ def candidates(match: Dict[str, Any],
             hold("corner", t, team, "habit_not_clear_yet")
             continue
         answer = ev["set_piece"]["target_zone"]
-        if answer == "central":
-            hold("corner", t, team, "no_option_for_central")
-            continue
-        counts = {"near": 0, "far": 0, "short": 0}
+        counts = {"near": 0, "far": 0, "short": 0, "central": 0}
         for e in events:
-            if (e["type"] == "corner" and e["team_id"] == team and e["idx"] < ev["idx"]
-                    and e["set_piece"]["target_zone"] != "central"):
+            if e["type"] == "corner" and e["team_id"] == team and e["idx"] < ev["idx"]:
                 counts[e["set_piece"]["target_zone"]] += 1
         if sum(counts.values()) == 0:
             pippi = "far"
@@ -378,19 +374,51 @@ def candidates(match: Dict[str, Any],
 
 # ---- selection (task 1d) ----------------------------------------------------
 
+# Average length of the natural break before play restarts (published restart averages, brief 8.1).
+# Live, Pip cannot know the real length in advance; it only uses these to decide whether a break is
+# long enough to ask in. The question then stays open until play actually restarts.
+EXPECTED_BREAK_S = {"corner": 34, "free_kick": 28, "substitution": 40, "var": 100}
+MIN_ANSWER_WINDOW_S = 10  # newcomers need at least this long to read and answer
+_QUIET_TYPES = ("substitution", "card", "foul")  # happen while the ball is dead
+
+
+def moment_times(match: Dict[str, Any], cand: Dict[str, Any]) -> Dict[str, int]:
+    """When the question opens (ball dead), when it closes (play restarts) and when the outcome is visible.
+    Each is a signal a live event feed delivers at that moment; none needs knowledge of the future."""
+    events = match["events"]
+    if cand["trigger"] == "var":
+        st = cand["stoppage"]
+        nxt = next((e for e in events if e["t_ms"] >= st["t_end_ms"] and e["type"] not in _QUIET_TYPES), None)
+        restart = nxt["t_ms"] if nxt else st["t_end_ms"]
+        return {"dead_ms": st["t_start_ms"], "restart_ms": restart, "reveal_ms": st["t_end_ms"]}
+    if cand["trigger"] == "substitution":
+        t = cand["t_ms"]
+        nxt = next((e for e in events if e["t_ms"] > t and e["type"] not in _QUIET_TYPES), None)
+        restart = nxt["t_ms"] if nxt else t
+        return {"dead_ms": t, "restart_ms": restart, "reveal_ms": max(t, restart - 2000)}
+    ev = cand["event"]  # corner / free kick: the kick itself restarts play
+    prev = next((e for e in reversed(events) if e["t_ms"] < ev["t_ms"] and e["type"] not in ("substitution", "card")), None)
+    dead = min((prev["t_ms"] + 1000) if prev else ev["t_ms"] - 20000, ev["t_ms"] - 3000)
+    nxt = next((e for e in events if e["t_ms"] > ev["t_ms"]), None)
+    reveal = min(max(nxt["t_ms"] if nxt else ev["t_ms"], ev["t_ms"] + 2000), ev["t_ms"] + 6000)
+    return {"dead_ms": dead, "restart_ms": ev["t_ms"], "reveal_ms": reveal}
+
+
 def select_cards(match: Dict[str, Any], eligible: List[Dict[str, Any]],
                  held: List[Dict[str, Any]],
                  templates: Optional[Dict[str, Any]] = None
                  ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
-    """Greedy: priority var > substitution > free_kick > corner, then time; accept a
-    candidate only if it breaks no rule against the cards already accepted.
+    """Greedy in time order, as a live system must work; accept a candidate only if it breaks
+    no rule against the cards already accepted (priority var > substitution > free_kick >
+    corner only breaks exact ties).
 
     With `templates`, a card is also refused (`no_fresh_line`) when the question or the
     reveal text of its kind has no unused variant left: Pip never repeats a line
     within a match (AGENTS.md rule 8)."""
     goal_events = [(ev["t_ms"], ev["event_id"]) for ev in match["events"]
                    if ev["outcome"] == "goal"]
-    ordered = sorted(eligible, key=lambda c: (TRIGGER_PRIORITY[c["trigger"]], c["t_ms"], c["seq"]))
+    # Live, Pip cannot know what comes later: decide in time order (priority only breaks exact ties).
+    ordered = sorted(eligible, key=lambda c: (c["t_ms"], TRIGGER_PRIORITY[c["trigger"]], c["seq"]))
     accepted: List[Dict[str, Any]] = []
 
     def fresh_line_left(cand: Dict[str, Any]) -> bool:
@@ -404,7 +432,9 @@ def select_cards(match: Dict[str, Any], eligible: List[Dict[str, Any]],
 
     for cand in ordered:
         reason: Optional[str] = None
-        if not fresh_line_left(cand):
+        if EXPECTED_BREAK_S.get(cand["trigger"], 0) < MIN_ANSWER_WINDOW_S:
+            reason = "break_usually_too_short"
+        elif not fresh_line_left(cand):
             reason = "no_fresh_line"
         elif sum(1 for a in accepted if a["period"] == cand["period"]) >= MAX_PER_HALF:
             reason = "max_per_half"
@@ -482,6 +512,8 @@ def _build(match: Dict[str, Any],
             "trigger": cand["trigger"],
             "t_in_min": cand["t_in_min"],
             "t_ms": cand["t_ms"],  # exact match time, for real-time replay from tracking
+            **moment_times(match, cand),
+            "expected_break_s": EXPECTED_BREAK_S[cand["trigger"]],
             "team_id": cand["team_id"],
             "pitch": {"x": cand["pitch"]["x"], "y": cand["pitch"]["y"]},
             "question": {

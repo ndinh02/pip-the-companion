@@ -56,6 +56,10 @@ export const UI = {
   replay: { en: "Replay", de: "Wiederholen", vi: "Xem lại" },
   notOnPitch: { en: "Not on the pitch right now.", de: "Gerade nicht auf dem Platz.", vi: "Hiện không có mặt trên sân." },
   loadingTracking: { en: "Loading positions…", de: "Positionen werden geladen …", vi: "Đang tải vị trí…" },
+  openUntilRestart: { en: "Open until play restarts", de: "Offen, bis das Spiel weitergeht", vi: "Mở đến khi trận đấu tiếp tục" },
+  answersClosed: { en: "Play is on: answers are locked. Watch!", de: "Es geht weiter: Antworten sind gesperrt. Schau hin!", vi: "Bóng đã lăn: đã khóa câu trả lời. Xem nào!" },
+  tooQuick: { en: "Too quick this time. No call needed.", de: "Diesmal ging es zu schnell. Kein Problem.", vi: "Lần này nhanh quá. Không sao cả." },
+  skippingTo: { en: "Skipping to", de: "Weiter zu", vi: "Tua đến" },
   you: { en: "You", de: "Du", vi: "Bạn" },
 } satisfies Record<string, Record<Lang, string>>;
 

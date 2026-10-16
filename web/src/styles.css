@@ -66,6 +66,10 @@ a { color: var(--sky); }
   font-size: max(16px, 1.5vw);
   animation: hop 300ms ease-out;
 }
+.skip-note { position: absolute; top: 5%; left: 50%; transform: translateX(-50%); background: rgba(14, 26, 43, 0.9); border: 1px solid var(--sky); color: var(--sky); border-radius: 999px; padding: 0.4vw 1.2vw; font-weight: 800; font-size: max(14px, 1.1vw); }
+.window-note { font-size: 0.75em; color: var(--dim); }
+.lower-third.locked .opts li { opacity: 0.6; }
+.lower-third.locked .window-note { color: var(--floodlight); }
 .lower-third.reveal { border-left-color: var(--turf); }
 .lt-head { display: flex; gap: 1vw; align-items: center; }
 .lt-head svg { flex: none; width: 5vw; min-width: 56px; height: auto; }

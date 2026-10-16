@@ -7,45 +7,27 @@ import HalfTimeCard from "../components/HalfTimeCard";
 import Pitch from "../components/Pitch";
 import { addedHeadline } from "../lib/addedTime";
 import { useRoomChannel } from "../lib/channel";
-import { buildHalf, firstHalfCards, HALF_MIN } from "../lib/halfTime";
-import { loadTracking, minuteToMs, nearestToBall, positionsAt, type Tracking } from "../lib/tracking";
+import { buildHalf, HALF_MIN } from "../lib/halfTime";
+import { advance, buildTimeline, clockLabel, clockMinute, skipAhead, startClock, viewAt, type Clock, type Mode } from "../lib/matchClock";
+import { loadTracking, nearestToBall, positionsAt, type Tracking } from "../lib/tracking";
 import { ui } from "../lib/i18n";
 import { answerLabel, fill, loadAddedTime, loadMatch, randomRoom, ROOM_RE, scoreAt, t } from "../lib/match";
-import { LANGS, type AddedTime, type Card, type Lang, type Match, type Msg, type Phase, type StateMsg } from "../lib/types";
+import { LANGS, type AddedTime, type Lang, type Match, type Msg, type StateMsg } from "../lib/types";
 
-const SEC_PER_MATCH_MIN = 1.2; // demo clock: 1 match minute = 1.2 s
-const FULL_TIME_MIN = 90;
-/** Full time: 90', or one minute after the last card if a card falls in second-half added time. */
-const endMinute = (m: Match) => Math.max(FULL_TIME_MIN, Math.ceil(m.cards[m.cards.length - 1]?.t_in_min ?? 0) + 1);
-const ASK_MS = 20_000;
-const REVEAL_MS = 14_000;
-const ADDED_MS = 16_000;
-const HALF_MS = 30_000;
-const REPLAY_LEAD_MS = 6_000; // a replay starts this long before the moment and runs in real time through the reveal
-const CALM_MS = 600; // during the fast demo clock the pitch updates this often, eased, so it reads as a calm time-lapse
-
-interface Engine {
-  minute: number;
-  phase: Phase;
-  next: number; // index of the next card to fire
-  board: number; // index of the next added-time board to show (45', 90')
-  halfDone: boolean; // half-time card shown
-  card: Card | null;
-  deadline: number;
-  total_ms: number;
-}
+const TICK_MS = 100;
+const SPEEDS = [1, 4, 16];
 
 export default function Tv() {
   const [params, setParams] = useSearchParams();
   const [match, setMatch] = useState<Match | null>(null);
   const [added, setAdded] = useState<AddedTime | null>(null);
   const [tracking, setTracking] = useState<Tracking | null>(null);
+  const [trackingDone, setTrackingDone] = useState(false);
   const follows = useRef(new Map<string, string>()); // device -> player id
   const [error, setError] = useState<string | null>(null);
   const [lang, setLang] = useState<Lang>("en");
-  const [speed, setSpeed] = useState(1);
-  const [running, setRunning] = useState(true);
   const [answerTick, setAnswerTick] = useState(0);
+  const [clk, setClk] = useState<Clock>(() => startClock(params.get("mode") === "full" ? "full" : "highlights"));
 
   const room = useMemo(() => {
     const r = params.get("room")?.toUpperCase() ?? "";
@@ -59,174 +41,134 @@ export default function Tv() {
     loadMatch()
       .then((m) => {
         setMatch(m);
-        loadTracking(m).then(setTracking);
+        loadTracking(m).then((tr) => {
+          setTracking(tr);
+          setTrackingDone(true);
+        });
         return loadAddedTime(m).then(setAdded);
       })
       .catch((e: Error) => setError(e.message));
   }, []);
 
-  const [eng, setEng] = useState<Engine>({ minute: 0, phase: "play", next: 0, board: 0, halfDone: false, card: null, deadline: 0, total_ms: 0 });
+  const tl = useMemo(() => (match && trackingDone ? buildTimeline(match, tracking, added) : null), [match, tracking, trackingDone, added]);
+
+  // The clock never stops for Pip; only half-time pauses (as football does) and the operator's Pause button.
+  useEffect(() => {
+    if (!tl) return;
+    let last = Date.now();
+    const id = setInterval(() => {
+      const now = Date.now();
+      const dt = now - last;
+      last = now;
+      setClk((c) => advance(tl, c, dt, now));
+    }, TICK_MS);
+    return () => clearInterval(id);
+  }, [tl]);
+
+  const view = tl ? viewAt(tl, clk) : null;
+  const phase = view?.phase ?? "play";
+  const card = view?.card ?? null;
+  const phaseRef = useRef({ phase, cardId: card?.card_id });
+  phaseRef.current = { phase, cardId: card?.card_id };
+
   const answers = useRef(new Map<string, Map<string, string>>()); // card_id -> device -> option
   const devices = useRef(new Set<string>());
-
-  const cardAnswers = (c: Card | null) => (c ? answers.current.get(c.card_id) : undefined);
   const tally = useMemo(() => {
     const out: Record<string, number> = {};
-    cardAnswers(eng.card)?.forEach((opt) => (out[opt] = (out[opt] ?? 0) + 1));
+    if (card) answers.current.get(card.card_id)?.forEach((opt) => (out[opt] = (out[opt] ?? 0) + 1));
     return out;
     // answerTick is the change signal for the mutable ref above
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eng.card, answerTick]);
+  }, [card?.card_id, answerTick]);
   const answered = Object.values(tally).reduce((a, b) => a + b, 0);
-
-  // Match clock + card lifecycle. Cards stay until play resumes; the clock is frozen while a card is up.
-  useEffect(() => {
-    if (!match || !running) return;
-    const id = setInterval(() => {
-      setEng((s) => {
-        const now = Date.now();
-        if (s.phase === "play") {
-          const end = endMinute(match);
-          const minute = Math.min(end, s.minute + (0.1 / SEC_PER_MATCH_MIN) * speed);
-          const nextCard = match.cards[s.next];
-          const cardAt = nextCard?.t_in_min ?? Infinity;
-          const boardAt = added?.boards[s.board]?.at_min ?? Infinity;
-          // Half-time card: after the 45' added-time board, and only if there was a first-half question.
-          const boardPending = added?.boards[s.board]?.at_min === HALF_MIN;
-          const halfAt = s.halfDone || boardPending || !firstHalfCards(match).length ? Infinity : HALF_MIN;
-          if (minute >= Math.min(cardAt, boardAt, halfAt)) {
-            // Whichever comes first: a Call-it card, an added-time board (45' / 90'), or half-time.
-            if (cardAt <= boardAt && cardAt <= halfAt)
-              return { ...s, minute: cardAt, phase: "ask", card: nextCard, deadline: now + ASK_MS, total_ms: ASK_MS };
-            if (boardAt <= halfAt)
-              return { ...s, minute: boardAt, phase: "added", card: null, deadline: now + ADDED_MS, total_ms: ADDED_MS };
-            return { ...s, minute: halfAt, phase: "half", card: null, deadline: now + HALF_MS, total_ms: HALF_MS };
-          }
-          if (minute >= end) return { ...s, minute: end, phase: "full", card: null };
-          return { ...s, minute };
-        }
-        if (s.phase === "ask" && now >= s.deadline) return { ...s, phase: "reveal", deadline: now + REVEAL_MS, total_ms: REVEAL_MS };
-        if (s.phase === "reveal" && now >= s.deadline) return { ...s, phase: "play", card: null, next: s.next + 1 };
-        if (s.phase === "added" && now >= s.deadline) return { ...s, phase: "play", board: s.board + 1 };
-        if (s.phase === "half" && now >= s.deadline) return { ...s, phase: "play", halfDone: true };
-        return s;
-      });
-    }, 100);
-    return () => clearInterval(id);
-  }, [match, added, running, speed]);
 
   const send = useRoomChannel(room, "tv", (m: Msg) => {
     if (m.t === "hello") {
       devices.current.add(m.device);
-      setAnswerTick((n) => n + 1);
     } else if (m.t === "follow") {
-      // Only known player ids are accepted; the TV keeps a count per player, never who follows.
+      // Only known player ids are accepted; the screen keeps a count per player, never who follows.
       if (m.player_id && tracking?.entities.includes(m.player_id)) follows.current.set(m.device, m.player_id);
       else follows.current.delete(m.device);
-      setAnswerTick((n) => n + 1);
     } else if (m.t === "answer") {
       devices.current.add(m.device);
-      setEng((s) => {
-        if (s.phase !== "ask" || s.card?.card_id !== m.card_id) return s;
-        // Server-side style validation: only known option ids are accepted.
-        if (!s.card.question.options.some((o) => o.id === m.option)) return s;
-        const per = answers.current.get(m.card_id) ?? new Map<string, string>();
-        per.set(m.device, m.option);
-        answers.current.set(m.card_id, per);
-        // Everyone locked in -> reveal early.
-        if (per.size >= devices.current.size && devices.current.size > 0) return { ...s, phase: "reveal", deadline: Date.now() + REVEAL_MS, total_ms: REVEAL_MS };
-        return s;
-      });
-      setAnswerTick((n) => n + 1);
-    }
+      const now = phaseRef.current;
+      // Answers count only while the ball is dead. Once play restarts they are locked: the outcome is on its way.
+      if (now.phase !== "ask" || now.cardId !== m.card_id || !card) return;
+      if (!card.question.options.some((o) => o.id === m.option)) return; // only known option ids
+      const per = answers.current.get(m.card_id) ?? new Map<string, string>();
+      per.set(m.device, m.option);
+      answers.current.set(m.card_id, per);
+    } else return;
+    setAnswerTick((n) => n + 1);
   });
 
-  // Push state to phones whenever something that matters changes (and once a second for the clock).
   const half = useMemo(
-    () => (match && eng.phase === "half" ? buildHalf(match, answers.current, scoreAt(match, HALF_MIN)) : null),
-    // answerTick is the change signal for the mutable answers ref
+    () => (match && phase === "half" ? buildHalf(match, answers.current, scoreAt(match, HALF_MIN)) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [match, eng.phase, answerTick],
+    [match, phase, answerTick],
   );
+  const board = view?.board ?? null;
+  const minute = tl ? Math.floor(clockMinute(tl, clk.tMs)) : 0;
+  const clock = tl ? clockLabel(tl, clk.tMs) : "0'";
+
+  // Push state to phones whenever something that matters changes (and on a heartbeat for late joiners).
   const lastSent = useRef("");
-  const board = eng.phase === "added" ? (added?.boards[eng.board] ?? null) : null;
+  const revealLeft = view?.phase === "reveal" && view.progress !== null ? ((1 - view.progress) * 12_000) / clk.speed : 0;
   const broadcast = useCallback(() => {
-    const msg: StateMsg = { t: "state", phase: eng.phase, minute: Math.floor(eng.minute), card: eng.card, board, half, deadline: eng.deadline, total_ms: eng.total_ms, tally, answered };
-    const key = JSON.stringify([msg.phase, msg.minute, msg.card?.card_id, msg.board?.period, msg.half?.rows.length, msg.deadline, msg.tally]);
+    const now = Date.now();
+    const msg: StateMsg = {
+      t: "state", phase, minute, clock, card, board, half,
+      // No countdown while a question is open: live, nobody knows when play restarts.
+      deadline: phase === "reveal" ? now + revealLeft : 0,
+      total_ms: phase === "reveal" ? 12_000 / clk.speed : 0,
+      tally, answered,
+    };
+    const key = JSON.stringify([msg.phase, msg.minute, msg.card?.card_id, msg.board?.period, msg.half?.rows.length, msg.tally]);
     if (key !== lastSent.current) {
       lastSent.current = key;
       send(msg);
     }
-  }, [eng, board, half, tally, answered, send]);
+  }, [phase, minute, clock, card, board, half, tally, answered, revealLeft, clk.speed, send]);
   useEffect(broadcast, [broadcast]);
   useEffect(() => {
     const id = setInterval(() => {
-      lastSent.current = ""; // heartbeat so late joiners catch up
+      lastSent.current = "";
       broadcast();
     }, 1500);
     return () => clearInterval(id);
   }, [broadcast]);
 
-  const now = useNow(eng.phase === "ask" || eng.phase === "reveal" || eng.phase === "added" || eng.phase === "half");
-
-  // Calm time-lapse clock for the pitch while the demo clock runs fast.
-  const [calmMinute, setCalmMinute] = useState(0);
-  const minuteRef = useRef(0);
-  minuteRef.current = eng.minute;
-  useEffect(() => {
-    const id = setInterval(() => setCalmMinute(minuteRef.current), CALM_MS);
-    return () => clearInterval(id);
-  }, []);
-
   if (error) return <div className="center">Could not load the match: {error}</div>;
-  if (!match) return <div className="center">…</div>;
+  if (!match || !tl || !view) return <div className="center">…</div>;
 
-  const score = scoreAt(match, eng.minute);
+  const score = scoreAt(match, clockMinute(tl, clk.tMs));
   const home = match.teams[0];
   const away = match.teams[1];
-  const card = eng.card;
   const joinUrl = `${location.origin}/play/${room}`;
-  const remain = Math.max(0, Math.min(1, (eng.deadline - now) / (eng.total_ms || 1)));
   const team = card ? match.teams.find((x) => x.team_id === card.team_id) : undefined;
-
-  // What the pitch shows: a frozen set-up while the question is open, a real-time replay during the reveal,
-  // and a calm time-lapse otherwise.
-  const replay = !!tracking && !!card && card.t_ms !== undefined && (eng.phase === "ask" || eng.phase === "reveal");
-  let viewMs = tracking ? minuteToMs(tracking, calmMinute) : 0;
-  if (replay && card?.t_ms !== undefined) {
-    const start = card.t_ms - REPLAY_LEAD_MS;
-    viewMs = eng.phase === "ask" ? start : start + (eng.total_ms - Math.max(0, eng.deadline - now));
-  }
-  const dots = tracking ? positionsAt(tracking, viewMs) : null;
-  const ringId = replay && tracking && card?.t_ms !== undefined ? nearestToBall(positionsAt(tracking, card.t_ms), card.team_id) : null;
+  const dots = tracking ? positionsAt(tracking, clk.tMs) : null;
+  // The player who takes the set piece (or scored, for VAR), ringed while the moment plays out.
+  const ringId = card && tracking ? nearestToBall(positionsAt(tracking, card.restart_ms), card.team_id) : null;
   const followed: Record<string, number> = {};
   follows.current.forEach((pid) => (followed[pid] = (followed[pid] ?? 0) + 1));
-
-  const skipToNext = () => {
-    const upNext = Math.min(match.cards[eng.next]?.t_in_min ?? Infinity, added?.boards[eng.board]?.at_min ?? Infinity, eng.halfDone || !firstHalfCards(match).length ? Infinity : HALF_MIN);
-    if (eng.phase === "play" && upNext < Infinity) setEng((s) => ({ ...s, minute: upNext - 0.01 }));
-    else if (eng.phase === "added") setEng((s) => ({ ...s, phase: "play", board: s.board + 1 }));
-    else if (eng.phase === "half") setEng((s) => ({ ...s, phase: "play", halfDone: true }));
-    else if (eng.phase === "ask") setEng((s) => ({ ...s, phase: "reveal", deadline: Date.now() + REVEAL_MS, total_ms: REVEAL_MS }));
-    else if (eng.phase === "reveal") setEng((s) => ({ ...s, phase: "play", card: null, next: s.next + 1 }));
-  };
-  const restart = () => {
-    answers.current.clear();
-    setEng({ minute: 0, phase: "play", next: 0, board: 0, halfDone: false, card: null, deadline: 0, total_ms: 0 });
-    setAnswerTick((n) => n + 1);
-  };
+  const setMode = (mode: Mode) => setClk((c) => ({ ...c, mode }));
+  const now = Date.now();
 
   return (
     <div className="tv">
-      <Pitch marker={card?.pitch} dots={dots} teams={match.teams} ringId={ringId} followed={followed} easeMs={replay ? 100 : CALM_MS} />
+      <Pitch marker={card?.pitch} dots={dots} teams={match.teams} ringId={ringId} followed={followed} easeMs={TICK_MS} />
 
       {/* Scoreboard stays clear of the card (top-left, inside the 5% safe area). */}
       <div className="scoreboard" aria-label="Scoreboard">
         <span className="team" style={{ borderColor: home.kit.primary }}>{home.short_name}</span>
         <span className="score">{score.HAR} – {score.COP}</span>
         <span className="team" style={{ borderColor: away.kit.primary }}>{away.short_name}</span>
-        <span className="clock">{Math.floor(eng.minute)}'</span>
+        <span className="clock">{clock}</span>
       </div>
+
+      {clk.skipped && now < clk.skipped.until && (
+        <div className="skip-note" role="status">{ui("skippingTo", lang)} {clockLabel(tl, clk.skipped.to)} ▸▸</div>
+      )}
 
       <div className="join">
         <QRCodeSVG value={joinUrl} size={96} bgColor="#F6F3EC" fgColor="#0E1A2B" />
@@ -237,39 +179,39 @@ export default function Tv() {
         </div>
       </div>
 
-      {card && eng.phase !== "play" && (
-        <section className={`lower-third ${eng.phase}`} aria-live="polite">
+      {card && (phase === "ask" || phase === "locked" || phase === "reveal") && (
+        <section className={`lower-third ${phase === "locked" ? "ask locked" : phase}`} aria-live="polite">
           <div className="lt-head">
-            <Mascot pose={eng.phase === "ask" ? "asks" : card.reveal.pose} size={88} />
+            <Mascot pose={phase === "reveal" ? card.reveal.pose : "asks"} size={88} />
             <div>
               <div className="eyebrow">{ui("callIt", lang)} · {team?.name}</div>
               <h1>{t(card.question.text, lang)}</h1>
             </div>
           </div>
 
-          {eng.phase === "ask" && (
+          {(phase === "ask" || phase === "locked") && (
             <>
               <ul className="opts">
                 {card.question.options.map((o) => (
                   <li key={o.id}>{t(o.label, lang)}<span className="count">{tally[o.id] ?? 0}</span></li>
                 ))}
               </ul>
-              <div className="bar"><i style={{ width: `${remain * 100}%` }} /></div>
+              <p className="window-note">{phase === "ask" ? ui("openUntilRestart", lang) : ui("answersClosed", lang)}</p>
             </>
           )}
 
-          {eng.phase === "reveal" && (
+          {phase === "reveal" && (
             <>
               <div className="eyebrow turf">{ui("matchSays", lang)}: {answerLabel(card, card.reveal.answer, lang)}</div>
               <p className="plain">{fill(t(card.reveal.plain, lang), match.facts)}</p>
               <p className="pippi-call">{ui("pippiCalled", lang)}: {answerLabel(card, card.question.pippi_call, lang)}</p>
-              <div className="bar"><i style={{ width: `${remain * 100}%` }} /></div>
+              <div className="bar"><i style={{ width: `${(1 - (view.progress ?? 0)) * 100}%` }} /></div>
             </>
           )}
         </section>
       )}
 
-      {eng.phase === "added" && board && (
+      {phase === "added" && board && (
         <section className="lower-third added" aria-live="polite">
           <div className="lt-head">
             <Mascot pose="thinks" size={88} />
@@ -280,11 +222,11 @@ export default function Tv() {
           </div>
           <p className="plain">{ui("addedWhy", lang)}</p>
           <AddedBreakdown board={board} lang={lang} />
-          <div className="bar"><i style={{ width: `${remain * 100}%` }} /></div>
+          <div className="bar"><i style={{ width: `${(1 - (view.progress ?? 0)) * 100}%` }} /></div>
         </section>
       )}
 
-      {eng.phase === "half" && half && (
+      {phase === "half" && half && (
         <section className="lower-third half" aria-live="polite">
           <div className="lt-head">
             <Mascot pose="wave" size={88} />
@@ -294,22 +236,24 @@ export default function Tv() {
             </div>
           </div>
           <HalfTimeCard match={match} half={half} lang={lang} />
-          <div className="bar"><i style={{ width: `${remain * 100}%` }} /></div>
+          {clk.halfUntil && <div className="bar"><i style={{ width: `${Math.max(0, (clk.halfUntil - now) / 30_000) * 100}%` }} /></div>}
         </section>
       )}
 
-      {eng.phase === "full" && (
+      {phase === "full" && (
         <section className="lower-third reveal">
           <div className="lt-head"><Mascot pose="wave" size={88} /><h1>{ui("fullTime", lang)}</h1></div>
         </section>
       )}
 
       <div className="controls" role="group" aria-label="Demo controls">
-        <span className="dim">Demo controls</span>
-        <button onClick={() => setRunning((r) => !r)}>{running ? "Pause" : "Play"}</button>
-        <button onClick={skipToNext}>Next ▸</button>
-        <button onClick={() => setSpeed((s) => (s === 1 ? 4 : 1))}>×{speed}</button>
-        <button onClick={restart}>Restart</button>
+        <span className="dim">Demo</span>
+        <button onClick={() => setClk((c) => ({ ...c, running: !c.running }))}>{clk.running ? "Pause" : "Play"}</button>
+        <button onClick={() => setClk((c) => skipAhead(tl, c, Date.now()))}>Next ▸</button>
+        <button onClick={() => setClk((c) => ({ ...c, speed: SPEEDS[(SPEEDS.indexOf(c.speed) + 1) % SPEEDS.length] }))} aria-label="Speed">×{clk.speed}</button>
+        <button className={clk.mode === "highlights" ? "on" : ""} onClick={() => setMode("highlights")} aria-pressed={clk.mode === "highlights"}>Highlights</button>
+        <button className={clk.mode === "full" ? "on" : ""} onClick={() => setMode("full")} aria-pressed={clk.mode === "full"}>Full match</button>
+        <button onClick={() => { answers.current.clear(); setClk((c) => ({ ...startClock(c.mode), speed: c.speed })); setAnswerTick((n) => n + 1); }}>Restart</button>
         {LANGS.map((l) => (
           <button key={l} className={l === lang ? "on" : ""} onClick={() => setLang(l)}>{l.toUpperCase()}</button>
         ))}
@@ -317,14 +261,4 @@ export default function Tv() {
       </div>
     </div>
   );
-}
-
-function useNow(active: boolean) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    if (!active) return;
-    const id = setInterval(() => setNow(Date.now()), 100);
-    return () => clearInterval(id);
-  }, [active]);
-  return now;
 }

@@ -17,7 +17,7 @@ npm install
 npm run dev
 ```
 Then open:
-- `http://localhost:5173/tv` — the shared screen. Use the demo controls (bottom right): `Next ▸` jumps to the next question.
+- `http://localhost:5173/tv` — the shared screen. Like live TV, nothing stops for Pip: a question opens when the ball goes dead, stays open until play restarts, and the reveal shows when the outcome happens. **Highlights** (default) jumps between moments and plays each at real speed; **Full match** runs all 90 minutes; `×1/×4/×16` speeds up; `Next ▸` jumps ahead. Only half-time pauses.
 - `Open phone ↗` on that page — the phone view, in a second tab of the same browser. (With `npm run dev` there is no room server, so screen and phone talk inside one browser. The hosted demo and the production server below let real phones join by QR code.)
 - `http://localhost:5173/console` — operator view: tracking, the content workflow, "Catch me lying".
 

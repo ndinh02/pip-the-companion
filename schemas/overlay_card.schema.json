@@ -26,6 +26,10 @@
     "trigger": { "enum": ["corner", "free_kick", "var", "substitution", "half_time", "injury", "other"] },
     "t_in_min": { "type": "number", "minimum": 0, "maximum": 130 },
     "t_ms": { "description": "Exact match time of the moment (same clock as events and tracking). Optional.", "type": "integer", "minimum": 0 },
+    "dead_ms": { "description": "Ball went dead: the question opens (a live feed signals this at once).", "type": "integer", "minimum": 0 },
+    "restart_ms": { "description": "Play restarted: answers close. Not known in advance when live.", "type": "integer", "minimum": 0 },
+    "reveal_ms": { "description": "The outcome is visible: the reveal shows.", "type": "integer", "minimum": 0 },
+    "expected_break_s": { "description": "Average length of this kind of break; used only to decide whether to ask.", "type": "integer", "minimum": 0 },
     "team_id": { "type": "string" },
     "pitch": {
       "type": "object",
@@ -41,7 +45,7 @@
         "options": {
           "type": "array",
           "minItems": 2,
-          "maxItems": 3,
+          "maxItems": 4,
           "items": {
             "type": "object",
             "required": ["id", "label"],

@@ -47,6 +47,14 @@
       "de": "Kurz",
       "vi": "Ngắn"
      }
+    },
+    {
+     "id": "central",
+     "label": {
+      "en": "Middle",
+      "de": "Mitte",
+      "vi": "Giữa"
+     }
     }
    ]
   },
@@ -125,6 +133,30 @@
       "en": "Far post it is! The delivery travelled past the near post to the other side.",
       "de": "Es ist der Fernpfosten! Die Hereingabe flog am nahen Pfosten vorbei auf die andere Seite.",
       "vi": "Là cột xa! Quả tạt bay qua cột gần sang phía bên kia."
+     }
+    ],
+    "expert": {
+     "en": "<team> have played {corners_short} of their {corners_total} corners short today. The league average is about {league_short_share_pct}%.",
+     "de": "<team> hat heute {corners_short} von {corners_total} Ecken kurz gespielt. Der Ligaschnitt liegt bei etwa {league_short_share_pct} %.",
+     "vi": "Hôm nay <team> đã đá ngắn {corners_short}/{corners_total} quả phạt góc. Trung bình giải khoảng {league_short_share_pct}%."
+    },
+    "fact_ids": [
+     "corners_short",
+     "corners_total",
+     "league_short_share_pct"
+    ]
+   },
+   "central": {
+    "plain": [
+     {
+      "en": "Middle! <team> aimed the corner at the space in front of goal.",
+      "de": "Mitte! <team> zielte mit der Ecke auf den Raum vor dem Tor.",
+      "vi": "Giữa! <team> đưa quả phạt góc vào khoảng trống trước khung thành."
+     },
+     {
+      "en": "Into the middle! The delivery dropped between the posts, around the penalty spot.",
+      "de": "In die Mitte! Die Hereingabe landete zwischen den Pfosten, rund um den Elfmeterpunkt.",
+      "vi": "Vào giữa! Quả tạt rơi giữa hai cột, quanh chấm phạt đền."
      }
     ],
     "expert": {

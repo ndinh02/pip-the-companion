@@ -96,7 +96,7 @@ export default function Play() {
   const card = state?.card ?? null;
   const mine = card ? picked[card.card_id] : undefined;
   const remain = state ? Math.max(0, Math.min(1, (state.deadline - now) / (state.total_ms || 1))) : 0;
-  const dark = (!state || state.phase === "play") && !showHalf && !showWho && !showFollow; // "Eyes up": nothing moves during open play
+  const dark = (!state || state.phase === "play" || state.phase === "locked") && !showHalf && !showWho && !showFollow; // "Eyes up": nothing moves during open play
 
   const share = async () => {
     if (!match || !half) return;
@@ -138,7 +138,7 @@ export default function Play() {
     <div className={`phone ${dark ? "eyes-up" : ""}`}>
       <header>
         <span className="mono">{room}</span>
-        <span className="dim">{state ? `${state.minute}'` : ""}</span>
+        <span className="dim">{state ? state.clock ?? `${state.minute}'` : ""}</span>
         {followed && match && (
           <button className="follow-chip" aria-label={ui("yourPlayer", lang)} onClick={() => { setShowWho(false); setShowFollow(true); }}>★ {followed.team_id} #{followed.shirt_no}</button>
         )}
@@ -157,7 +157,7 @@ export default function Play() {
         </main>
       )}
 
-      {state && dark && !showWho && !showFollow && (
+      {state && dark && state.phase !== "locked" && !showWho && !showFollow && (
         <main className="center">
           <div className="sleep-dot" aria-hidden="true" />
           <p className="dim">{ui("eyesUp", lang)}</p>
@@ -203,8 +203,16 @@ export default function Play() {
               </button>
             ))}
           </div>
-          {mine ? <p className="dim">✓ {ui("locked", lang)} · {ui("lockedWait", lang)}</p> : null}
-          <div className="bar"><i style={{ width: `${remain * 100}%` }} /></div>
+          {mine ? <p className="dim">✓ {ui("locked", lang)} · {ui("lockedWait", lang)}</p> : <p className="dim">{ui("openUntilRestart", lang)}</p>}
+        </main>
+      )}
+
+      {state && card && state.phase === "locked" && !showWho && !showFollow && (
+        // Play has restarted: answers are closed and the phone goes quiet so eyes go back to the screen.
+        <main className="center">
+          <div className="sleep-dot" aria-hidden="true" />
+          <p>{mine ? `✓ ${ui("locked", lang)}: ${answerLabel(card, mine, lang)}` : ui("tooQuick", lang)}</p>
+          <p className="dim">{ui("answersClosed", lang)}</p>
         </main>
       )}
 
