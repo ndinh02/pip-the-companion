@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ANIMAL_LABEL, animalOf } from "../lib/animals";
 import { ui } from "../lib/i18n";
 import {
   clampMinute, describePlayer, kmh, km, minutesPlayed, POSITION_LABEL, STAT_LABEL, stat, statusAt, STATUS, teamName,
@@ -50,7 +51,8 @@ export default function WhosThat({ match, feed, minute, lang, followId, onFollow
           <div className="numbers">
             {feed.players.filter((p) => p.team_id === team).map((p) => (
               <button key={p.player_id} className={`num ${minutesPlayed(p, m) > 0 ? "" : "idle"}`} onClick={() => setPlayer(p)}
-                aria-label={`${p.shirt_no}, ${POSITION_LABEL[p.position][lang]}`}>
+                aria-label={`${p.shirt_no}, ${ANIMAL_LABEL[animalOf(p.player_id)][lang]}, ${POSITION_LABEL[p.position][lang]}`}>
+                <span className="animal" aria-hidden="true">{ANIMAL_LABEL[animalOf(p.player_id)].emoji}</span>
                 <b>{p.shirt_no}</b>
                 <span>{p.position}</span>
               </button>
@@ -90,7 +92,7 @@ function PlayerCard({ match, feed, p, m, lang, followed, onFollow }: {
         <span className="shirt" style={{ background: team?.kit.primary, color: team?.kit.secondary }}>{p.shirt_no}</span>
         <div>
           <h3>{team?.name} · #{p.shirt_no}</h3>
-          <div className="dim">{POSITION_LABEL[p.position][lang]} · {STATUS[status.kind][lang]}{status.at !== undefined ? ` ${status.at}'` : ""}</div>
+          <div className="dim">{ANIMAL_LABEL[animalOf(p.player_id)].emoji} {ANIMAL_LABEL[animalOf(p.player_id)][lang]} · {POSITION_LABEL[p.position][lang]} · {STATUS[status.kind][lang]}{status.at !== undefined ? ` ${status.at}'` : ""}</div>
         </div>
       </div>
       <p className="plain">{describePlayer(feed, p, m, team?.name ?? p.team_id, lang)}</p>

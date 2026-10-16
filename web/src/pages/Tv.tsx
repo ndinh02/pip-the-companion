@@ -20,6 +20,7 @@ const Stadium3D = lazy(() => import("../components/Stadium3D"));
 const TICK_MS = 100;
 const REPLAY_PRE_MS = 2_500; // a replay starts this long before play restarted
 const REPLAY_POST_MS = 2_000; // and runs this long past the outcome
+const REPLAY_SLOWMO = 0.5; // replays run at half speed, like TV
 const SPEEDS = [1, 4, 16];
 
 export default function Tv() {
@@ -155,10 +156,10 @@ export default function Tv() {
   // At the reveal, show the moment again like TV does: from just before the kick to just after the outcome.
   const replayLen = card ? card.reveal_ms + REPLAY_POST_MS - (card.restart_ms - REPLAY_PRE_MS) : 0;
   const intoReveal = card && phase === "reveal" ? clk.tMs - card.reveal_ms : -1;
-  const replaying = !!card && phase === "reveal" && card.trigger !== "var" && card.trigger !== "substitution" && intoReveal >= 0 && intoReveal < replayLen;
+  const replaying = !!card && phase === "reveal" && card.trigger !== "var" && card.trigger !== "substitution" && intoReveal >= 0 && intoReveal * REPLAY_SLOWMO < replayLen;
   // VAR: while the check runs, show the frame it is judged on (the pass before the goal), like a VAR still.
   const varStill = !!card && card.trigger === "var" && card.frame_ms !== undefined && (phase === "ask" || phase === "locked");
-  const viewMs = varStill && card ? card.frame_ms! : replaying && card ? card.restart_ms - REPLAY_PRE_MS + intoReveal : clk.tMs;
+  const viewMs = varStill && card ? card.frame_ms! : replaying && card ? card.restart_ms - REPLAY_PRE_MS + intoReveal * REPLAY_SLOWMO : clk.tMs;
   const dots = tracking ? positionsAt(tracking, viewMs) : null;
   // The player who takes the set piece (or scored, for VAR), ringed while the moment plays out.
   const ringId = card && tracking ? nearestToBall(positionsAt(tracking, card.restart_ms), card.team_id) : null;
@@ -168,14 +169,14 @@ export default function Tv() {
   const now = Date.now();
 
   return (
-    <div className="tv">
+    <div className={`tv ${replaying ? "replaying" : ""}`}>
       {tracking && camera !== "tactical" ? (
         <Suspense fallback={<Pitch dots={dots} teams={match.teams} />}>
           <Stadium3D
             tracking={tracking}
             teams={match.teams}
             tMs={viewMs}
-            speed={clk.speed}
+            speed={replaying ? clk.speed * REPLAY_SLOWMO : clk.speed}
             running={clk.running && clk.halfUntil === null && !varStill}
             camera={camera}
             focus={

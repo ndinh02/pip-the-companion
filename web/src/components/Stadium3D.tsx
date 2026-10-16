@@ -1,7 +1,9 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import type { Tracking } from "../lib/tracking";
+import { animalOf, KEEPER_KIT } from "../lib/animals";
 import type { CameraId } from "../lib/cameras";
+import { makeCharacter, type Character } from "./characters";
 import type { Team } from "../lib/types";
 
 /** TV-like 3D view of the synthetic match, driven by the 5 Hz tracking.
@@ -152,6 +154,70 @@ function addScenery(scene: THREE.Scene) {
     scene.add(lamp);
   }
 
+  // dusk sky: deep navy overhead, a warm glow on the horizon
+  const skyCanvas = document.createElement("canvas");
+  skyCanvas.width = 4;
+  skyCanvas.height = 256;
+  const sg = skyCanvas.getContext("2d")!;
+  const grad = sg.createLinearGradient(0, 0, 0, 256);
+  grad.addColorStop(0, "#070e1c");
+  grad.addColorStop(0.55, "#132542");
+  grad.addColorStop(0.8, "#4a3a5c");
+  grad.addColorStop(1, "#d9825b");
+  sg.fillStyle = grad;
+  sg.fillRect(0, 0, 4, 256);
+  const skyTex = new THREE.CanvasTexture(skyCanvas);
+  skyTex.colorSpace = THREE.SRGBColorSpace;
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(400, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshBasicMaterial({ map: skyTex, side: THREE.BackSide, fog: false }));
+  scene.add(sky);
+
+  // floodlight glow
+  const glowCanvas = document.createElement("canvas");
+  glowCanvas.width = glowCanvas.height = 64;
+  const gg = glowCanvas.getContext("2d")!;
+  const rg = gg.createRadialGradient(32, 32, 0, 32, 32, 32);
+  rg.addColorStop(0, "rgba(255,248,220,1)");
+  rg.addColorStop(0.3, "rgba(255,236,180,0.5)");
+  rg.addColorStop(1, "rgba(255,236,180,0)");
+  gg.fillStyle = rg;
+  gg.fillRect(0, 0, 64, 64);
+  const glowTex = new THREE.CanvasTexture(glowCanvas);
+  for (const [x, z] of [[-L / 2 - 12, -W / 2 - 12], [L / 2 + 12, -W / 2 - 12], [-L / 2 - 12, W / 2 + 12], [L / 2 + 12, W / 2 + 12]]) {
+    const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
+    glow.scale.set(22, 22, 1);
+    glow.position.set(x, 34, z);
+    scene.add(glow);
+  }
+
+  // a crowd on the stands: little round fans in both teams' colours (one instanced mesh, cheap)
+  const fanGeo = new THREE.SphereGeometry(0.42, 8, 6);
+  const fanMat = new THREE.MeshStandardMaterial({ roughness: 0.9 });
+  const fans = new THREE.InstancedMesh(fanGeo, fanMat, 2600);
+  const colours = ["#2E7FC4", "#C8692F", "#F6F3EC", "#2E7FC4", "#C8692F", "#3b4a63"].map((c) => new THREE.Color(c));
+  const m4 = new THREE.Matrix4();
+  let n = 0;
+  const rand = (() => {
+    let seed = 7;
+    return () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  })();
+  for (const [x, z, w, d, ry] of tiers) {
+    for (let row = 0; row < 4 && n < fans.count; row++) {
+      const y = 1.6 + row * 1.8 + 0.35;
+      const depth = -d / 2 + (row + 0.5) * (d / 4);
+      for (let k = -w / 2 + 1; k < w / 2 - 1 && n < fans.count; k += 1.2) {
+        if (rand() < 0.18) continue; // empty seats
+        const local = new THREE.Vector3(k + (rand() - 0.5) * 0.4, y, depth);
+        local.applyAxisAngle(new THREE.Vector3(0, 1, 0), ry);
+        m4.makeTranslation(x + local.x, local.y, z + local.z);
+        fans.setMatrixAt(n, m4);
+        fans.setColorAt(n, colours[Math.floor(rand() * colours.length)]);
+        n++;
+      }
+    }
+  }
+  fans.count = n;
+  scene.add(fans);
+
   scene.add(new THREE.HemisphereLight("#e8f0ff", "#1d3b26", 1.1));
   const sun = new THREE.DirectionalLight("#fff4dd", 1.6);
   sun.position.set(-30, 60, 40);
@@ -180,14 +246,14 @@ function numberSprite(text: string, fg: string, bg: string): THREE.Sprite {
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, sizeAttenuation: false }));
-  sprite.scale.set(0.032, 0.032, 1); // fraction of the screen height: same size in every camera
+  sprite.scale.set(0.024, 0.024, 1); // fraction of the screen height: same size in every camera
   sprite.renderOrder = 10;
   return sprite;
 }
 
 interface Body {
   group: THREE.Group;
-  legs: [THREE.Mesh, THREE.Mesh];
+  char: Character;
   label: THREE.Sprite;
   ring: THREE.Mesh; // player on the ball
   follow: THREE.Mesh; // followed by phones in the room
@@ -199,39 +265,27 @@ interface Body {
 }
 
 function makeBody(id: string, team: Team | undefined): Body {
-  const kit = team?.kit ?? { primary: "#888888", secondary: "#ffffff" };
+  const teamId = id.split("-")[0];
   const isKeeper = id.endsWith("-1");
-  const shirt = new THREE.MeshStandardMaterial({ color: isKeeper ? "#c9d63f" : kit.primary, roughness: 0.7 });
-  const shorts = new THREE.MeshStandardMaterial({ color: kit.secondary, roughness: 0.8 });
-  const skin = new THREE.MeshStandardMaterial({ color: "#b89a84", roughness: 0.8 }); // one neutral tone for all: no likenesses
+  const kit = isKeeper ? (KEEPER_KIT[teamId] ?? { primary: "#888888", secondary: "#ffffff" }) : (team?.kit ?? { primary: "#888888", secondary: "#ffffff" });
   const group = new THREE.Group();
-  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 0.55, 4, 10), shirt);
-  torso.position.y = 1.25;
-  const hips = new THREE.Mesh(new THREE.CylinderGeometry(0.27, 0.25, 0.3, 10), shorts);
-  hips.position.y = 0.82;
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.17, 12, 10), skin);
-  head.position.y = 1.78;
-  const legGeo = new THREE.CylinderGeometry(0.09, 0.07, 0.72, 6);
-  legGeo.translate(0, -0.36, 0);
-  const legL = new THREE.Mesh(legGeo, skin);
-  const legR = new THREE.Mesh(legGeo, skin);
-  legL.position.set(0, 0.72, -0.12);
-  legR.position.set(0, 0.72, 0.12);
-  const shadow = new THREE.Mesh(new THREE.CircleGeometry(0.45, 16), new THREE.MeshBasicMaterial({ color: "#000", transparent: true, opacity: 0.28 }));
+  const char = makeCharacter(animalOf(id), kit.primary, kit.secondary);
+  char.root.scale.setScalar(1.35); // a touch larger than life so they read in the wide shots
+  const shadow = new THREE.Mesh(new THREE.CircleGeometry(0.55, 18), new THREE.MeshBasicMaterial({ color: "#000", transparent: true, opacity: 0.3 }));
   shadow.rotation.x = -Math.PI / 2;
   shadow.position.y = 0.02;
-  const ring = new THREE.Mesh(new THREE.RingGeometry(0.75, 0.95, 32), new THREE.MeshBasicMaterial({ color: "#F6F3EC", transparent: true, opacity: 0.95 }));
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.85, 1.05, 32), new THREE.MeshBasicMaterial({ color: "#F6F3EC", transparent: true, opacity: 0.95 }));
   ring.rotation.x = -Math.PI / 2;
   ring.position.y = 0.04;
   ring.visible = false;
-  const follow = new THREE.Mesh(new THREE.RingGeometry(1.05, 1.35, 40), new THREE.MeshBasicMaterial({ color: "#FFD23F" }));
+  const follow = new THREE.Mesh(new THREE.RingGeometry(1.15, 1.45, 40), new THREE.MeshBasicMaterial({ color: "#FFD23F" }));
   follow.rotation.x = -Math.PI / 2;
   follow.position.y = 0.05;
   follow.visible = false;
-  const label = numberSprite(id.split("-")[1], kit.secondary, isKeeper ? "#c9d63f" : kit.primary);
-  label.position.y = 2.45;
-  group.add(torso, hips, head, legL, legR, shadow, ring, follow, label);
-  return { group, legs: [legL, legR], label, ring, follow, followTag: null, followCount: 0, stride: 0, last: null, heading: 0 };
+  const label = numberSprite(id.split("-")[1], kit.secondary, kit.primary);
+  label.position.y = 3.3;
+  group.add(char.root, shadow, ring, follow, label);
+  return { group, char, label, ring, follow, followTag: null, followCount: 0, stride: 0, last: null, heading: 0 };
 }
 
 /** Ball height is not in the 2D tracking: long, fast flights (crosses, clearances, long passes) get an arc. */
@@ -300,10 +354,12 @@ export default function Stadium3D(props: Stadium3DProps) {
     const el = host.current!;
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
     renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
     el.appendChild(renderer.domElement);
     const scene = new THREE.Scene();
     scene.background = new THREE.Color("#0b1626");
-    scene.fog = new THREE.Fog("#0b1626", 140, 260);
+    scene.fog = new THREE.Fog("#1a2238", 160, 380);
     addScenery(scene);
     const cam = new THREE.PerspectiveCamera(32, 16 / 9, 0.5, 600);
 
@@ -387,9 +443,13 @@ export default function Stadium3D(props: Stadium3DProps) {
             while (diff < -Math.PI) diff += Math.PI * 2;
             b.heading += diff * 0.25;
           }
-          const swing = Math.sin(b.stride) * Math.min(0.7, d * 9);
-          b.legs[0].rotation.z = swing;
-          b.legs[1].rotation.z = -swing;
+          const amt = Math.min(0.75, d * 9);
+          const swing = Math.sin(b.stride) * amt;
+          b.char.legs[0].rotation.z = swing;
+          b.char.legs[1].rotation.z = -swing;
+          b.char.arms[0].rotation.z = -swing * 0.8;
+          b.char.arms[1].rotation.z = swing * 0.8;
+          b.char.body.position.y = Math.abs(Math.sin(b.stride)) * amt * 0.08; // a little hop in each step
         }
         b.last = pos;
         b.group.position.copy(pos);
@@ -404,7 +464,7 @@ export default function Stadium3D(props: Stadium3DProps) {
           if (b.followTag) b.group.remove(b.followTag);
           b.followTag = n > 0 ? numberSprite(n > 1 ? `★${n}` : "★", "#0E1A2B", "#FFD23F") : null;
           if (b.followTag) {
-            b.followTag.position.y = 3.3;
+            b.followTag.position.y = 4.1;
             b.followTag.scale.set(0.03, 0.03, 1);
             b.group.add(b.followTag);
           }
@@ -444,8 +504,10 @@ export default function Stadium3D(props: Stadium3DProps) {
           break;
         case "close": {
           const c = subject ?? ball.position;
+          // stay over the pitch: near the main-stand touchline, film from the pitch side instead of from inside the stand
+          const side = c.z > W / 2 - 16 ? -1 : 1;
           wantTarget.set(c.x, 1, c.z);
-          wantPos.set(c.x * 0.92, 7, c.z + 13);
+          wantPos.set(Math.max(-L / 2 - 4, Math.min(L / 2 + 4, c.x * 0.92)), 7, c.z + side * 13);
           break;
         }
         case "overhead": {
@@ -471,6 +533,12 @@ export default function Stadium3D(props: Stadium3DProps) {
       if (cam.fov !== fov) {
         cam.fov = fov;
         cam.updateProjectionMatrix();
+      }
+      if (!reduceMotion && cid !== "overhead") {
+        // a slow, barely-there drift, like a camera operator holding the shot
+        const tt = performance.now() / 1000;
+        wantPos.x += Math.sin(tt * 0.21) * 1.2;
+        wantPos.y += Math.sin(tt * 0.17) * 0.5;
       }
       const jump = reduceMotion || lastCamera !== cid;
       lastCamera = cid;
