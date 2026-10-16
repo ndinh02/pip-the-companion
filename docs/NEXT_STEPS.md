@@ -1,11 +1,11 @@
-# Pippi — next steps
+# Pip — next steps
 
 Updated: 2026-10-14  
 Purpose: turn the current prototype into a credible, testable hackathon submission before the feature freeze on 2026-10-24.
 
 ## The judge's priority
 
-Pippi already has a distinctive product idea, working synthetic match data, fact-checked cards, 5 Hz player/ball tracking, and a polished TV/phone prototype. The main risks are not visual polish: they are proof of the two prize claims.
+Pip already has a distinctive product idea, working synthetic match data, fact-checked cards, 5 Hz player/ball tracking, and a polished TV/phone prototype. The main risks are not visual polish: they are proof of the two prize claims.
 
 1. **Can a judge open and test it without Nhi's laptop?**
 2. **Can a judge see a bounded agent workflow produce and check a card?**
@@ -78,7 +78,7 @@ The required pipeline is nearly represented already. Make the evidence explicit.
 - [ ] Keep every visible number code-filled from `facts` or tracking data; never let model text invent a number.
 - [ ] Keep the no-betting check in CI and run it on every generated match file.
 - [ ] Confirm DE/VI copy with the owner. Until checked, visibly keep it marked as draft in source/review material.
-- [ ] Resolve documentation drift: Pippi vs Pip, the team blue (`#2E7FC4`), and the actual current build status.
+- [x] Resolve documentation drift: name is **Pip** (2026-10-16), team blue `#2E7FC4`, build status in README.
 - [ ] Add `SECURITY.md`: threat model, no-free-text decision, room-code validation, rate limits, expiry, and integrity-demo behavior.
 
 ## P4 — gather evidence that the product helps a room
@@ -137,5 +137,5 @@ Important constraints:
 - The phone selects a known player ID; it does not perform the tracking itself.
 - Reliable identity requires calibrated cameras, jersey/identity association, occlusion handling, and broadcaster/stadium rights.
 - A phone watching a TV broadcast cannot access the broadcaster's camera feeds.
-- For Pippi's hackathon demo, a safer future-facing proof is to render multiple **synthetic virtual camera views** from the existing tracking data and keep the selected player highlighted across those views.
+- For Pip's hackathon demo, a safer future-facing proof is to render multiple **synthetic virtual camera views** from the existing tracking data and keep the selected player highlighted across those views.
 

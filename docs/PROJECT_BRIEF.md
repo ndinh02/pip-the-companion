@@ -1,6 +1,6 @@
-# Pippi — Project Brief
+# Pip — Project Brief
 
-> **Corrections since rev 3 (2026-10-14).** The mascot and product are named **Pippi** (the text below still says "Pip" in places; read it as Pippi). Harbour Lights' blue is **#2E7FC4**, not #5AA9E6. For what is actually built, see `README.md`; for what is decided, `docs/OPEN_QUESTIONS.md`.
+> **Corrections since rev 3 (2026-10-16).** The mascot and product are named **Pip** (owner decision 2026-10-16; "Pippi" was used 2026-10-13 to 10-16). Harbour Lights' blue is **#2E7FC4**, not #5AA9E6. For what is actually built, see `README.md`; for what is decided, `docs/OPEN_QUESTIONS.md`.
 
 **Repository:** https://github.com/ndinh02/pippi-the-companion
 **Owner:** Nhi Ngoc Uyen Dinh (Macaroonie), solo entrant, UX/UI designer, building with AI coding assistants

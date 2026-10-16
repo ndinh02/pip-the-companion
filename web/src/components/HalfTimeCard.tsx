@@ -3,7 +3,7 @@ import { ui } from "../lib/i18n";
 import { roomCall, triggerLabel, wordOfMatch } from "../lib/halfTime";
 import type { HalfSummary, Lang, Match } from "../lib/types";
 
-/** Half-time card: what the room called, what the match said, what Pippi called, plus the word of the match.
+/** Half-time card: what the room called, what the match said, what Pip called, plus the word of the match.
  *  No points, no ranking, no ticks: being wrong is normal (AGENTS.md rule 3 and 8). */
 export default function HalfTimeCard({ match, half, lang, mine, followLine }: { match: Match; half: HalfSummary; lang: Lang; mine?: Record<string, string>; followLine?: string }) {
   const word = wordOfMatch(match, half);

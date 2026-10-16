@@ -1,4 +1,4 @@
-"""Pippi content workflow: writer -> checker -> retry -> fallback. Runs before the match, never at runtime."""
+"""Pip content workflow: writer -> checker -> retry -> fallback. Runs before the match, never at runtime."""
 from __future__ import annotations
 
 WORKFLOW_VERSION = "pippi-agents-0.1.0"

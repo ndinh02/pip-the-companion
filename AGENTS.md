@@ -4,13 +4,13 @@ Shared by Claude Code, the GLM model, Codex and GitHub Copilot. `CLAUDE.md` only
 Full context: [`docs/PROJECT_BRIEF.md`](docs/PROJECT_BRIEF.md) (read §§3, 6, 9, 14, 15 first).
 
 ## What this is
-**Pippi** — a matchday companion for mixed rooms (one fan + newcomers). In dead-ball breaks a small club-neutral bird mascot asks the room one "Call it!" question about how the next play unfolds; the match answers; Pippi explains why. Built for the Microsoft "Inside the Game" hackathon. Submission deadline: 2026-10-27 (hard stop 2026-10-28 07:59 German time). Feature freeze: 2026-10-24.
+**Pip** — a matchday companion for mixed rooms (one fan + newcomers). In dead-ball breaks a small club-neutral bird mascot asks the room one "Call it!" question about how the next play unfolds; the match answers; Pip explains why. Built for the Microsoft "Inside the Game" hackathon. Submission deadline: 2026-10-27 (hard stop 2026-10-28 07:59 German time). Feature freeze: 2026-10-24.
 
 ## The owner
 Nhi (UX/UI designer, not a trained engineer). Explain choices in plain language, keep code readable, work in small testable steps. Ask before deciding anything the brief marks PROPOSED or OPEN.
 
 ## Decided (do not re-litigate)
-- Name: **Pippi** (owner confirmed 2026-10-13). Trademark check vs. "Pippi Longstocking" is still advisable before public launch — keep the name in one constant (`web/src/lib/brand.ts`) so it can change.
+- Name: **Pip** (owner renamed from "Pippi" on 2026-10-16). Keep the name in one constant (`web/src/lib/brand.ts`) so it can change. Internal identifiers that still say `pippi` (`pippi_call`, `pippi_agents`, storage keys, the repo name) stay as they are.
 - Stack: Vite + React + TypeScript (web), Python (match-lab, match-reader, agents).
 - Pitch coordinates: metres, 105 × 68. Synthetic data only; no real-data calibration.
 - Fictional teams: **Harbour Lights** (sea blue `#2E7FC4` / white) vs **Copperfield** (copper `#C8692F` / black). Team blue was changed from `#5AA9E6` to avoid clashing with brand Sky `#6CB4EE`.
@@ -25,7 +25,7 @@ Nhi (UX/UI designer, not a trained engineer). Explain choices in plain language,
 5. **No free-text input from viewers.** Only known answer IDs and well-formed room codes.
 6. **Privacy:** no names, no accounts, no cookies beyond a session token, no analytics.
 7. **Keep the hosted demo working without the owner's laptop** until 2026-11-10.
-8. Pippi never grades people, never repeats a line within a match, has no opinions on referees or players.
+8. Pip never grades people, never repeats a line within a match, has no opinions on referees or players.
 9. Secrets never go in the repo.
 
 ## Conventions

@@ -1,6 +1,6 @@
-# Pippi — watch together, call it together
+# Pip — watch together, call it together
 
-A matchday companion for mixed rooms: one fan watching with people who are new to football. In the natural breaks of a match, Pippi, a small club-neutral bird, asks the room one question about how the next play will unfold. Everyone calls it, the match answers, and Pippi explains why — a plain line for newcomers, a data line for fans.
+A matchday companion for mixed rooms: one fan watching with people who are new to football. In the natural breaks of a match, Pip, a small club-neutral bird, asks the room one question about how the next play will unfold. Everyone calls it, the match answers, and Pip explains why — a plain line for newcomers, a data line for fans.
 
 Built for the Microsoft *Inside the Game* hackathon (Premier League Studio challenge).
 

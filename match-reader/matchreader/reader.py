@@ -218,7 +218,7 @@ def _template_ok(templates: Dict[str, Any], trigger: str, reveal_key: str,
 def candidates(match: Dict[str, Any],
                templates: Dict[str, Any]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """Return (eligible candidates, held moments). One candidate per event/stoppage
-    of the four trigger kinds; eligibility per task 1b, Pippi's call per task 1c."""
+    of the four trigger kinds; eligibility per task 1b, Pip's call per task 1c."""
     events = match["events"]
     pos_of_player = _positions(match)
     names = {t["team_id"]: t["name"] for t in match["teams"]}
@@ -234,7 +234,7 @@ def candidates(match: Dict[str, Any],
         return period == 1 and t_in_min > 45.0
 
     # --- corners ---
-    corner_pref = ["far", "near", "short"]  # tie order for Pippi's call
+    corner_pref = ["far", "near", "short"]  # tie order for Pip's call
     for ev in events:
         if ev["type"] != "corner":
             continue
@@ -386,7 +386,7 @@ def select_cards(match: Dict[str, Any], eligible: List[Dict[str, Any]],
     candidate only if it breaks no rule against the cards already accepted.
 
     With `templates`, a card is also refused (`no_fresh_line`) when the question or the
-    reveal text of its kind has no unused variant left: Pippi never repeats a line
+    reveal text of its kind has no unused variant left: Pip never repeats a line
     within a match (AGENTS.md rule 8)."""
     goal_events = [(ev["t_ms"], ev["event_id"]) for ev in match["events"]
                    if ev["outcome"] == "goal"]

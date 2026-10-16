@@ -3,13 +3,13 @@ import type { Lang } from "./types";
 // DE/VI are drafts until the owner checks them.
 export const UI = {
   callIt: { en: "Call it!", de: "Sag's an!", vi: "Đoán đi!" },
-  eyesUp: { en: "Eyes up — Pippi will wake you in the next break.", de: "Augen hoch – Pippi weckt dich in der nächsten Pause.", vi: "Ngẩng lên xem nào – Pippi sẽ gọi bạn ở quãng nghỉ sau." },
+  eyesUp: { en: "Eyes up — Pip will wake you in the next break.", de: "Augen hoch – Pip weckt dich in der nächsten Pause.", vi: "Ngẩng lên xem nào – Pip sẽ gọi bạn ở quãng nghỉ sau." },
   waitingTv: { en: "Looking for the TV…", de: "Suche den Fernseher …", vi: "Đang tìm TV…" },
   waitingTvHint: { en: "Open /tv in another tab of this browser.", de: "Öffne /tv in einem anderen Tab dieses Browsers.", vi: "Mở /tv ở một tab khác của trình duyệt này." },
   locked: { en: "Locked in", de: "Eingeloggt", vi: "Đã chốt" },
   lockedWait: { en: "Waiting for the match to answer…", de: "Warten, bis das Spiel antwortet …", vi: "Đang chờ trận đấu trả lời…" },
   matchSays: { en: "The match says", de: "Das Spiel sagt", vi: "Trận đấu cho biết" },
-  pippiCalled: { en: "Pippi called", de: "Pippi tippte auf", vi: "Pippi đoán" },
+  pippiCalled: { en: "Pip called", de: "Pip tippte auf", vi: "Pip đoán" },
   roomSays: { en: "The room called", de: "Der Raum sagte", vi: "Cả nhà đoán" },
   goDeeper: { en: "Go deeper", de: "Mehr Details", vi: "Xem sâu hơn" },
   hide: { en: "Hide", de: "Ausblenden", vi: "Ẩn" },
@@ -17,7 +17,7 @@ export const UI = {
   scan: { en: "Scan to join the room", de: "Scannen und dem Raum beitreten", vi: "Quét để vào phòng" },
   phonesJoined: { en: "phones joined", de: "Handys verbunden", vi: "điện thoại đã vào" },
   badRoom: { en: "That room code doesn't look right.", de: "Dieser Raumcode sieht nicht richtig aus.", vi: "Mã phòng này có vẻ chưa đúng." },
-  sleeping: { en: "Pippi is watching the game", de: "Pippi schaut das Spiel", vi: "Pippi đang xem trận" },
+  sleeping: { en: "Pip is watching the game", de: "Pip schaut das Spiel", vi: "Pip đang xem trận" },
   addedTime: { en: "Added time", de: "Nachspielzeit", vi: "Bù giờ" },
   addedWhy: {
     en: "Referees add the time lost while the ball was dead: goals, substitutions, injuries, VAR checks and cards.",

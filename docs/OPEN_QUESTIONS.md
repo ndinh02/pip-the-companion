@@ -2,7 +2,7 @@
 
 | # | Question | Status |
 |---|---|---|
-| 1 | Name: Pip vs Pippi | **DECIDED: Pippi.** Trademark check vs. Pippi Longstocking still advisable. |
+| 1 | Name: Pip vs Pippi | **DECIDED: Pip** (owner, 2026-10-16; was Pippi from 2026-10-13). A quick trademark search for "Pip" in the product's classes is still sensible before public launch. |
 | 2 | LLM provider (Foundry Local / Azure OpenAI / both) | OPEN — needed by Oct 18 (agents). Needs Python ≥ 3.10 on the Mac either way. |
 | 3 | Real-time rooms (Web PubSub / polling / single-device) | OPEN — mock uses single-device mode (BroadcastChannel). |
 | 4 | Colour clash | **DECIDED:** team blue → `#2E7FC4`. |

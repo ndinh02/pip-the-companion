@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/ndinh02/pippi-the-companion/schemas/overlay_card.schema.json",
   "title": "overlay_card",
-  "description": "One timed, machine-readable Pippi card. Draft v0 — matches web/public/data/fake-match.json. Text uses {fact_id} placeholders; code fills the numbers.",
+  "description": "One timed, machine-readable Pip card. Draft v0 — matches web/public/data/fake-match.json. Text uses {fact_id} placeholders; code fills the numbers.",
   "type": "object",
   "required": ["card_id", "moment_id", "trigger", "t_in_min", "question", "reveal"],
   "additionalProperties": false,

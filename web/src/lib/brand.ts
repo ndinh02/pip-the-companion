@@ -1,5 +1,5 @@
-// Single place for the product name (owner chose "Pippi"; a trademark check is still advisable).
-export const NAME = "Pippi";
+// Single place for the product name (owner renamed "Pippi" -> "Pip" on 2026-10-16).
+export const NAME = "Pip";
 
 export const COLORS = {
   floodlight: "#FFD23F",

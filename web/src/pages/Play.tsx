@@ -5,9 +5,10 @@ import HalfTimeCard from "../components/HalfTimeCard";
 import WhosThat from "../components/WhosThat";
 import { FollowView, GhostRun } from "../components/FollowView";
 import { loadTracking, type Tracking } from "../lib/tracking";
-import Pippi from "../components/Pippi";
+import Mascot from "../components/Mascot";
 import { addedHeadline } from "../lib/addedTime";
 import { deviceId, useRoomChannel } from "../lib/channel";
+import { NAME } from "../lib/brand";
 import { HALF_MIN, shareText } from "../lib/halfTime";
 import { clampMinute, followLine, loadFollow, saveFollow } from "../lib/whoThat";
 import { deviceLang, ui } from "../lib/i18n";
@@ -87,7 +88,7 @@ export default function Play() {
   if (!valid)
     return (
       <div className="phone center">
-        <Pippi pose="thinks" />
+        <Mascot pose="thinks" />
         <p>{ui("badRoom", lang)}</p>
       </div>
     );
@@ -100,7 +101,7 @@ export default function Play() {
   const share = async () => {
     if (!match || !half) return;
     const text = shareText(match, half, lang, {
-      title: `${ui("halfTime", lang)} · Pippi`, room: ui("halfRoom", lang), match: ui("halfMatch", lang),
+      title: `${ui("halfTime", lang)} · ${NAME}`, room: ui("halfRoom", lang), match: ui("halfMatch", lang),
       split: ui("halfSplit", lang), word: ui("wordOfMatch", lang),
     });
     try {
@@ -122,7 +123,7 @@ export default function Play() {
   const whoButton = players && match && <button className="ghost" onClick={() => setShowWho(true)}>{ui("whosThat", lang)}</button>;
   const halfView = match && half && (
     <main>
-      <Pippi pose="wave" size={96} />
+      <Mascot pose="wave" size={96} />
       <div className="eyebrow">{ui("halfTime", lang)} · {match.teams[0].short_name} {half.score.HAR} – {half.score.COP} {match.teams[1].short_name}</div>
       <h2>{ui("halfCalls", lang)}</h2>
       <HalfTimeCard match={match} half={half} lang={lang} mine={picked}
@@ -150,7 +151,7 @@ export default function Play() {
 
       {!state && (
         <main className="center">
-          <Pippi pose="thinks" />
+          <Mascot pose="thinks" />
           <h2>{ui("waitingTv", lang)}</h2>
           <p className="dim">{ui("waitingTvHint", lang)}</p>
         </main>
@@ -184,7 +185,7 @@ export default function Play() {
 
       {state && card && state.phase === "ask" && (
         <main>
-          <Pippi pose="asks" size={96} />
+          <Mascot pose="asks" size={96} />
           <div className="eyebrow">{ui("callIt", lang)}</div>
           <h2>{t(card.question.text, lang)}</h2>
           <div className="choices">
@@ -209,7 +210,7 @@ export default function Play() {
 
       {state && card && match && state.phase === "reveal" && (
         <main>
-          <Pippi pose={card.reveal.pose} size={96} />
+          <Mascot pose={card.reveal.pose} size={96} />
           <div className="eyebrow turf">{ui("matchSays", lang)}: {answerLabel(card, card.reveal.answer, lang)}</div>
           <p className="plain">{fill(t(card.reveal.plain, lang), match.facts)}</p>
 
@@ -237,7 +238,7 @@ export default function Play() {
 
       {state && state.phase === "added" && state.board && (
         <main>
-          <Pippi pose="thinks" size={96} />
+          <Mascot pose="thinks" size={96} />
           <div className="eyebrow">{ui("addedTime", lang)} · {state.board.at_min}'</div>
           <h2>{addedHeadline(state.board.announced_min, lang)}</h2>
           <p className="plain">{ui("addedWhy", lang)}</p>
@@ -251,7 +252,7 @@ export default function Play() {
 
       {state?.phase === "full" && (
         <main className="center">
-          <Pippi pose="wave" />
+          <Mascot pose="wave" />
           <h2>{ui("fullTime", lang)}</h2>
         </main>
       )}

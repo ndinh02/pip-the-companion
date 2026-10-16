@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import Pippi from "../components/Pippi";
+import Mascot from "../components/Mascot";
 import { NAME } from "../lib/brand";
 import { randomRoom } from "../lib/match";
 
@@ -7,7 +7,7 @@ export default function Home() {
   const room = randomRoom();
   return (
     <div className="center home">
-      <Pippi pose="wave" size={140} />
+      <Mascot pose="wave" size={140} />
       <h1>{NAME}</h1>
       <p className="dim">Watch together. Call it together.</p>
       <nav>

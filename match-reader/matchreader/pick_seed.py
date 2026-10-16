@@ -4,7 +4,7 @@
     python3 -m matchreader.pick_seed --from 1 --to 200
 
 A seed qualifies when the built match has >= 1 card of each of the four triggers,
->= 6 cards, >= 1 card in each half, and Pippi is right at least once and wrong at
+>= 6 cards, >= 1 card in each half, and Pip is right at least once and wrong at
 least once. Ranking: number of cards (more is better), then closest final score
 (smallest goal difference — read as the tightest scoreline for a demo).
 
@@ -67,7 +67,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     ))
 
     print("seeds %d-%d: %d qualify (need all 4 triggers, >=6 cards, both halves, "
-          "Pippi right and wrong at least once)" % (args.from_seed, args.to_seed, qualified))
+          "Pip right and wrong at least once)" % (args.from_seed, args.to_seed, qualified))
     print()
     print("seed | corner free_kick sub var | total | right/wrong | halves |   score | ok")
     for seed, s in rows[:args.top]:

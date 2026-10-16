@@ -1,4 +1,4 @@
-"""AGENTS.md rule 8: Pippi never repeats a line within a match."""
+"""AGENTS.md rule 8: Pip never repeats a line within a match."""
 from __future__ import annotations
 
 import copy

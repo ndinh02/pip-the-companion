@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
-import Pippi from "../components/Pippi";
+import Mascot from "../components/Mascot";
 import AddedBreakdown from "../components/AddedBreakdown";
 import HalfTimeCard from "../components/HalfTimeCard";
 import Pitch from "../components/Pitch";
@@ -240,7 +240,7 @@ export default function Tv() {
       {card && eng.phase !== "play" && (
         <section className={`lower-third ${eng.phase}`} aria-live="polite">
           <div className="lt-head">
-            <Pippi pose={eng.phase === "ask" ? "asks" : card.reveal.pose} size={88} />
+            <Mascot pose={eng.phase === "ask" ? "asks" : card.reveal.pose} size={88} />
             <div>
               <div className="eyebrow">{ui("callIt", lang)} · {team?.name}</div>
               <h1>{t(card.question.text, lang)}</h1>
@@ -272,7 +272,7 @@ export default function Tv() {
       {eng.phase === "added" && board && (
         <section className="lower-third added" aria-live="polite">
           <div className="lt-head">
-            <Pippi pose="thinks" size={88} />
+            <Mascot pose="thinks" size={88} />
             <div>
               <div className="eyebrow">{ui("addedTime", lang)} · {board.at_min}'</div>
               <h1>{addedHeadline(board.announced_min, lang)}</h1>
@@ -287,7 +287,7 @@ export default function Tv() {
       {eng.phase === "half" && half && (
         <section className="lower-third half" aria-live="polite">
           <div className="lt-head">
-            <Pippi pose="wave" size={88} />
+            <Mascot pose="wave" size={88} />
             <div>
               <div className="eyebrow">{ui("halfTime", lang)} · {home.short_name} {half.score.HAR} – {half.score.COP} {away.short_name}</div>
               <h1>{ui("halfCalls", lang)}</h1>
@@ -300,7 +300,7 @@ export default function Tv() {
 
       {eng.phase === "full" && (
         <section className="lower-third reveal">
-          <div className="lt-head"><Pippi pose="wave" size={88} /><h1>{ui("fullTime", lang)}</h1></div>
+          <div className="lt-head"><Mascot pose="wave" size={88} /><h1>{ui("fullTime", lang)}</h1></div>
         </section>
       )}
 
