@@ -5,7 +5,8 @@ import { DETECT_MS, type ClockPhase, type Timeline } from "./matchClock";
  *  A real broadcast never sits on a frozen picture during a stoppage: it cuts between replays of what just happened
  *  and live pictures of players waiting. This does the same, from the tracking data only:
  *  - set pieces: one slow-motion replay of what caused the stoppage, then live, framed on the set piece;
- *  - VAR: a loop of slow replay of the build-up (two angles in turn), the frozen frame with the line, then live.
+ *  - VAR: one slow replay of the build-up, the frozen frame with the line, then live with a short look at the line
+ *    every half minute (a replay on repeat gets boring fast).
  *  Times are match ms, so the loop follows the demo's speed setting. */
 
 type Card = Timeline["cards"][number];
@@ -26,7 +27,7 @@ const VAR_FIRST_LIVE_MS = 4_000; // players react live first
 const VAR_BEFORE_MS = 5_000; // VAR replay window around the judged frame
 const VAR_AFTER_MS = 4_000;
 const VAR_STILL_MS = 5_000; // frozen frame with the line
-const VAR_LIVE_MS = 4_000; // back to the players waiting
+const VAR_GLANCE_EVERY_MS = 30_000; // after the replay: live, with a look at the line every 30 s
 
 export function deadShot(card: Card | null, phase: ClockPhase, tMs: number): DeadShot | null {
   if (!card || phase !== "ask") return null; // once play restarts, the picture is live again
@@ -34,15 +35,15 @@ export function deadShot(card: Card | null, phase: ClockPhase, tMs: number): Dea
   const live: DeadShot = { viewMs: tMs, running: true, slow: false, focus: card.trigger === "substitution" ? "play" : "setpiece", badge: null };
 
   if (card.trigger === "var" && card.frame_ms !== undefined) {
+    // Like TV: players react, ONE slow replay, the frozen frame with the line, then live pictures of the wait.
+    // A short look at the line comes back now and then; the full replay does not repeat.
     if (s < VAR_FIRST_LIVE_MS) return { ...live, focus: "play" };
-    const replayLen = (VAR_BEFORE_MS + VAR_AFTER_MS) / SLOWMO;
-    const cycle = replayLen + VAR_STILL_MS + VAR_LIVE_MS;
-    const k = Math.floor((s - VAR_FIRST_LIVE_MS) / cycle);
-    const u = (s - VAR_FIRST_LIVE_MS) % cycle;
-    if (u < replayLen)
-      return { viewMs: card.frame_ms - VAR_BEFORE_MS + u * SLOWMO, running: true, slow: true, focus: k % 2 ? "var" : "replay", badge: "VAR REPLAY" };
-    if (u < replayLen + VAR_STILL_MS) return { viewMs: card.frame_ms, running: false, slow: false, focus: "var", badge: "VAR CHECK" };
-    return { ...live, focus: "play", badge: null };
+    const replayEnd = VAR_FIRST_LIVE_MS + (VAR_BEFORE_MS + VAR_AFTER_MS) / SLOWMO;
+    if (s < replayEnd)
+      return { viewMs: card.frame_ms - VAR_BEFORE_MS + (s - VAR_FIRST_LIVE_MS) * SLOWMO, running: true, slow: true, focus: "replay", badge: "VAR REPLAY" };
+    const u = (s - replayEnd) % VAR_GLANCE_EVERY_MS;
+    if (u < VAR_STILL_MS) return { viewMs: card.frame_ms, running: false, slow: false, focus: "var", badge: "VAR CHECK" };
+    return { ...live, focus: "play", badge: "VAR CHECK" };
   }
 
   if (card.trigger === "substitution") return live;
@@ -59,8 +60,8 @@ export function goalShot(tl: Timeline, tMs: number): DeadShot | null {
   const s = tMs - g.t_ms;
   const base = { running: true, playerId: g.player_id } as const;
   if (s < 2_500) return { ...base, viewMs: tMs, slow: false, focus: "play", badge: null };
-  if (s < 10_000) return { ...base, viewMs: tMs, slow: false, focus: "player", badge: null };
+  if (s < 12_000) return { ...base, viewMs: tMs, slow: false, focus: "player", badge: null };
   const replayLen = 7_000 / SLOWMO;
-  if (s < 10_000 + replayLen) return { ...base, viewMs: g.t_ms - 6_000 + (s - 10_000) * SLOWMO, slow: true, focus: "player", badge: "REPLAY" };
+  if (s < 12_000 + replayLen) return { ...base, viewMs: g.t_ms - 6_000 + (s - 12_000) * SLOWMO, slow: true, focus: "player", badge: "REPLAY" };
   return { ...base, viewMs: tMs, slow: false, focus: "play", badge: null };
 }

@@ -30,7 +30,7 @@ export interface Goal {
   player_id: string;
   restart_ms: number; // the kick-off after it
 }
-export const GOAL_WATCH_MS = 24_000; // highlights keep watching this long after a goal (celebration and replay)
+export const GOAL_WATCH_MS = 26_000; // highlights keep watching this long after a goal (celebration and replay)
 
 export interface Timeline {
   periods: Period[];
@@ -131,8 +131,26 @@ function nextStop(tl: Timeline, clk: Clock): number | null {
   return Math.max(t, Math.min(...upcoming.map((i) => i.stop)));
 }
 
+/** Highlights only: a long stoppage is fast-forwarded once the room has answered (or after a while), like an edited
+ *  highlights show. The question stays open until play restarts; we just do not sit through all of the wait. */
+export const HURRY_AFTER_MS = 20_000; // without everyone answered: match ms of a stoppage shown at normal speed first
+export const HURRY_RATE = 6;
+const HURRY_STOP_MS = 5_000; // back to normal speed this long before the restart, so the kick is seen
+export function hurrying(tl: Timeline, clk: Clock, allAnswered: boolean): boolean {
+  if (clk.mode !== "highlights" || !clk.running) return false;
+  const v = viewAt(tl, clk);
+  if (v.phase !== "ask" || !v.card) return false;
+  const c = v.card;
+  if (clk.tMs >= c.restart_ms - HURRY_STOP_MS) return false;
+  // never during the replay that opens the stoppage (about 12 s; VAR: replay and frozen frame, about 28 s)
+  const into = clk.tMs - (c.dead_ms + DETECT_MS);
+  if (into < (c.trigger === "var" ? 28_000 : 12_000)) return false;
+  return allAnswered || into > HURRY_AFTER_MS;
+}
+
 /** Move the clock forward by `realDt` ms of real time. */
-export function advance(tl: Timeline, clk: Clock, realDt: number, now: number): Clock {
+export function advance(tl: Timeline, clk: Clock, realDt: number, now: number, allAnswered = false): Clock {
+  if (hurrying(tl, clk, allAnswered)) realDt *= HURRY_RATE;
   if (clk.halfUntil !== null) {
     if (now < clk.halfUntil) return clk;
     return { ...clk, halfUntil: null, halfDone: true, tMs: tl.periods[1].start_ms };

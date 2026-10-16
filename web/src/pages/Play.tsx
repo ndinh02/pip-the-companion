@@ -12,6 +12,7 @@ import { NAME } from "../lib/brand";
 import { HALF_MIN, shareText } from "../lib/halfTime";
 import { clampMinute, followLine, loadFollow, saveFollow } from "../lib/whoThat";
 import { deviceLang, nowKey, ui } from "../lib/i18n";
+import { factAt } from "../lib/didYouKnow";
 import { alertsWanted, buzz, disableAlerts, enableAlerts, keepAwake, resumeSound } from "../lib/buzz";
 import { answerLabel, fill, loadMatch, loadPlayers, ROOM_RE, t } from "../lib/match";
 import { LANGS, type HalfSummary, type Lang, type Match, type Msg, type PlayersFeed, type StateMsg } from "../lib/types";
@@ -28,6 +29,7 @@ export default function Play() {
   const [showHalf, setShowHalf] = useState(false);
   const [players, setPlayers] = useState<PlayersFeed | null>(null);
   const [showWho, setShowWho] = useState(false);
+  const [whoStart, setWhoStart] = useState<string | null>(null); // open "Who's that?" straight on this player
   const [showFollow, setShowFollow] = useState(false);
   const [tracking, setTracking] = useState<Tracking | null>(null);
   const [followId, setFollowId] = useState<string | null>(loadFollow);
@@ -101,9 +103,15 @@ export default function Play() {
     };
   }, [alerts]);
 
+  // "Did you know?" facts rotate while the ball is dead (phone's own clock since the question opened).
+  const [askAt, setAskAt] = useState(0);
+  useEffect(() => {
+    if (askId) setAskAt(Date.now());
+  }, [askId]);
+
   // Bar drain: re-render ~10x/s only while a card is up.
   const [now, setNow] = useState(() => Date.now());
-  const live = state?.phase === "ask" || state?.phase === "reveal" || state?.phase === "added" || state?.phase === "half";
+  const live = (state?.phase === "ask" && !!picked[state.card?.card_id ?? ""]) || state?.phase === "reveal" || state?.phase === "added" || state?.phase === "half";
   useEffect(() => {
     if (!live) return;
     const id = setInterval(() => setNow(Date.now()), 100);
@@ -152,7 +160,11 @@ export default function Play() {
     </button>
   );
   const nowLine = card ? nowKey(card.trigger) : null;
-  const whoButton = players && match && <button className="ghost" onClick={() => setShowWho(true)}>{ui("whosThat", lang)}</button>;
+  const whoButton = players && match && <button className="ghost" onClick={() => { setWhoStart(null); setShowWho(true); }}>{ui("whosThat", lang)}</button>;
+  const scorerButton = players && match && state?.scorer && players.players.some((p) => p.player_id === state.scorer) && (
+    <button className="scorer-btn" onClick={() => { setWhoStart(state.scorer ?? null); setShowWho(true); }}>⚽ {ui("seeScorer", lang)}</button>
+  );
+  const fact = card && state?.phase === "ask" ? factAt(card.trigger, now - askAt, lang) : null;
   const halfView = match && half && (
     <main>
       <Mascot pose="wave" size={96} />
@@ -197,6 +209,7 @@ export default function Play() {
         <main className="center">
           <div className="sleep-dot" aria-hidden="true" />
           <p className="dim">{ui("eyesUp", lang)}</p>
+          {scorerButton}
           {alertsOptIn}
           {half && <button className="ghost" onClick={() => setShowHalf(true)}>{ui("halfCard", lang)}</button>}
           {whoButton}
@@ -204,7 +217,7 @@ export default function Play() {
       )}
 
       {showWho && !showFollow && players && match && state && state.phase !== "ask" && (
-        <WhosThat match={match} feed={players} minute={state.minute} lang={lang} followId={followId} onFollow={onFollow} onClose={() => setShowWho(false)} />
+        <WhosThat key={whoStart ?? "pick"} startId={whoStart} match={match} feed={players} minute={state.minute} lang={lang} followId={followId} onFollow={onFollow} onClose={() => setShowWho(false)} />
       )}
 
       {showFollow && followed && players && match && state && state.phase !== "ask" && (
@@ -261,6 +274,12 @@ export default function Play() {
                 })}
               </section>
               <p className="pippi-call">🐤 {ui("pipThinks", lang)}: {answerLabel(card, card.question.pippi_call, lang)}</p>
+              {fact && (
+                <section className="fact-card" key={fact}>
+                  <div className="eyebrow">💡 {ui("didYouKnow", lang)}</div>
+                  <p>{fact}</p>
+                </section>
+              )}
             </>
           )}
         </main>

@@ -404,7 +404,7 @@ export default function Stadium3D(props: Stadium3DProps) {
     const wantPos = new THREE.Vector3();
     const wantTarget = new THREE.Vector3();
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    let lastCamera: CameraId | null = null;
+    let lastCamera: string | null = null;
 
     const resize = () => {
       const w = el.clientWidth || 1;
@@ -499,7 +499,8 @@ export default function Stadium3D(props: Stadium3DProps) {
         }
         b.char.arms[0].rotation.x = 0.25 + lift;
         b.char.arms[1].rotation.x = -0.25 - lift;
-        b.char.body.position.y = pose.hop + jump;
+        b.char.body.position.y = pose.hop;
+        b.char.root.position.y = jump; // the whole character leaves the ground, legs included
         b.char.root.rotation.z = -pose.lean - droop; // lean into the run (local +x is forward); slump after conceding
         b.group.rotation.y = pose.heading - Math.PI / 2;
 
@@ -578,19 +579,30 @@ export default function Stadium3D(props: Stadium3DProps) {
           .sort((u, v) => v - u);
         if (near.length > 1) varLine.position.x = near[1] * end;
       }
-      const fov = cid === "goal-left" || cid === "goal-right" ? 52 : cid === "close" ? 38 : cid === "overhead" ? 40 : 32;
+      // Goal scorer, auto camera: a tight shot that slowly circles the player while they celebrate.
+      const hero = p.camera === "auto" && f.kind === "player" && !!subject && !p.replay;
+      if (hero && subject) {
+        const ang = (performance.now() / 1000) * 0.22;
+        const hx = subject.x + Math.cos(ang) * 10;
+        const hz = subject.z + Math.sin(ang) * 10;
+        wantTarget.set(subject.x, 1.4, subject.z);
+        // high enough to look over the teammates crowding round, low enough to feel close
+        wantPos.set(Math.max(-L / 2 - 3, Math.min(L / 2 + 3, hx)), 5.5, Math.max(-W / 2 - 3, Math.min(W / 2 + 3, hz)));
+      }
+      const fov = hero ? 26 : cid === "goal-left" || cid === "goal-right" ? 52 : cid === "close" ? 38 : cid === "overhead" ? 40 : 32;
       if (cam.fov !== fov) {
         cam.fov = fov;
         cam.updateProjectionMatrix();
       }
-      if (!reduceMotion && cid !== "overhead") {
+      if (!reduceMotion && cid !== "overhead" && !hero) {
         // a slow, barely-there drift, like a camera operator holding the shot
         const tt = performance.now() / 1000;
         wantPos.x += Math.sin(tt * 0.21) * 1.2;
         wantPos.y += Math.sin(tt * 0.17) * 0.5;
       }
-      const jump = reduceMotion || lastCamera !== cid;
-      lastCamera = cid;
+      const shotId = hero ? "hero" : cid;
+      const jump = reduceMotion || lastCamera !== shotId;
+      lastCamera = shotId;
       const k = jump ? 1 : 0.06;
       camPos.lerp(wantPos, k);
       camTarget.lerp(wantTarget, k);

@@ -5,16 +5,18 @@ import Mascot from "../components/Mascot";
 import AddedBreakdown from "../components/AddedBreakdown";
 import HalfTimeCard from "../components/HalfTimeCard";
 import Pitch from "../components/Pitch";
+import ScorerSpotlight from "../components/ScorerSpotlight";
+import { factAt } from "../lib/didYouKnow";
 import { CAMERAS, type CameraId } from "../lib/cameras";
 import { addedHeadline } from "../lib/addedTime";
 import { useRoomChannel } from "../lib/channel";
 import { buildHalf, HALF_MIN } from "../lib/halfTime";
-import { advance, buildTimeline, clockLabel, clockMinute, skipAhead, startClock, viewAt, type Clock, type Mode } from "../lib/matchClock";
+import { advance, buildTimeline, hurrying, clockLabel, clockMinute, skipAhead, startClock, viewAt, type Clock, type Mode } from "../lib/matchClock";
 import { deadShot, goalShot } from "../lib/deadTime";
 import { loadTracking, nearestToBall, positionsAt, type Tracking } from "../lib/tracking";
 import { nowKey, ui } from "../lib/i18n";
-import { answerLabel, fill, loadAddedTime, loadMatch, randomRoom, ROOM_RE, scoreAt, t } from "../lib/match";
-import { LANGS, type AddedTime, type Lang, type Match, type Msg, type StateMsg } from "../lib/types";
+import { answerLabel, fill, loadAddedTime, loadMatch, loadPlayers, randomRoom, ROOM_RE, scoreAt, t } from "../lib/match";
+import { LANGS, type AddedTime, type Lang, type Match, type Msg, type PlayersFeed, type StateMsg } from "../lib/types";
 
 // The 3D view is a big library: load it only on the shared screen (phones never download it).
 const Stadium3D = lazy(() => import("../components/Stadium3D"));
@@ -24,11 +26,15 @@ const REPLAY_POST_MS = 2_000; // and runs this long past the outcome
 const REPLAY_SLOWMO = 0.5; // replays run at half speed, like TV
 const SPEEDS = [1, 4, 16];
 const GOAL_POP_MS = 8_000; // Pip celebrates in the corner this long after a goal
+const SPOTLIGHT_FROM_MS = 3_000; // the scorer's quick profile, from this long after the goal...
+const SPOTLIGHT_TO_MS = 17_000; // ...until this long after it
+const SCORER_FRESH_MS = 5 * 60_000; // phones offer the scorer's profile this long after a goal
 
 export default function Tv() {
   const [params, setParams] = useSearchParams();
   const [match, setMatch] = useState<Match | null>(null);
   const [added, setAdded] = useState<AddedTime | null>(null);
+  const [players, setPlayers] = useState<PlayersFeed | null>(null);
   const [tracking, setTracking] = useState<Tracking | null>(null);
   const [trackingDone, setTrackingDone] = useState(false);
   const follows = useRef(new Map<string, string>()); // device -> player id
@@ -54,6 +60,7 @@ export default function Tv() {
           setTracking(tr);
           setTrackingDone(true);
         });
+        loadPlayers(m).then(setPlayers).catch(() => undefined);
         return loadAddedTime(m).then(setAdded);
       })
       .catch((e: Error) => setError(e.message));
@@ -69,11 +76,13 @@ export default function Tv() {
       const now = Date.now();
       const dt = now - last;
       last = now;
-      setClk((c) => advance(tl, c, dt, now));
+      setClk((c) => advance(tl, c, dt, now, allAnsweredRef.current));
     }, TICK_MS);
     return () => clearInterval(id);
   }, [tl]);
 
+  const allAnsweredRef = useRef(false);
+  const askSince = useRef<{ id: string | null; at: number }>({ id: null, at: 0 });
   const view = tl ? viewAt(tl, clk) : null;
   const phase = view?.phase ?? "play";
   const card = view?.card ?? null;
@@ -90,6 +99,7 @@ export default function Tv() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [card?.card_id, answerTick]);
   const answered = Object.values(tally).reduce((a, b) => a + b, 0);
+  allAnsweredRef.current = devices.current.size > 0 && answered >= devices.current.size;
 
   const send = useRoomChannel(room, "tv", (m: Msg) => {
     if (m.t === "hello") {
@@ -117,6 +127,8 @@ export default function Tv() {
     [match, phase, answerTick],
   );
   const board = view?.board ?? null;
+  // The latest goal stays "fresh" for phones (a profile button) for a few match minutes.
+  const scorer = tl?.goals.filter((g) => clk.tMs >= g.t_ms && clk.tMs < g.t_ms + SCORER_FRESH_MS).at(-1)?.player_id ?? null;
   const minute = tl ? Math.floor(clockMinute(tl, clk.tMs)) : 0;
   const clock = tl ? clockLabel(tl, clk.tMs) : "0'";
 
@@ -130,14 +142,14 @@ export default function Tv() {
       // No countdown while a question is open: live, nobody knows when play restarts.
       deadline: phase === "reveal" ? now + revealLeft : 0,
       total_ms: phase === "reveal" ? 12_000 / clk.speed : 0,
-      tally, answered,
+      tally, answered, scorer,
     };
-    const key = JSON.stringify([msg.phase, msg.minute, msg.card?.card_id, msg.board?.period, msg.half?.rows.length, msg.tally]);
+    const key = JSON.stringify([msg.phase, msg.minute, msg.card?.card_id, msg.board?.period, msg.half?.rows.length, msg.tally, msg.scorer]);
     if (key !== lastSent.current) {
       lastSent.current = key;
       send(msg);
     }
-  }, [phase, minute, clock, card, board, half, tally, answered, revealLeft, clk.speed, send]);
+  }, [phase, minute, clock, card, board, half, tally, answered, scorer, revealLeft, clk.speed, send]);
   useEffect(broadcast, [broadcast]);
   useEffect(() => {
     const id = setInterval(() => {
@@ -168,11 +180,14 @@ export default function Tv() {
   const ringId = card && tracking ? nearestToBall(positionsAt(tracking, card.restart_ms), card.team_id) : null;
   const followed: Record<string, number> = {};
   follows.current.forEach((pid) => (followed[pid] = (followed[pid] ?? 0) + 1));
+  const now = Date.now();
   const goalNow = tl.goals.find((g) => clk.tMs >= g.t_ms && clk.tMs < g.t_ms + GOAL_POP_MS) ?? null;
   const goalTeam = goalNow ? match.teams.find((x) => x.team_id === goalNow.team_id) : undefined;
   const nowLine = card ? nowKey(card.trigger) : null;
+  if (phase === "ask" && card && askSince.current.id !== card.card_id) askSince.current = { id: card.card_id, at: now };
+  const fact = phase === "ask" && card ? factAt(card.trigger, now - askSince.current.at, lang) : null;
+  const spotlight = tl.goals.find((g) => clk.tMs >= g.t_ms + SPOTLIGHT_FROM_MS && clk.tMs < g.t_ms + SPOTLIGHT_TO_MS) ?? null;
   const setMode = (mode: Mode) => setClk((c) => ({ ...c, mode }));
-  const now = Date.now();
 
   return (
     <div className={`tv ${slow ? "replaying" : ""}`}>
@@ -226,6 +241,10 @@ export default function Tv() {
         </div>
       )}
 
+      {tl && hurrying(tl, clk, allAnsweredRef.current) && (
+        <div className="skip-note" role="status">{ui("skippingWait", lang)} ▸▸</div>
+      )}
+
       {clk.skipped && now < clk.skipped.until && (
         <div className="skip-note" role="status">{ui("skippingTo", lang)} {clockLabel(tl, clk.skipped.to)} ▸▸</div>
       )}
@@ -252,6 +271,7 @@ export default function Tv() {
           {(phase === "ask" || phase === "locked") && (
             <>
               {phase === "ask" && nowLine && <p className="now-line">{ui(nowLine, lang)}</p>}
+              {fact && <p className="fact" key={fact}>💡 {ui("didYouKnow", lang)} {fact}</p>}
               <ul className="opts">
                 {card.question.options.map((o) => (
                   <li key={o.id}>{t(o.label, lang)}<span className="count" key={tally[o.id] ?? 0}>{tally[o.id] ?? 0}</span></li>
@@ -273,6 +293,10 @@ export default function Tv() {
             </>
           )}
         </section>
+      )}
+
+      {spotlight && players && !card && (
+        <ScorerSpotlight match={match} feed={players} playerId={spotlight.player_id} minute={clockMinute(tl, clk.tMs)} lang={lang} />
       )}
 
       {phase === "added" && board && (

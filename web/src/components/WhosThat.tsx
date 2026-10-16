@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ANIMAL_LABEL, animalOf } from "../lib/animals";
 import { ui } from "../lib/i18n";
 import {
-  clampMinute, describePlayer, kmh, km, minutesPlayed, POSITION_LABEL, STAT_LABEL, stat, statusAt, STATUS, teamName,
+  clampMinute, describePlayer, goalsBy, kmh, km, minutesPlayed, POSITION_LABEL, STAT_LABEL, stat, statusAt, STATUS, teamName,
 } from "../lib/whoThat";
 import type { Lang, Match, PlayerRow, PlayersFeed } from "../lib/types";
 
@@ -14,12 +14,15 @@ interface Props {
   followId: string | null;
   onFollow: (id: string | null) => void;
   onClose: () => void;
+  /** Open straight on this player's card (e.g. the goal scorer). */
+  startId?: string | null;
 }
 
 /** "Who's that?": team colour -> shirt number -> player card. Buttons only, no typing (AGENTS.md rule 5). */
-export default function WhosThat({ match, feed, minute, lang, followId, onFollow, onClose }: Props) {
-  const [team, setTeam] = useState<string | null>(null);
-  const [player, setPlayer] = useState<PlayerRow | null>(null);
+export default function WhosThat({ match, feed, minute, lang, followId, onFollow, onClose, startId }: Props) {
+  const start = startId ? feed.players.find((p) => p.player_id === startId) ?? null : null;
+  const [team, setTeam] = useState<string | null>(start?.team_id ?? null);
+  const [player, setPlayer] = useState<PlayerRow | null>(start);
   const m = clampMinute(feed, minute);
 
   const back = () => (player ? setPlayer(null) : team ? setTeam(null) : onClose());
@@ -76,6 +79,7 @@ function PlayerCard({ match, feed, p, m, lang, followed, onFollow }: {
   const played = minutesPlayed(p, m) > 0;
   const rows: [string, string][] = played
     ? [
+        ...(goalsBy(match, p.player_id, m) > 0 ? ([[STAT_LABEL.goals[lang], String(goalsBy(match, p.player_id, m))]] as [string, string][]) : []),
         [STAT_LABEL.distance[lang], `${km(s("distance_m"))} km`],
         [STAT_LABEL.topSpeed[lang], `${kmh(s("top_speed_dmh"))} km/h`],
         [STAT_LABEL.sprints[lang], String(s("sprints"))],

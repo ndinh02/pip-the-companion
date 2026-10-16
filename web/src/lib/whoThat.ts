@@ -17,6 +17,7 @@ export const STAT_LABEL = {
   ballWins: { en: "Ball wins", de: "Balleroberungen", vi: "Giành bóng" },
   shots: { en: "Shots", de: "Schüsse", vi: "Cú sút" },
   saves: { en: "Saves", de: "Paraden", vi: "Cú cản phá" },
+  goals: { en: "Goals", de: "Tore", vi: "Bàn thắng" },
 } satisfies Record<string, Record<Lang, string>>;
 
 export const STATUS = {
@@ -136,6 +137,11 @@ export function describePlayer(feed: PlayersFeed, p: PlayerRow, minute: number, 
   if (uniqueLeader(mates, "distance_m", minute, 2000)?.player_id === p.player_id) return fill("ground", { v: km(stat(p, "distance_m", minute)) });
   if (uniqueLeader(mates, "ball_wins", minute, 3)?.player_id === p.player_id) return fill("winner", { v: String(stat(p, "ball_wins", minute)) });
   return fill(p.position, {});
+}
+
+/** Goals this player has scored up to `minute` (counted from the score timeline, i.e. from the match events). */
+export function goalsBy(match: Match, playerId: string, minute: number): number {
+  return match.score_timeline.filter((g) => g.player_id === playerId && g.from_min <= minute).length;
 }
 
 export function teamName(match: Match, teamId: string): string {
