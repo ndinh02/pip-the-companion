@@ -1,0 +1,159 @@
+{
+  "match_id": "mock-001",
+  "seed": 0,
+  "generator_version": "mock-0",
+  "note": "Hand-written mock for the clickable prototype. NOT output of match-lab. Facts are placeholders for what match-reader will compute. DE/VI copy is a draft until the owner checks it.",
+  "competition": "Fictional League",
+  "venue": "Harbour Park",
+  "pitch": { "length_m": 105, "width_m": 68 },
+  "coord_system": "metres, origin bottom-left, x along the pitch toward the away goal",
+  "teams": [
+    { "team_id": "HAR", "name": "Harbour Lights", "short_name": "HAR", "kit": { "primary": "#2E7FC4", "secondary": "#FFFFFF" } },
+    { "team_id": "COP", "name": "Copperfield", "short_name": "COP", "kit": { "primary": "#C8692F", "secondary": "#111111" } }
+  ],
+  "score_timeline": [
+    { "from_min": 0, "HAR": 0, "COP": 0 },
+    { "from_min": 40, "HAR": 1, "COP": 0 }
+  ],
+  "facts": {
+    "corners_short": { "value": 3, "source": "mock" },
+    "corners_total": { "value": 5, "source": "mock" },
+    "league_short_share_pct": { "value": 18, "source": "mock" },
+    "var_margin_cm": { "value": 14, "source": "mock" },
+    "forwards_before": { "value": 1, "source": "mock" },
+    "forwards_after": { "value": 2, "source": "mock" },
+    "line_shift_m": { "value": 6, "source": "mock" },
+    "fk_cross": { "value": 4, "source": "mock" },
+    "fk_total": { "value": 6, "source": "mock" }
+  },
+  "cards": [
+    {
+      "card_id": "c1-corner",
+      "moment_id": "m-corner-12",
+      "trigger": "corner",
+      "t_in_min": 12,
+      "team_id": "COP",
+      "pitch": { "x": 105, "y": 0 },
+      "question": {
+        "text": { "en": "Corner! Where's it going?", "de": "Ecke! Wohin geht sie?", "vi": "Phạt góc! Bóng sẽ đi đâu?" },
+        "options": [
+          { "id": "near", "label": { "en": "Near post", "de": "Nahpfosten", "vi": "Cột gần" } },
+          { "id": "far", "label": { "en": "Far post", "de": "Fernpfosten", "vi": "Cột xa" } },
+          { "id": "short", "label": { "en": "Short", "de": "Kurz", "vi": "Ngắn" } }
+        ],
+        "pippi_call": "near"
+      },
+      "reveal": {
+        "answer": "short",
+        "pose": "oops",
+        "plain": {
+          "en": "Short! Copperfield passed to a teammate nearby instead of crossing.",
+          "de": "Kurz! Copperfield spielte zu einem nahen Mitspieler, statt zu flanken.",
+          "vi": "Đá ngắn! Copperfield chuyền cho đồng đội đứng gần thay vì tạt bóng."
+        },
+        "expert": {
+          "en": "Copperfield have played {corners_short} of their {corners_total} corners short today. The league average is about {league_short_share_pct}%.",
+          "de": "Copperfield hat heute {corners_short} von {corners_total} Ecken kurz gespielt. Der Ligaschnitt liegt bei etwa {league_short_share_pct} %.",
+          "vi": "Hôm nay Copperfield đã đá ngắn {corners_short}/{corners_total} quả phạt góc. Trung bình giải đấu khoảng {league_short_share_pct}%."
+        },
+        "fact_ids": ["corners_short", "corners_total", "league_short_share_pct"]
+      }
+    },
+    {
+      "card_id": "c2-var",
+      "moment_id": "m-var-31",
+      "trigger": "var",
+      "t_in_min": 31,
+      "team_id": "HAR",
+      "pitch": { "x": 92, "y": 34 },
+      "question": {
+        "text": { "en": "VAR is checking. What are they looking at?", "de": "Der VAR prüft. Was wird geprüft?", "vi": "VAR đang kiểm tra. Họ xem điều gì?" },
+        "options": [
+          { "id": "offside", "label": { "en": "Offside", "de": "Abseits", "vi": "Việt vị" } },
+          { "id": "foul", "label": { "en": "Foul", "de": "Foul", "vi": "Phạm lỗi" } },
+          { "id": "handball", "label": { "en": "Handball", "de": "Handspiel", "vi": "Chạm tay" } }
+        ],
+        "pippi_call": "offside"
+      },
+      "reveal": {
+        "answer": "offside",
+        "pose": "wow",
+        "plain": {
+          "en": "Offside. The attacker was ahead of the last defender when the pass was played. The goal is ruled out.",
+          "de": "Abseits. Der Angreifer stand beim Pass vor dem letzten Verteidiger. Das Tor zählt nicht.",
+          "vi": "Việt vị. Lúc đường chuyền được thực hiện, tiền đạo đứng trước hậu vệ cuối cùng. Bàn thắng bị hủy."
+        },
+        "expert": {
+          "en": "Offside by {var_margin_cm} cm, judged on the frame the pass was played.",
+          "de": "Abseits um {var_margin_cm} cm, bewertet im Bild des Passes.",
+          "vi": "Việt vị {var_margin_cm} cm, xét theo khung hình lúc chuyền bóng."
+        },
+        "fact_ids": ["var_margin_cm"]
+      }
+    },
+    {
+      "card_id": "c3-sub",
+      "moment_id": "m-sub-63",
+      "trigger": "substitution",
+      "t_in_min": 63,
+      "team_id": "COP",
+      "pitch": { "x": 52.5, "y": 0 },
+      "question": {
+        "text": { "en": "Copperfield bring on a forward. What's the plan?", "de": "Copperfield bringt einen Stürmer. Was ist der Plan?", "vi": "Copperfield đưa một tiền đạo vào sân. Kế hoạch là gì?" },
+        "options": [
+          { "id": "attack", "label": { "en": "Attack", "de": "Angreifen", "vi": "Tấn công" } },
+          { "id": "defend", "label": { "en": "Defend", "de": "Verteidigen", "vi": "Phòng ngự" } },
+          { "id": "fresh", "label": { "en": "Fresh legs", "de": "Frische Beine", "vi": "Thêm sức" } }
+        ],
+        "pippi_call": "attack"
+      },
+      "reveal": {
+        "answer": "attack",
+        "pose": "wow",
+        "plain": {
+          "en": "Attack! A second forward joins, so Copperfield push more players up the pitch.",
+          "de": "Angreifen! Ein zweiter Stürmer kommt, also schiebt Copperfield mehr Spieler nach vorn.",
+          "vi": "Tấn công! Thêm một tiền đạo, nên Copperfield dồn nhiều cầu thủ lên cao hơn."
+        },
+        "expert": {
+          "en": "Forwards on the pitch: {forwards_before} → {forwards_after}. The team's line moves up {line_shift_m} m on average.",
+          "de": "Stürmer auf dem Platz: {forwards_before} → {forwards_after}. Die Mannschaftslinie rückt im Schnitt {line_shift_m} m vor.",
+          "vi": "Số tiền đạo trên sân: {forwards_before} → {forwards_after}. Đội hình dâng cao trung bình {line_shift_m} m."
+        },
+        "fact_ids": ["forwards_before", "forwards_after", "line_shift_m"]
+      }
+    },
+    {
+      "card_id": "c4-freekick",
+      "moment_id": "m-fk-78",
+      "trigger": "free_kick",
+      "t_in_min": 78,
+      "team_id": "COP",
+      "pitch": { "x": 88, "y": 22 },
+      "question": {
+        "text": { "en": "Free kick! Shoot or cross?", "de": "Freistoß! Schuss oder Flanke?", "vi": "Đá phạt! Sút hay tạt?" },
+        "options": [
+          { "id": "shoot", "label": { "en": "Shoot", "de": "Schuss", "vi": "Sút" } },
+          { "id": "cross", "label": { "en": "Cross", "de": "Flanke", "vi": "Tạt" } },
+          { "id": "short", "label": { "en": "Pass short", "de": "Kurz spielen", "vi": "Chuyền ngắn" } }
+        ],
+        "pippi_call": "shoot"
+      },
+      "reveal": {
+        "answer": "cross",
+        "pose": "oops",
+        "plain": {
+          "en": "Cross! Copperfield lifted the ball into the box for a teammate to head.",
+          "de": "Flanke! Copperfield hob den Ball in den Strafraum, damit ein Mitspieler köpft.",
+          "vi": "Tạt bóng! Copperfield đưa bóng vào vòng cấm cho đồng đội đánh đầu."
+        },
+        "expert": {
+          "en": "Copperfield have crossed {fk_cross} of their {fk_total} free kicks near the box today.",
+          "de": "Copperfield hat heute {fk_cross} von {fk_total} Freistößen in Strafraumnähe geflankt.",
+          "vi": "Hôm nay Copperfield đã tạt bóng {fk_cross}/{fk_total} quả đá phạt gần vòng cấm."
+        },
+        "fact_ids": ["fk_cross", "fk_total"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ndinh02/pippi-the-companion/schemas/room_interaction.schema.json",
+  "title": "room_interaction",
+  "description": "Anonymous aggregate of how a room answered one question. Draft v0. No names, no accounts, no free text. Small counts are suppressed before publishing (brief §9).",
+  "type": "object",
+  "required": ["room_hash", "question_id", "option_counts", "n_bucket"],
+  "additionalProperties": false,
+  "properties": {
+    "room_hash": { "type": "string", "pattern": "^[a-f0-9]{16,64}$" },
+    "question_id": { "type": "string", "pattern": "^[a-z0-9-]{1,40}$" },
+    "option_counts": {
+      "type": "object",
+      "propertyNames": { "pattern": "^[a-z][a-z0-9_]{0,23}$" },
+      "additionalProperties": { "type": "integer", "minimum": 0, "maximum": 50 }
+    },
+    "n_bucket": { "enum": ["1", "2-3", "4-6", "7+"] },
+    "language": { "enum": ["en", "de", "vi"] },
+    "depth_opened": { "type": "boolean" }
+  }
+}

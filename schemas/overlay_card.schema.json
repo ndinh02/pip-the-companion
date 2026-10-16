@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ndinh02/pippi-the-companion/schemas/overlay_card.schema.json",
+  "title": "overlay_card",
+  "description": "One timed, machine-readable Pippi card. Draft v0 — matches web/public/data/fake-match.json. Text uses {fact_id} placeholders; code fills the numbers.",
+  "type": "object",
+  "required": ["card_id", "moment_id", "trigger", "t_in_min", "question", "reveal"],
+  "additionalProperties": false,
+  "$defs": {
+    "i18n": {
+      "type": "object",
+      "required": ["en", "de", "vi"],
+      "additionalProperties": false,
+      "properties": {
+        "en": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "de": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "vi": { "type": "string", "minLength": 1, "maxLength": 200 }
+      }
+    },
+    "pose": { "enum": ["asks", "thinks", "wow", "oops", "wave"] },
+    "optionId": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,23}$" }
+  },
+  "properties": {
+    "card_id": { "type": "string", "pattern": "^[a-z0-9-]{1,40}$" },
+    "moment_id": { "type": "string" },
+    "trigger": { "enum": ["corner", "free_kick", "var", "substitution", "half_time", "injury", "other"] },
+    "t_in_min": { "type": "number", "minimum": 0, "maximum": 130 },
+    "t_ms": { "description": "Exact match time of the moment (same clock as events and tracking). Optional.", "type": "integer", "minimum": 0 },
+    "team_id": { "type": "string" },
+    "pitch": {
+      "type": "object",
+      "required": ["x", "y"],
+      "properties": { "x": { "type": "number", "minimum": 0, "maximum": 105 }, "y": { "type": "number", "minimum": 0, "maximum": 68 } }
+    },
+    "question": {
+      "type": "object",
+      "required": ["text", "options", "pippi_call"],
+      "additionalProperties": false,
+      "properties": {
+        "text": { "$ref": "#/$defs/i18n" },
+        "options": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 3,
+          "items": {
+            "type": "object",
+            "required": ["id", "label"],
+            "additionalProperties": false,
+            "properties": { "id": { "$ref": "#/$defs/optionId" }, "label": { "$ref": "#/$defs/i18n" } }
+          }
+        },
+        "pippi_call": { "$ref": "#/$defs/optionId" }
+      }
+    },
+    "reveal": {
+      "type": "object",
+      "required": ["answer", "pose", "plain", "expert", "fact_ids"],
+      "additionalProperties": false,
+      "properties": {
+        "answer": { "$ref": "#/$defs/optionId" },
+        "pose": { "$ref": "#/$defs/pose" },
+        "plain": { "$ref": "#/$defs/i18n" },
+        "expert": { "$ref": "#/$defs/i18n" },
+        "fact_ids": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

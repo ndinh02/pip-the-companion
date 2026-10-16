@@ -1,0 +1,114 @@
+export type Lang = "en" | "de" | "vi";
+export const LANGS: Lang[] = ["en", "de", "vi"];
+export type I18n = Record<Lang, string>;
+export type Pose = "asks" | "thinks" | "wow" | "oops" | "wave";
+
+export interface Team {
+  team_id: string;
+  name: string;
+  short_name: string;
+  kit: { primary: string; secondary: string };
+}
+export interface Option {
+  id: string;
+  label: I18n;
+}
+export interface Card {
+  card_id: string;
+  moment_id: string;
+  trigger: string;
+  t_in_min: number;
+  /** Exact match time in ms (same clock as tracking); absent in the hand-written mock. */
+  t_ms?: number;
+  team_id: string;
+  pitch: { x: number; y: number };
+  question: { text: I18n; options: Option[]; pippi_call: string };
+  reveal: { answer: string; pose: Pose; plain: I18n; expert: I18n; fact_ids: string[] };
+}
+export interface Match {
+  match_id: string;
+  venue: string;
+  pitch: { length_m: number; width_m: number };
+  teams: Team[];
+  score_timeline: { from_min: number; HAR: number; COP: number }[];
+  facts: Record<string, { value: number; source?: string }>;
+  cards: Card[];
+  /** Moments the reader found but did not turn into cards (match-reader output only). */
+  moments_held?: HeldMoment[];
+}
+export interface HeldMoment {
+  trigger: string;
+  t_in_min: number;
+  team_id: string;
+  reason: string;
+}
+
+/** One "added time" board (45' / 90'): why the fourth official shows N minutes. Made by scripts/added_time.py. */
+export interface AddedItem {
+  type: string; // goal | sub | injury | VAR | card | other
+  count: number;
+  seconds: number;
+}
+export interface AddedBoard {
+  period: number;
+  at_min: number;
+  announced_min: number;
+  actual_s: number;
+  items: AddedItem[];
+}
+export interface AddedTime {
+  match_id: string;
+  boards: AddedBoard[];
+}
+
+/** Per-player cumulative stats, one value per match minute (array[m] = value at the START of minute m). Made by match-reader. */
+export type StatKey = "passes" | "passes_ok" | "hard_ok" | "ball_wins" | "shots" | "saves" | "distance_m" | "top_speed_dmh" | "sprints";
+export interface PlayerRow {
+  player_id: string;
+  team_id: string;
+  shirt_no: number;
+  position: "GK" | "DF" | "MF" | "FW";
+  on_min: number | null;
+  off_min: number | null;
+  stats: Record<StatKey, number[]>;
+}
+export interface PlayersFeed {
+  match_id: string;
+  last_minute: number;
+  model: string;
+  players: PlayerRow[];
+}
+
+/** What the room called in the first half. Card text is looked up by card_id in the match file. */
+export interface HalfRow {
+  card_id: string;
+  tally: Record<string, number>;
+  answered: number;
+}
+export interface HalfSummary {
+  score: { HAR: number; COP: number };
+  rows: HalfRow[];
+}
+
+export type Phase = "play" | "ask" | "reveal" | "added" | "half" | "full";
+
+/** TV -> phones */
+export interface StateMsg {
+  t: "state";
+  phase: Phase;
+  minute: number;
+  card: Card | null;
+  board: AddedBoard | null;
+  half: HalfSummary | null;
+  deadline: number;
+  total_ms: number;
+  tally: Record<string, number>;
+  answered: number;
+}
+/** phones -> TV */
+export type PhoneMsg =
+  | { t: "hello"; device: string }
+  | { t: "answer"; device: string; card_id: string; option: string }
+  /** Which player this phone follows (null = nobody). The TV only shows an anonymous count per player. */
+  | { t: "follow"; device: string; player_id: string | null };
+export type Msg = StateMsg | PhoneMsg;

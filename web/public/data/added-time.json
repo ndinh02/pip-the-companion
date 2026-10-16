@@ -1,0 +1,53 @@
+{
+ "boards": [
+  {
+   "actual_s": 142,
+   "announced_min": 2,
+   "at_min": 45,
+   "items": [
+    {
+     "count": 1,
+     "seconds": 106,
+     "type": "VAR"
+    },
+    {
+     "count": 1,
+     "seconds": 36,
+     "type": "goal"
+    }
+   ],
+   "period": 1
+  },
+  {
+   "actual_s": 277,
+   "announced_min": 5,
+   "at_min": 90,
+   "items": [
+    {
+     "count": 6,
+     "seconds": 155,
+     "type": "sub"
+    },
+    {
+     "count": 1,
+     "seconds": 64,
+     "type": "injury"
+    },
+    {
+     "count": 1,
+     "seconds": 33,
+     "type": "goal"
+    },
+    {
+     "count": 1,
+     "seconds": 24,
+     "type": "card"
+    }
+   ],
+   "period": 2
+  }
+ ],
+ "match_id": "synthetic-seed-43",
+ "seed": 43,
+ "source": "stoppages in the match file (match-lab matchlab-0.1.0)"
+}

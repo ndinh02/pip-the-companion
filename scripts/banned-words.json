@@ -1,0 +1,6 @@
+{
+  "note": "Betting vocabulary that must never appear in viewer-facing copy. Matched case-insensitively as whole words. Owner reviews DE/VI.",
+  "en": ["bet", "bets", "betting", "odds", "wager", "gamble", "gambling", "jackpot", "stake", "punter"],
+  "de": ["wette", "wetten", "quote", "quoten", "tipp", "tipps", "glücksspiel", "einsatz"],
+  "vi": ["cược", "kèo", "cá độ", "đặt cược", "nhà cái"]
+}

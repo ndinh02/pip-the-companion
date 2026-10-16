@@ -1,0 +1,78 @@
+# Checks on every push and pull request; deploys the web app from main once the Azure token secret exists.
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9" # the code is written for 3.9 (AGENTS.md)
+
+      - name: Match Lab tests (generator, schemas, tracking)
+        working-directory: match-lab
+        run: python3 -m unittest discover -s tests
+
+      - name: Match Reader tests (cards, facts, copy rules, player stats)
+        working-directory: match-reader
+        run: python3 -m unittest discover -s tests
+
+      - name: Content workflow tests (checker, retry, fallback, integrity demo)
+        working-directory: agents
+        run: python3 -m unittest discover -s tests
+
+      - name: Added-time tests
+        run: python3 scripts/test_added_time.py
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install web dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Copy check (no betting words, no hard-coded numbers) on the match the app plays
+        working-directory: web
+        run: npm run check:copy
+
+      - name: Copy check on the generated demo match
+        working-directory: web
+        run: node ../scripts/check-copy.mjs ../data/demo-match.json
+
+      - name: Type-check and build
+        working-directory: web
+        run: npm run build
+
+  deploy:
+    # Runs only on main, after the checks pass, and only once the repository secret is set.
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      SWA_TOKEN: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        if: env.SWA_TOKEN != ''
+      - name: Deploy to Azure Static Web Apps
+        if: env.SWA_TOKEN != ''
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          action: upload
+          app_location: web
+          output_location: dist
+      - name: Deployment skipped
+        if: env.SWA_TOKEN == ''
+        run: echo "AZURE_STATIC_WEB_APPS_API_TOKEN is not set yet; nothing deployed."

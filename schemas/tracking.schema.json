@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ndinh02/pippi-the-companion/schemas/tracking.schema.json",
+  "title": "tracking",
+  "description": "Synthetic 5 Hz tracking of the ball and 28 players (22 on the pitch at a time). See docs/TRACKING_SPEC.md. Positions in decimetres; -1 means not on the pitch.",
+  "type": "object",
+  "required": ["match_id", "seed", "tracking_version", "hz", "unit", "periods", "entities", "x", "y"],
+  "additionalProperties": false,
+  "$defs": {
+    "series": {
+      "type": "object",
+      "additionalProperties": { "type": "array", "items": { "type": "integer", "minimum": -1, "maximum": 1050 } }
+    }
+  },
+  "properties": {
+    "match_id": { "type": "string", "minLength": 1 },
+    "seed": { "type": "integer" },
+    "tracking_version": { "type": "string", "minLength": 1 },
+    "hz": { "enum": [5] },
+    "unit": { "enum": ["dm"] },
+    "periods": {
+      "type": "array", "minItems": 2, "maxItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "start_ms", "frames"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "enum": [1, 2] },
+          "start_ms": { "type": "integer", "minimum": 0 },
+          "frames": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "entities": { "type": "array", "minItems": 29, "maxItems": 29, "items": { "type": "string", "pattern": "^(ball|[A-Z]{2,4}-[0-9]{1,2})$" } },
+    "x": { "$ref": "#/$defs/series" },
+    "y": { "$ref": "#/$defs/series" }
+  }
+}

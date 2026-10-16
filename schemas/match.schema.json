@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ndinh02/pippi-the-companion/schemas/match.schema.json",
+  "title": "match",
+  "description": "One full synthetic match as written by match-lab (draft v0, brief 8.2). Synthetic data only; players are placeholders.",
+  "type": "object",
+  "required": [
+    "match_id", "seed", "generator_version", "competition", "date", "venue", "pitch", "coord_system",
+    "frame_rate", "teams", "players", "periods", "final_score", "stoppages", "events", "aggregates"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "teamId": { "type": "string", "pattern": "^[A-Z]{2,4}$" },
+    "colour": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+    "scoreByTeam": {
+      "type": "object",
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    },
+    "team": {
+      "type": "object",
+      "required": ["team_id", "name", "short_name", "kit", "formation", "style_priors"],
+      "additionalProperties": false,
+      "properties": {
+        "team_id": { "$ref": "#/$defs/teamId" },
+        "name": { "type": "string", "minLength": 1 },
+        "short_name": { "type": "string", "minLength": 1 },
+        "kit": {
+          "type": "object",
+          "required": ["primary", "secondary", "gk"],
+          "additionalProperties": false,
+          "properties": {
+            "primary": { "$ref": "#/$defs/colour" },
+            "secondary": { "$ref": "#/$defs/colour" },
+            "gk": { "$ref": "#/$defs/colour" }
+          }
+        },
+        "formation": { "type": "string", "pattern": "^[0-9](-[0-9]){2,3}$" },
+        "style_priors": {
+          "type": "object",
+          "required": ["corner_short_share", "fk_cross_share", "press_intensity", "sub_attack_bias"],
+          "additionalProperties": false,
+          "properties": {
+            "corner_short_share": { "type": "number", "minimum": 0, "maximum": 1 },
+            "fk_cross_share": { "type": "number", "minimum": 0, "maximum": 1 },
+            "press_intensity": { "type": "number", "minimum": 0, "maximum": 1 },
+            "sub_attack_bias": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        }
+      }
+    },
+    "player": {
+      "type": "object",
+      "required": ["player_id", "team_id", "display_name", "shirt_no", "position", "attributes"],
+      "additionalProperties": false,
+      "properties": {
+        "player_id": { "type": "string", "pattern": "^[A-Z]{2,4}-[0-9]{1,2}$" },
+        "team_id": { "$ref": "#/$defs/teamId" },
+        "display_name": { "type": "string", "minLength": 1 },
+        "shirt_no": { "type": "integer", "minimum": 1, "maximum": 99 },
+        "position": { "enum": ["GK", "DF", "MF", "FW"] },
+        "attributes": {
+          "description": "Physical attributes (task 04 step 0), from a per-player RNG stream.",
+          "type": "object",
+          "required": ["v_max_kmh", "endurance", "work_rate", "sprint_bias"],
+          "additionalProperties": false,
+          "properties": {
+            "v_max_kmh": { "type": "number", "minimum": 26, "maximum": 37 },
+            "endurance": { "type": "number", "minimum": 0.85, "maximum": 1.0 },
+            "work_rate": { "type": "number", "minimum": 0.9, "maximum": 1.1 },
+            "sprint_bias": { "type": "number", "minimum": 0.7, "maximum": 1.3 }
+          }
+        }
+      }
+    },
+    "period": {
+      "type": "object",
+      "required": ["id", "start_ms", "end_ms", "added_time_announced_s", "added_time_actual_s"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "enum": [1, 2] },
+        "start_ms": { "type": "integer", "minimum": 0 },
+        "end_ms": { "type": "integer", "minimum": 0 },
+        "added_time_announced_s": { "type": "integer", "minimum": 0 },
+        "added_time_actual_s": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "stoppage": {
+      "type": "object",
+      "required": [
+        "stoppage_id", "type", "t_start_ms", "t_end_ms", "duration_s", "counts_for_added_time",
+        "related_event_ids", "var"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "stoppage_id": { "type": "string", "pattern": "^s[0-9]{2,}$" },
+        "type": { "enum": ["injury", "VAR", "sub", "goal", "card", "other"] },
+        "t_start_ms": { "type": "integer", "minimum": 0 },
+        "t_end_ms": { "type": "integer", "minimum": 0 },
+        "duration_s": { "type": "number", "minimum": 0 },
+        "counts_for_added_time": { "type": "boolean" },
+        "related_event_ids": { "type": "array", "items": { "type": "string", "pattern": "^e[0-9]{5,}$" } },
+        "var": {
+          "description": "Only set when type is VAR; null otherwise.",
+          "anyOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "required": ["check_type", "decision"],
+              "additionalProperties": false,
+              "properties": {
+                "check_type": { "enum": ["offside", "foul", "penalty", "red_card", "goal"] },
+                "decision": { "enum": ["stands", "overturned"] },
+                "margin_cm": {
+                  "description": "Only for offside checks: how clear the call was, 1-40 cm. Null for fouls.",
+                  "type": ["integer", "null"],
+                  "minimum": 1,
+                  "maximum": 40
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "properties": {
+    "match_id": { "type": "string", "minLength": 1 },
+    "seed": { "type": "integer" },
+    "generator_version": { "type": "string", "minLength": 1 },
+    "competition": { "type": "string", "minLength": 1 },
+    "date": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+    "venue": { "type": "string", "minLength": 1 },
+    "pitch": {
+      "type": "object",
+      "required": ["length_m", "width_m"],
+      "additionalProperties": false,
+      "properties": {
+        "length_m": { "enum": [105] },
+        "width_m": { "enum": [68] }
+      }
+    },
+    "coord_system": { "type": "string", "minLength": 1 },
+    "frame_rate": { "description": "Null: generated matches carry events only, no tracking frames.", "type": ["number", "null"] },
+    "tracking": {
+      "description": "Only on a tracked match (task 04): points at the 5 Hz tracking file.",
+      "type": "object",
+      "required": ["tracking_version", "file", "actors_changed"],
+      "additionalProperties": false,
+      "properties": {
+        "tracking_version": { "type": "string", "minLength": 1 },
+        "file": { "type": "string", "minLength": 1 },
+        "actors_changed": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "teams": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "$ref": "#/$defs/team" } },
+    "players": { "type": "array", "minItems": 28, "maxItems": 28, "items": { "$ref": "#/$defs/player" } },
+    "periods": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "$ref": "#/$defs/period" } },
+    "final_score": { "$ref": "#/$defs/scoreByTeam" },
+    "stoppages": { "type": "array", "items": { "$ref": "#/$defs/stoppage" } },
+    "events": { "type": "array", "minItems": 1, "items": { "$ref": "event.schema.json" } },
+    "aggregates": {
+      "type": "object",
+      "required": ["corners", "short_corners", "shots", "ball_in_play_s", "events"],
+      "additionalProperties": false,
+      "properties": {
+        "corners": { "$ref": "#/$defs/scoreByTeam" },
+        "short_corners": { "$ref": "#/$defs/scoreByTeam" },
+        "shots": { "$ref": "#/$defs/scoreByTeam" },
+        "ball_in_play_s": { "type": "integer", "minimum": 0 },
+        "events": { "type": "integer", "minimum": 1 }
+      }
+    }
+  }
+}

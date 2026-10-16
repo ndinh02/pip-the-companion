@@ -1,0 +1,69 @@
+import type { Lang } from "./types";
+
+// DE/VI are drafts until the owner checks them.
+export const UI = {
+  callIt: { en: "Call it!", de: "Sag's an!", vi: "Đoán đi!" },
+  eyesUp: { en: "Eyes up — Pippi will wake you in the next break.", de: "Augen hoch – Pippi weckt dich in der nächsten Pause.", vi: "Ngẩng lên xem nào – Pippi sẽ gọi bạn ở quãng nghỉ sau." },
+  waitingTv: { en: "Looking for the TV…", de: "Suche den Fernseher …", vi: "Đang tìm TV…" },
+  waitingTvHint: { en: "Open /tv in another tab of this browser.", de: "Öffne /tv in einem anderen Tab dieses Browsers.", vi: "Mở /tv ở một tab khác của trình duyệt này." },
+  locked: { en: "Locked in", de: "Eingeloggt", vi: "Đã chốt" },
+  lockedWait: { en: "Waiting for the match to answer…", de: "Warten, bis das Spiel antwortet …", vi: "Đang chờ trận đấu trả lời…" },
+  matchSays: { en: "The match says", de: "Das Spiel sagt", vi: "Trận đấu cho biết" },
+  pippiCalled: { en: "Pippi called", de: "Pippi tippte auf", vi: "Pippi đoán" },
+  roomSays: { en: "The room called", de: "Der Raum sagte", vi: "Cả nhà đoán" },
+  goDeeper: { en: "Go deeper", de: "Mehr Details", vi: "Xem sâu hơn" },
+  hide: { en: "Hide", de: "Ausblenden", vi: "Ẩn" },
+  fullTime: { en: "Full time", de: "Abpfiff", vi: "Hết giờ" },
+  scan: { en: "Scan to join the room", de: "Scannen und dem Raum beitreten", vi: "Quét để vào phòng" },
+  phonesJoined: { en: "phones joined", de: "Handys verbunden", vi: "điện thoại đã vào" },
+  badRoom: { en: "That room code doesn't look right.", de: "Dieser Raumcode sieht nicht richtig aus.", vi: "Mã phòng này có vẻ chưa đúng." },
+  sleeping: { en: "Pippi is watching the game", de: "Pippi schaut das Spiel", vi: "Pippi đang xem trận" },
+  addedTime: { en: "Added time", de: "Nachspielzeit", vi: "Bù giờ" },
+  addedWhy: {
+    en: "Referees add the time lost while the ball was dead: goals, substitutions, injuries, VAR checks and cards.",
+    de: "Der Schiedsrichter fügt die Zeit hinzu, die bei Spielunterbrechungen verloren ging: Tore, Wechsel, Verletzungen, VAR-Prüfungen und Karten.",
+    vi: "Trọng tài cộng thêm thời gian mất đi khi bóng chết: bàn thắng, thay người, chấn thương, VAR và thẻ phạt.",
+  },
+  addedLost: { en: "Time lost", de: "Verlorene Zeit", vi: "Thời gian mất" },
+  addedRounding: { en: "The board rounds to whole minutes.", de: "Die Anzeigetafel rundet auf ganze Minuten.", vi: "Bảng điện tử làm tròn theo phút." },
+  halfTime: { en: "Half-time", de: "Halbzeit", vi: "Nghỉ giữa hiệp" },
+  halfCalls: { en: "What the room called", de: "Das sagte der Raum", vi: "Cả nhà đã đoán" },
+  halfRoom: { en: "Room", de: "Raum", vi: "Cả nhà" },
+  halfMatch: { en: "Match", de: "Spiel", vi: "Trận" },
+  halfSplit: { en: "Split", de: "Geteilt", vi: "Chia đều" },
+  halfNoCalls: { en: "No calls", de: "Keine Antworten", vi: "Chưa ai đoán" },
+  wordOfMatch: { en: "Word of the match", de: "Wort des Spiels", vi: "Từ của trận" },
+  share: { en: "Share", de: "Teilen", vi: "Chia sẻ" },
+  copied: { en: "Copied", de: "Kopiert", vi: "Đã sao chép" },
+  halfCard: { en: "Half-time card", de: "Halbzeitkarte", vi: "Thẻ giữa hiệp" },
+  whosThat: { en: "Who's that?", de: "Wer ist das?", vi: "Ai đấy?" },
+  pickTeam: { en: "Which team?", de: "Welche Mannschaft?", vi: "Đội nào?" },
+  pickNumber: { en: "Shirt number", de: "Rückennummer", vi: "Số áo" },
+  back: { en: "Back", de: "Zurück", vi: "Quay lại" },
+  follow: { en: "Follow this player", de: "Diesem Spieler folgen", vi: "Theo dõi cầu thủ này" },
+  following: { en: "Following", de: "Du folgst", vi: "Đang theo dõi" },
+  unfollow: { en: "Stop following", de: "Nicht mehr folgen", vi: "Bỏ theo dõi" },
+  yourPlayer: { en: "Your player", de: "Dein Spieler", vi: "Cầu thủ của bạn" },
+  followHint: { en: "Stays on this phone only.", de: "Bleibt nur auf diesem Handy.", vi: "Chỉ lưu trên điện thoại này." },
+  modelled: {
+    en: "Distance, top speed and sprints are computed from synthetic tracking data. All data in this demo is synthetic.",
+    de: "Strecke, Spitzentempo und Sprints werden aus synthetischen Trackingdaten berechnet. Alle Daten in dieser Demo sind synthetisch.",
+    vi: "Quãng đường, tốc độ tối đa và số lần nước rút được tính từ dữ liệu theo dõi giả lập. Mọi dữ liệu trong bản demo đều là dữ liệu giả lập.",
+  },
+  soFar: { en: "so far", de: "bisher", vi: "đến giờ" },
+  lastMinutes: { en: "Where they have been, last five minutes", de: "Laufwege der letzten fünf Minuten", vi: "Di chuyển trong năm phút gần nhất" },
+  ghostRun: { en: "Fastest run of the half", de: "Schnellster Lauf der Halbzeit", vi: "Pha bứt tốc nhanh nhất hiệp" },
+  replay: { en: "Replay", de: "Wiederholen", vi: "Xem lại" },
+  notOnPitch: { en: "Not on the pitch right now.", de: "Gerade nicht auf dem Platz.", vi: "Hiện không có mặt trên sân." },
+  loadingTracking: { en: "Loading positions…", de: "Positionen werden geladen …", vi: "Đang tải vị trí…" },
+  you: { en: "You", de: "Du", vi: "Bạn" },
+} satisfies Record<string, Record<Lang, string>>;
+
+export function ui(key: keyof typeof UI, lang: Lang): string {
+  return UI[key][lang];
+}
+
+export function deviceLang(): Lang {
+  const l = (navigator.language || "en").slice(0, 2);
+  return l === "de" || l === "vi" ? l : "en";
+}
