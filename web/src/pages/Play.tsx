@@ -13,6 +13,8 @@ import { HALF_MIN, shareText } from "../lib/halfTime";
 import { clampMinute, followLine, loadFollow, saveFollow } from "../lib/whoThat";
 import { deviceLang, nowKey, ui } from "../lib/i18n";
 import { factAt } from "../lib/didYouKnow";
+import { avatarOf } from "../lib/avatar";
+import { choiceStyle } from "../lib/choices";
 import { alertsWanted, buzz, disableAlerts, enableAlerts, keepAwake, resumeSound } from "../lib/buzz";
 import { answerLabel, fill, loadMatch, loadPlayers, ROOM_RE, t } from "../lib/match";
 import { LANGS, type HalfSummary, type Lang, type Match, type Msg, type PlayersFeed, type StateMsg } from "../lib/types";
@@ -164,7 +166,7 @@ export default function Play() {
   const scorerButton = players && match && state?.scorer && players.players.some((p) => p.player_id === state.scorer) && (
     <button className="scorer-btn" onClick={() => { setWhoStart(state.scorer ?? null); setShowWho(true); }}>⚽ {ui("seeScorer", lang)}</button>
   );
-  const fact = card && state?.phase === "ask" ? factAt(card.trigger, now - askAt, lang) : null;
+  const fact = card && state?.phase === "ask" ? factAt(card.trigger, now - askAt, lang, card.card_id) : null;
   const halfView = match && half && (
     <main>
       <Mascot pose="wave" size={96} />
@@ -233,57 +235,60 @@ export default function Play() {
 
       {state && state.phase === "half" && !showWho && !showFollow && halfView}
 
-      {state && card && state.phase === "ask" && (
-        <main className="wake" key={card.card_id}>
-          <Mascot pose="asks" size={96} />
-          <div className="eyebrow">{ui("callIt", lang)}</div>
-          <h2>{t(card.question.text, lang)}</h2>
-          {nowLine && <p className="now-line">{ui(nowLine, lang)}</p>}
-          <div className="choices">
-            {card.question.options.map((o) => (
-              <button
-                key={o.id}
-                className={`choice ${mine === o.id ? "picked" : ""}`}
-                disabled={!!mine}
-                onClick={() => {
-                  setPicked((p) => ({ ...p, [card.card_id]: o.id }));
-                  send({ t: "answer", device, card_id: card.card_id, option: o.id });
-                }}
-              >
-                {t(o.label, lang)}
-              </button>
-            ))}
+      {state && card && state.phase === "ask" && !mine && (
+        <main className="kq wake" key={card.card_id}>
+          <div className="kq-head">
+            <Mascot pose="asks" size={56} />
+            <div>
+              <div className="eyebrow">{ui("callIt", lang)}</div>
+              <h2>{t(card.question.text, lang)}</h2>
+            </div>
           </div>
-          {!mine && <p className="dim">{ui("openUntilRestart", lang)}</p>}
-          {mine && (
-            // Answered: while the ball is still dead, show the room filling up and Pip's own guess (never the outcome).
-            <>
-              <p className="dim">✓ {ui("locked", lang)} · {ui("lockedWait", lang)}</p>
-              <section className="tally" aria-label={ui("roomSoFar", lang)}>
-                <div className="eyebrow">{ui("roomSoFar", lang)} · {state.answered} {ui("answeredOf", lang)}</div>
-                {card.question.options.map((o) => {
-                  const n = state.tally[o.id] ?? 0;
-                  const pct = state.answered ? (n / state.answered) * 100 : 0;
-                  return (
-                    <div className="row" key={o.id}>
-                      <span>{t(o.label, lang)}{mine === o.id ? ` · ${ui("you", lang)}` : ""}</span>
-                      <span className="track"><i style={{ width: `${pct}%` }} /></span>
-                      <span className="n">{n}</span>
-                    </div>
-                  );
-                })}
-              </section>
-              <p className="pippi-call">🐤 {ui("pipThinks", lang)}: {answerLabel(card, card.question.pippi_call, lang)}</p>
-              {fact && (
-                <section className="fact-card" key={fact}>
-                  <div className="eyebrow">💡 {ui("didYouKnow", lang)}</div>
-                  <p>{fact}</p>
-                </section>
-              )}
-            </>
-          )}
+          {nowLine && <p className="now-line">{ui(nowLine, lang)}</p>}
+          <div className={`tiles n${card.question.options.length}`}>
+            {card.question.options.map((o, i) => {
+              const st = choiceStyle(i);
+              return (
+                <button
+                  key={o.id}
+                  className="tile"
+                  style={{ background: st.bg, color: st.fg }}
+                  onClick={() => {
+                    setPicked((p) => ({ ...p, [card.card_id]: o.id }));
+                    send({ t: "answer", device, card_id: card.card_id, option: o.id });
+                  }}
+                >
+                  <span className="shape" aria-hidden="true">{st.shape}</span>
+                  <span>{t(o.label, lang)}</span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="dim">{ui("openUntilRestart", lang)}</p>
         </main>
       )}
+
+      {state && card && state.phase === "ask" && mine && (() => {
+        // Answered: the whole screen takes the colour of the pick, says it is in, and that the MATCH will decide.
+        const i = card.question.options.findIndex((o) => o.id === mine);
+        const st = choiceStyle(i);
+        return (
+          <main className="kq-locked" key={`${card.card_id}-locked`} style={{ background: st.bg, color: st.fg }}>
+            <div className="big-shape" aria-hidden="true">{st.shape}</div>
+            <div className="eyebrow">✓ {ui("locked", lang)}</div>
+            <h2>{answerLabel(card, mine, lang)}</h2>
+            <p className="count">{state.joined ? `${state.answered} / ${Math.max(state.answered, state.joined)}` : state.answered} {ui("answeredOf", lang)}</p>
+            <p className="verdict">⏳ {ui("waitVerdict", lang)}</p>
+            <p className="me">{ui("youAre", lang)} {avatarOf(device)}</p>
+            {fact && (
+              <section className="fact-card" key={fact}>
+                <div className="eyebrow">💡 {ui("didYouKnow", lang)}</div>
+                <p>{fact}</p>
+              </section>
+            )}
+          </main>
+        );
+      })()}
 
       {state && card && state.phase === "locked" && !showWho && !showFollow && (
         // Play has restarted: answers are closed and the phone goes quiet so eyes go back to the screen.
@@ -296,6 +301,11 @@ export default function Play() {
 
       {state && card && match && state.phase === "reveal" && (
         <main>
+          {mine && (
+            <div className={`verdict-banner ${mine === card.reveal.answer ? "right" : "wrong"}`} role="status">
+              {mine === card.reveal.answer ? `✓ ${ui("calledIt", lang)}` : ui("notThisTime", lang)}
+            </div>
+          )}
           <Mascot pose={card.reveal.pose} size={96} />
           <div className="eyebrow turf">{ui("matchSays", lang)}: {answerLabel(card, card.reveal.answer, lang)}</div>
           <p className="plain">{fill(t(card.reveal.plain, lang), match.facts)}</p>

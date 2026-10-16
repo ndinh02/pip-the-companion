@@ -17,7 +17,8 @@ export const REVEAL_SHOW_MS = 12_000; // match time the reveal stays up while pl
 export const BOARD_SHOW_MS = 20_000; // the added-time board is shown this long
 export const HALF_BREAK_MS = 30_000; // real time the half-time card stays (the match itself is in its break)
 const LEAD_MS = 15_000; // highlights: start this long before the ball goes dead, so the build-up is seen
-const SKIP_IF_GAP_MS = 4_000; // highlights: only jump if the next moment is further away than this
+const SKIP_IF_GAP_MS = 40_000; // highlights: only jump if the next moment is further away than this (short gaps play on)
+export const OPENING_MS = 90_000; // highlights: the opening plays normally from kick-off, so viewers get into the match
 
 export interface Period {
   id: number;
@@ -131,6 +132,20 @@ function nextStop(tl: Timeline, clk: Clock): number | null {
   return Math.max(t, Math.min(...upcoming.map((i) => i.stop)));
 }
 
+export type MomentKind = "goal" | "var" | "corner" | "free_kick" | "substitution" | "added" | "half" | "full";
+/** The next moment after `t` that highlights would stop for, so a jump can say what it is jumping to. */
+export function nextMoment(tl: Timeline, t: number, halfDone: boolean): MomentKind | null {
+  const items: { at: number; kind: MomentKind }[] = [
+    ...tl.cards.map((c) => ({ at: c.dead_ms, kind: (["var", "corner", "free_kick", "substitution"].includes(c.trigger) ? c.trigger : "free_kick") as MomentKind })),
+    ...tl.goals.map((g) => ({ at: g.t_ms, kind: "goal" as const })),
+    ...tl.boards.map((b) => ({ at: b.at_ms, kind: "added" as const })),
+    ...(halfDone ? [] : [{ at: tl.periods[0].end_ms, kind: "half" as const }]),
+    { at: tl.periods[tl.periods.length - 1].end_ms, kind: "full" as const },
+  ];
+  const next = items.filter((i) => i.at >= t).sort((a, b) => a.at - b.at)[0];
+  return next?.kind ?? null;
+}
+
 /** Highlights only: a long stoppage is fast-forwarded once the room has answered (or after a while), like an edited
  *  highlights show. The question stays open until play restarts; we just do not sit through all of the wait. */
 export const HURRY_AFTER_MS = 20_000; // without everyone answered: match ms of a stoppage shown at normal speed first
@@ -164,11 +179,11 @@ export function advance(tl: Timeline, clk: Clock, realDt: number, now: number, a
     if (tl.hasFirstHalfCards) return { ...clk, tMs: tl.periods[0].end_ms, halfUntil: now + HALF_BREAK_MS, skipped: null };
     return { ...clk, tMs: tl.periods[1].start_ms, halfDone: true, skipped };
   }
-  if (clk.mode === "highlights" && viewAt(tl, { ...clk, tMs: t }).phase === "play") {
+  if (clk.mode === "highlights" && t >= OPENING_MS && viewAt(tl, { ...clk, tMs: t }).phase === "play") {
     const stop = nextStop(tl, { ...clk, tMs: t });
     if (stop !== null && stop - t > SKIP_IF_GAP_MS) {
       t = stop;
-      skipped = { to: t, until: now + 2_500 };
+      skipped = { to: t, until: now + 4_000 };
     }
   }
   return { ...clk, tMs: t, skipped };
@@ -188,5 +203,5 @@ export function skipAhead(tl: Timeline, clk: Clock, now: number): Clock {
   if (stop === null) return clk;
   const target = Math.max(clk.tMs, stop + LEAD_MS - 3_000); // land 3 s before the moment itself
   if (!clk.halfDone && target >= tl.periods[0].end_ms) return advance(tl, { ...clk, tMs: tl.periods[0].end_ms - 1 }, 1, now);
-  return { ...clk, tMs: target, skipped: { to: target, until: now + 2_500 } };
+  return { ...clk, tMs: target, skipped: { to: target, until: now + 4_000 } };
 }

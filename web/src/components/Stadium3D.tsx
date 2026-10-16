@@ -292,8 +292,10 @@ function makeBody(id: string, team: Team | undefined): Body {
   return { group, char, label, ring, follow, followTag: null, followCount: 0, gait: newGait(), offset: [0, 0], phase: [...id].reduce((h, ch) => h + ch.charCodeAt(0) * 0.7, 0) % Math.PI };
 }
 
-/** Ball height is not in the 2D tracking: long, fast flights (crosses, clearances, long passes) get an arc. */
+/** Ball height in metres: from the tracking's `z` channel when it has one; older files without it get an arc guessed
+ *  for long, fast flights (crosses, clearances, long passes). */
 function ballHeights(tr: Tracking): Float32Array {
+  if (tr.z?.ball?.length === tr.x.ball.length) return Float32Array.from(tr.z.ball, (v) => Math.max(0, v) / 10);
   const xs = tr.x.ball;
   const ys = tr.y.ball;
   const n = xs.length;
@@ -405,6 +407,7 @@ export default function Stadium3D(props: Stadium3DProps) {
     const wantTarget = new THREE.Vector3();
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let lastCamera: string | null = null;
+    const lastBall: [number, number] = [L / 2, W / 2];
 
     const resize = () => {
       const w = el.clientWidth || 1;
@@ -427,11 +430,17 @@ export default function Stadium3D(props: Stadium3DProps) {
       const t = p.tMs + ahead;
       const { i0, i1, a } = frameIndex(tr, t);
 
+      // -1 = the ball is off the pitch (out of play, in the net): hide it, never slide it in from the corner
       const bx0 = tr.x.ball[i0];
-      const bx1 = tr.x.ball[i1];
-      const bx = (bx0 + (bx1 - bx0) * a) / 10;
-      const by = (tr.y.ball[i0] + (tr.y.ball[i1] - tr.y.ball[i0]) * a) / 10;
-      const bz = z[i0] + (z[i1] - z[i0]) * a;
+      const bx1 = tr.x.ball[i1] < 0 ? bx0 : tr.x.ball[i1];
+      const by1 = tr.x.ball[i1] < 0 ? tr.y.ball[i0] : tr.y.ball[i1];
+      ball.visible = ballShadow.visible = bx0 >= 0;
+      // while it is hidden, cameras and players keep looking where the ball was last seen
+      const bx = bx0 >= 0 ? (bx0 + (bx1 - bx0) * a) / 10 : lastBall[0];
+      const by = bx0 >= 0 ? (tr.y.ball[i0] + (by1 - tr.y.ball[i0]) * a) / 10 : lastBall[1];
+      lastBall[0] = bx;
+      lastBall[1] = by;
+      const bz = z[i0] + ((tr.x.ball[i1] < 0 ? z[i0] : z[i1]) - z[i0]) * a;
       ball.position.set(toX(bx), 0.24 + bz, toZ(by));
       ballShadow.position.set(toX(bx), 0.03, toZ(by));
 

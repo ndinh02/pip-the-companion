@@ -33,6 +33,14 @@
     },
     "entities": { "type": "array", "minItems": 29, "maxItems": 29, "items": { "type": "string", "pattern": "^(ball|[A-Z]{2,4}-[0-9]{1,2})$" } },
     "x": { "$ref": "#/$defs/series" },
-    "y": { "$ref": "#/$defs/series" }
+    "y": { "$ref": "#/$defs/series" },
+    "z": {
+      "type": "object",
+      "required": ["ball"],
+      "additionalProperties": false,
+      "properties": {
+        "ball": { "type": "array", "items": { "type": "integer", "minimum": -1, "maximum": 200 } }
+      }
+    }
   }
 }

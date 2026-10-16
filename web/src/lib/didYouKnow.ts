@@ -76,13 +76,17 @@ const FACTS: Record<string, Fact[]> = {
   ],
 };
 
-export const FACT_EVERY_MS = 12_000; // real time each fact stays up
+export const FACT_EVERY_MS = 25_000; // real time each fact stays up
+const FACTS_PER_STOP = 2; // a stoppage shows at most two facts, then the second one stays
 
-/** The fact to show `elapsedMs` (real time) into a stoppage, or null when there are none for this kind of moment. */
-export function factAt(trigger: string, elapsedMs: number, lang: Lang): string | null {
+/** The fact to show `elapsedMs` (real time) into a stoppage, or null when there are none for this kind of moment.
+ *  `seed` (the card id) picks where in the list to start, so different stoppages show different facts. */
+export function factAt(trigger: string, elapsedMs: number, lang: Lang, seed = ""): string | null {
   const list = FACTS[trigger];
   if (!list?.length) return null;
-  return list[Math.floor(Math.max(0, elapsedMs) / FACT_EVERY_MS) % list.length][lang];
+  const start = [...seed].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 997, 0);
+  const step = Math.min(FACTS_PER_STOP - 1, Math.floor(Math.max(0, elapsedMs) / FACT_EVERY_MS));
+  return list[(start + step) % list.length][lang];
 }
 
 /** Every fact, for the copy check. */

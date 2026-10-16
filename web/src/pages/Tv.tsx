@@ -7,11 +7,13 @@ import HalfTimeCard from "../components/HalfTimeCard";
 import Pitch from "../components/Pitch";
 import ScorerSpotlight from "../components/ScorerSpotlight";
 import { factAt } from "../lib/didYouKnow";
+import { avatarOf } from "../lib/avatar";
+import { choiceStyle } from "../lib/choices";
 import { CAMERAS, type CameraId } from "../lib/cameras";
 import { addedHeadline } from "../lib/addedTime";
 import { useRoomChannel } from "../lib/channel";
 import { buildHalf, HALF_MIN } from "../lib/halfTime";
-import { advance, buildTimeline, hurrying, clockLabel, clockMinute, skipAhead, startClock, viewAt, type Clock, type Mode } from "../lib/matchClock";
+import { advance, buildTimeline, hurrying, nextMoment, OPENING_MS, type MomentKind, clockLabel, clockMinute, skipAhead, startClock, viewAt, type Clock, type Mode } from "../lib/matchClock";
 import { deadShot, goalShot } from "../lib/deadTime";
 import { loadTracking, nearestToBall, positionsAt, type Tracking } from "../lib/tracking";
 import { nowKey, ui } from "../lib/i18n";
@@ -25,6 +27,9 @@ const REPLAY_PRE_MS = 2_500; // a replay starts this long before play restarted
 const REPLAY_POST_MS = 2_000; // and runs this long past the outcome
 const REPLAY_SLOWMO = 0.5; // replays run at half speed, like TV
 const SPEEDS = [1, 4, 16];
+const MOMENT_KEY: Record<MomentKind, Parameters<typeof ui>[0]> = {
+  goal: "mGoal", var: "mVar", corner: "mCorner", free_kick: "mFreeKick", substitution: "mSub", added: "mAdded", half: "mHalf", full: "mFull",
+};
 const GOAL_POP_MS = 8_000; // Pip celebrates in the corner this long after a goal
 const SPOTLIGHT_FROM_MS = 3_000; // the scorer's quick profile, from this long after the goal...
 const SPOTLIGHT_TO_MS = 17_000; // ...until this long after it
@@ -99,6 +104,13 @@ export default function Tv() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [card?.card_id, answerTick]);
   const answered = Object.values(tally).reduce((a, b) => a + b, 0);
+  // which phones (as their anonymous animals) picked each option
+  const pickers = useMemo(() => {
+    const out: Record<string, string[]> = {};
+    if (card) answers.current.get(card.card_id)?.forEach((opt, dev) => (out[opt] ??= []).push(avatarOf(dev)));
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [card?.card_id, answerTick]);
   allAnsweredRef.current = devices.current.size > 0 && answered >= devices.current.size;
 
   const send = useRoomChannel(room, "tv", (m: Msg) => {
@@ -128,7 +140,7 @@ export default function Tv() {
   );
   const board = view?.board ?? null;
   // The latest goal stays "fresh" for phones (a profile button) for a few match minutes.
-  const scorer = tl?.goals.filter((g) => clk.tMs >= g.t_ms && clk.tMs < g.t_ms + SCORER_FRESH_MS).at(-1)?.player_id ?? null;
+  const scorer = tl?.goals.filter((g) => clk.tMs >= g.t_ms && clk.tMs < g.t_ms + SCORER_FRESH_MS).pop()?.player_id ?? null;
   const minute = tl ? Math.floor(clockMinute(tl, clk.tMs)) : 0;
   const clock = tl ? clockLabel(tl, clk.tMs) : "0'";
 
@@ -142,7 +154,7 @@ export default function Tv() {
       // No countdown while a question is open: live, nobody knows when play restarts.
       deadline: phase === "reveal" ? now + revealLeft : 0,
       total_ms: phase === "reveal" ? 12_000 / clk.speed : 0,
-      tally, answered, scorer,
+      tally, answered, scorer, joined: devices.current.size,
     };
     const key = JSON.stringify([msg.phase, msg.minute, msg.card?.card_id, msg.board?.period, msg.half?.rows.length, msg.tally, msg.scorer]);
     if (key !== lastSent.current) {
@@ -184,8 +196,10 @@ export default function Tv() {
   const goalNow = tl.goals.find((g) => clk.tMs >= g.t_ms && clk.tMs < g.t_ms + GOAL_POP_MS) ?? null;
   const goalTeam = goalNow ? match.teams.find((x) => x.team_id === goalNow.team_id) : undefined;
   const nowLine = card ? nowKey(card.trigger) : null;
+  const compact = !!card && answered > 0 && (phase === "locked" || (phase === "ask" && allAnsweredRef.current));
+  const nextKind = clk.skipped ? nextMoment(tl, clk.skipped.to, clk.halfDone) : null;
   if (phase === "ask" && card && askSince.current.id !== card.card_id) askSince.current = { id: card.card_id, at: now };
-  const fact = phase === "ask" && card ? factAt(card.trigger, now - askSince.current.at, lang) : null;
+  const fact = phase === "ask" && card ? factAt(card.trigger, now - askSince.current.at, lang, card.card_id) : null;
   const spotlight = tl.goals.find((g) => clk.tMs >= g.t_ms + SPOTLIGHT_FROM_MS && clk.tMs < g.t_ms + SPOTLIGHT_TO_MS) ?? null;
   const setMode = (mode: Mode) => setClk((c) => ({ ...c, mode }));
 
@@ -246,7 +260,17 @@ export default function Tv() {
       )}
 
       {clk.skipped && now < clk.skipped.until && (
-        <div className="skip-note" role="status">{ui("skippingTo", lang)} {clockLabel(tl, clk.skipped.to)} ▸▸</div>
+        <div className="skip-note" role="status">
+          {ui("skippingTo", lang)} {clockLabel(tl, clk.skipped.to)} ▸▸
+          {nextKind && <span className="skip-next"> · {ui("next", lang)}: {ui(MOMENT_KEY[nextKind], lang)}</span>}
+        </div>
+      )}
+
+      {clk.mode === "highlights" && clk.tMs < Math.min(OPENING_MS, 20_000) && (
+        <div className="hl-intro" role="status">
+          <strong>{ui("hlTitle", lang)}</strong>
+          <span>{ui("hlIntro", lang)}</span>
+        </div>
       )}
 
       <div className="join">
@@ -258,7 +282,24 @@ export default function Tv() {
         </div>
       </div>
 
-      {card && (phase === "ask" || phase === "locked" || phase === "reveal") && (
+      {card && compact && (
+        // Everyone is in (or play is back on): shrink to one line so the match has the screen again.
+        <section className="answer-strip" aria-live="polite">
+          <span className="as-done">✓ {phase === "locked" ? ui("answersClosed", lang) : `${ui("allAnswered", lang)} (${answered})`}</span>
+          {card.question.options.map((o, i) => {
+            const st = choiceStyle(i);
+            const who = pickers[o.id] ?? [];
+            return (
+              <span key={o.id} className="as-opt">
+                <i style={{ background: st.bg, color: st.fg }}>{st.shape}</i> {t(o.label, lang)} {who.length ? who.join("") : "–"}
+              </span>
+            );
+          })}
+          <span className="as-wait">⏳ {ui("waitVerdict", lang)}</span>
+        </section>
+      )}
+
+      {card && !compact && (phase === "ask" || phase === "locked" || phase === "reveal") && (
         <section className={`lower-third ${phase === "locked" ? "ask locked" : phase}`} aria-live="polite">
           <div className="lt-head">
             <Mascot pose={phase === "reveal" ? card.reveal.pose : "asks"} size={88} />
@@ -273,9 +314,15 @@ export default function Tv() {
               {phase === "ask" && nowLine && <p className="now-line">{ui(nowLine, lang)}</p>}
               {fact && <p className="fact" key={fact}>💡 {ui("didYouKnow", lang)} {fact}</p>}
               <ul className="opts">
-                {card.question.options.map((o) => (
-                  <li key={o.id}>{t(o.label, lang)}<span className="count" key={tally[o.id] ?? 0}>{tally[o.id] ?? 0}</span></li>
-                ))}
+                {card.question.options.map((o, i) => {
+                  const st = choiceStyle(i);
+                  return (
+                    <li key={o.id}>
+                      <span><i className="opt-shape" style={{ background: st.bg, color: st.fg }}>{st.shape}</i> {t(o.label, lang)} <span className="who">{(pickers[o.id] ?? []).join("")}</span></span>
+                      <span className="count" key={tally[o.id] ?? 0}>{tally[o.id] ?? 0}</span>
+                    </li>
+                  );
+                })}
               </ul>
               <p className="window-note">
                 {answered > 0 && <>{answered}/{Math.max(answered, devices.current.size)} {ui("answeredOf", lang)} · </>}

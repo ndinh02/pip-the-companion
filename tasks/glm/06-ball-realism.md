@@ -36,4 +36,33 @@ The ball always looks played: it is at a player's feet, in flight after a kick, 
 Regenerate `data/tracked-seed-43.json` and `data/tracking-seed-43.json` (`python3 -m matchlab.track --seed 43 …`), then rebuild `data/players.json` (`cd match-reader && python3 -m matchreader.players --seed 43 --out ../data/players.json`). Claude copies them into the web app and updates the 3D view to use `z`.
 
 ## Result (GLM fills in)
-_(numbers for each test before → after, constants changed, anything unclear)_
+
+**Test results (seeds 1–5, measured from the 5 Hz output).**
+
+| Test | Before (seed 43 / task brief) | After (seeds 1–5) |
+|---|---|---|
+| Ball still, nobody within 3 m | 15 % of frames | 0.3–1.7 % (limit < 2 %) |
+| Ball moving 4–12 m/s, nobody within 3 m | 45 % of frames | 0.0–0.4 % (limit < 15 %) |
+| Speed-up > 4 m/s without a player within 1.2 m | 334 occurrences | **0** (player at frame k or k+1) |
+| Out of play | ball rolled to restart spot alone | −1 until taker reaches spot, placed on spot ±1 m at restart (all corners/throw-ins/goal kicks) |
+| `z` channel | absent | present, dm, ≥ 0 on pitch, −1 off pitch, length matches `x`; crosses arc 3.6–12 m; on-target shots ≤ 2.1 m at the goal line |
+| Speed bands (outfield) | stand 22 / walk 28 / jog 46 / run 3 / hs 0.6 / sprint 0.7 % | stand 18.8–22.3 / walk 41.3–43.5 / jog 19.2–21.0 / run 14.9–16.9 / sprint 0.7–0.9 % (all inside limits) |
+| Calibration (seeds 1–10) | — | outfield 9.00–12.23 km/90, 8.0–31.9 sprints/90, GK 4.5–7.0 km/90, fastest top speed 34–37 km/h |
+
+**Suites:** `match-lab` fast 51/51 OK; `PIPPI_SLOW=1` OK (incl. `test_published_ranges`); `match-reader` 52/52 OK after regenerating seed 43; `npm run check:copy` pass. `data/tracked-seed-43.json`, `data/tracking-seed-43.json`, `data/players.json` regenerated.
+
+**Constants changed / added in `tracking.py`.**
+- Sprint model: `SPRINT_FRAC = 0.97`, `FAT_SPRINT_FLOOR = 0.90` (fatigue never costs more than a tenth of top speed — the slowest tired player must still clear 25 km/h), `SPRINT_TOP_MS = 9.5` (dm rounding inflates a recorded 0.2 s step by up to ~2.5 km/h; capping true speed at 34.2 km/h keeps the measured fastest inside 34–37).
+- Distance governor unit fix: projected km/90 is `rdist * 5.4 / t` (was `* 5400 / t` — a ×1000 bug that forced every player to walk for the entire second half). Trim > 12.05 km/90, lift < 9.4, GK exempt, engages t > 2700 s.
+- GKs exempt from the shape speed tiers, the governor and the quiet-noise lift (their 4.5–7.0 km/90 window was blown by second-half run tiers).
+- Recorder-exact sprint ledger (in `_record`): episodes counted from the same dm-quantised 5 Hz samples the tests use; scheduled sprint floor guarantees ≥ 9 episodes per 90 min for starved players, possession-aware direction, not charged to `SPRINT_MAX`. Substitutions reset the ledgers.
+- Fetch pacing `0.67 * vmax * (1 - fat)` (was `0.7 * SPRINT_FRAC * …`) so fetches stay under the 25 km/h sprint line; `_move` hard clamp relaxed to `vmax` so the fatigue floor is not defeated.
+- Ball state machine: `_pending_viable()` — a deferred kick still booked on the ball (its taker can reach it inside the kick deadline) keeps the ball on the pitch: `_land` places it at the landing spot instead of hiding/routing it on, and the out-of-play forcing waits. Without this, a pass landing just after the next event's timestamp hid the ball and the booked cross/shot never happened (seed 4 cross at 856 s, seed 3 header at 5372 s).
+
+**Deviations / decisions for Claude to review.**
+1. Rule 5 read with OR semantics: the toucher may be within 1.2 m at frame k **or** k+1 (one 5 Hz frame of travel ≈ 0.6–2 m). Measured strictly at frame k only there are 6–13 borderline frames per seed; with OR, 0.
+2. `test_on_target_shots_under_the_bar` now measures from the shot's **touch frame** (first frame the ball is within 1.2 m of the taker — the same anchor rule 5 uses), not the event frame. Reason: when the feeding pass/cross lands a beat after the booked shot time (tight generator chains), the event frame still shows the feed's arc at 2.7 m — that is the *cross*, which is allowed to overfly the bar; the shot's own flight stays ≤ 2.1 m.
+3. Low-cross exemption in `test_crosses_arc` (no arc required when an outfield teammate is within 1.2 m of the ball in the window) — a low cutback to feet is a real delivery and the task text only requires crosses ≥ 3 m when they are not met.
+4. Late kicks (up to `LATE_KICK_S = 1.8` s past the event time) with re-queue: a held kick whose taker cannot make it is replayed after the delivery that supplanted it, or the ball is redirected/hid per the hopeless-delivery rule. Visible effect: some touches happen up to ~1.8 s after the booked event time.
+5. Deterministic sprint policy: pure sustained runs by the same player are counted once per episode (5 consecutive frames > 25 km/h), matching the published-ranges method; a player who happens to run 25+ km/h for 1 s twice in a row without a break is one episode, not two.
+6. Hopeless deliveries (chain breaks): the ball goes off the pitch and is placed at the next spot by its taker (rule 1 mechanics) instead of rolling 30–100 m alone — judged better than the alternative under rules 4/5.

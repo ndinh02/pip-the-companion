@@ -264,3 +264,42 @@ a { color: var(--sky); }
 @media (prefers-reduced-motion: reduce) {
   .spotlight, .lower-third .fact, .fact-card { animation: none; }
 }
+
+/* ---- Phone: Kahoot-style call (big coloured tiles, then a full-colour "locked in" screen) ---- */
+.phone main.kq { flex: 1; grid-template-rows: auto auto 1fr auto; }
+.kq-head { display: flex; gap: 12px; align-items: center; }
+.kq-head h2 { font-size: 22px; line-height: 1.2; margin: 2px 0 0; }
+.tiles { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; align-content: stretch; min-height: 46vh; }
+.tiles.n3 .tile:last-child { grid-column: 1 / -1; }
+.tile { border: 0; border-radius: 16px; display: grid; place-content: center; justify-items: center; gap: 8px; padding: 18px 10px; min-height: 120px; font: inherit; font-size: 20px; font-weight: 900; box-shadow: inset 0 -6px 0 rgba(0, 0, 0, 0.22); transition: transform 0.08s; }
+.tile:active { transform: scale(0.96); }
+.tile .shape { font-size: 34px; line-height: 1; }
+.phone main.kq-locked { flex: 1; margin: 0; border-radius: 0; align-content: center; justify-items: center; text-align: center; gap: 10px; animation: lock-in 0.35s cubic-bezier(0.2, 1.4, 0.4, 1); }
+.kq-locked .big-shape { font-size: 72px; line-height: 1; }
+.kq-locked .eyebrow { color: inherit; opacity: 0.85; }
+.kq-locked h2 { font-size: 30px; margin: 0; }
+.kq-locked .count { font-size: 20px; font-weight: 800; margin: 6px 0 0; }
+.kq-locked .verdict { font-size: 17px; margin: 0; }
+.kq-locked .me { font-size: 15px; opacity: 0.85; margin: 0; }
+.kq-locked .fact-card { background: rgba(14, 26, 43, 0.85); color: var(--chalk); text-align: left; margin-top: 12px; width: 100%; }
+@keyframes lock-in { from { transform: scale(0.92); opacity: 0.4; } }
+.verdict-banner { border-radius: 12px; padding: 12px 14px; font-size: 20px; font-weight: 900; text-align: center; }
+.verdict-banner.right { background: var(--turf); color: #fff; }
+.verdict-banner.wrong { background: var(--navy-2); color: var(--chalk); border: 1px solid #2c4468; }
+
+/* ---- TV: shapes on the options, and a one-line strip once everyone has answered ---- */
+.opt-shape { display: inline-grid; place-content: center; width: 1.35em; height: 1.35em; border-radius: 6px; font-style: normal; font-size: 0.8em; margin-right: 0.3em; vertical-align: 0.05em; }
+.opts .who { font-size: 0.85em; letter-spacing: 0.05em; }
+.answer-strip { position: absolute; left: 5%; right: 5%; bottom: 5%; z-index: 6; display: flex; flex-wrap: wrap; align-items: center; gap: 0.6vw 1.4vw; background: rgba(14, 26, 43, 0.93); border-left: 6px solid var(--floodlight); border-radius: 12px; padding: 0.6vw 1.2vw; font-size: max(15px, 1.1vw); font-weight: 800; animation: hop 300ms ease-out; }
+.answer-strip .as-done { color: var(--turf); }
+.answer-strip .as-opt i { display: inline-grid; place-content: center; width: 1.4em; height: 1.4em; border-radius: 5px; font-style: normal; font-size: 0.8em; }
+.answer-strip .as-wait { margin-left: auto; color: var(--floodlight); font-weight: 700; }
+
+/* ---- TV: highlights intro and clearer jumps ---- */
+.hl-intro { position: absolute; top: 24%; left: 50%; transform: translateX(-50%); z-index: 6; display: grid; gap: 4px; text-align: center; max-width: min(560px, 80%); background: rgba(14, 26, 43, 0.92); border: 1px solid var(--floodlight); border-radius: 14px; padding: 0.8vw 1.4vw; font-size: max(14px, 1vw); animation: hop 300ms ease-out; }
+.hl-intro strong { color: var(--floodlight); font-size: 1.3em; }
+.skip-next { color: var(--chalk); font-weight: 700; }
+
+@media (prefers-reduced-motion: reduce) {
+  .phone main.kq-locked, .answer-strip, .hl-intro { animation: none; }
+}

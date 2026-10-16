@@ -115,6 +115,8 @@ export interface StateMsg {
   total_ms: number;
   tally: Record<string, number>;
   answered: number;
+  /** Phones that joined the room (a count only). */
+  joined?: number;
   /** The latest goal's scorer while it is fresh (a few match minutes), so phones can offer their profile. */
   scorer?: string | null;
 }

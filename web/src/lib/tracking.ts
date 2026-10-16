@@ -8,6 +8,8 @@ export interface Tracking {
   entities: string[];
   x: Record<string, number[]>;
   y: Record<string, number[]>;
+  /** Ball height in decimetres (-1 = off the pitch). Optional: older files have none. */
+  z?: { ball: number[] };
 }
 export interface Dot {
   id: string; // "ball" or a player id such as "HAR-7"

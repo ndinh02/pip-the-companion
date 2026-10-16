@@ -246,8 +246,10 @@ class Physics(unittest.TestCase):
     def test_ball_speed_cap(self) -> None:
         xs, ys = series(self.tracking)
         X, Y = xs["ball"], ys["ball"]
+        # -1 frames are the off-pitch marker, not a position: skip them
         worst = max(math.hypot(X[k + 1] - X[k], Y[k + 1] - Y[k]) / DM / 0.2
-                    for k in range(len(X) - 1))
+                    for k in range(len(X) - 1)
+                    if X[k] >= 0 and X[k + 1] >= 0)
         self.assertLessEqual(worst, 40.0, "%.1f m/s" % worst)
 
 
@@ -354,8 +356,8 @@ class Shape(unittest.TestCase):
                 tx: List[float] = []
                 for k in range(lo, hi):
                     us = [xs[pid][k] for pid in pids if xs[pid][k] >= 0]
-                    if len(us) < 7:
-                        continue
+                    if len(us) < 7 or xs["ball"][k] < 0:
+                        continue  # ball off the pitch: no meaningful position
                     spreads.append((max(us) - min(us)) / DM)
                     bx.append(xs["ball"][k] / DM)
                     tx.append(sum(us) / len(us) / DM)
