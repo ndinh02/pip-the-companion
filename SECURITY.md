@@ -16,8 +16,8 @@ Status: describes the prototype as built on 2026-10-14, and marks what is planne
 | Tampered match files | Files are built by code in this repository and checked in CI on every push (tests, copy check). |
 | Someone guesses a room code | Today rooms exist only inside one browser, so there is nothing to join remotely. **Planned with real rooms:** server-side validation of room codes, answer ids and player ids; message size and rate limits; rooms that expire after the match. |
 | Identifying who follows which player | The shared screen keeps a count per player only and shows no identity. |
-| Cross-site attacks on the hosted app | `web/public/staticwebapp.config.json` sets a Content Security Policy (scripts, fonts and connections from the same origin only; no framing), `nosniff`, no referrer, and disables camera, microphone and location. **Not yet tested on a live deployment.** |
-| Secrets in the repository | None are needed to run the app. The only secret is the Azure deployment token, stored as a GitHub Actions secret. |
+| Cross-site attacks on the hosted app | `web/server/server.mjs` (the Azure App Service server) sets a Content Security Policy (scripts, fonts and connections from the same origin only; no framing), `nosniff`, no referrer, disables camera, microphone and location, sends HSTS, and only serves files inside the built app folder (path traversal returns the app shell). Tested locally; **not yet tested on the live deployment.** |
+| Secrets in the repository | None are needed to run the app. The only secret is the Azure App Service publish profile, stored as a GitHub Actions secret. |
 
 ## Not collected
 No analytics, no cookies, no IP logging by the app, no tracking across matches, no viewer profiles.

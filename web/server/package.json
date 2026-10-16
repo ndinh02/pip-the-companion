@@ -1,0 +1,8 @@
+{
+  "name": "pip-server",
+  "private": true,
+  "type": "module",
+  "description": "Serves the built Pip app on Azure App Service. No dependencies.",
+  "scripts": { "start": "node server.mjs" },
+  "engines": { "node": ">=20" }
+}

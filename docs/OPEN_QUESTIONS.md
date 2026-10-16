@@ -20,3 +20,5 @@
 - Python 3.9.6 only → install 3.11+ (e.g. from python.org) before the agents work.
 - `gh` CLI not installed. `origin` is set locally to https://github.com/ndinh02/pippi-the-companion.git but nothing is pushed.
 - Azure for Students not signed up; hackathon registration closes 2026-10-20 12:00 PT (21:00 German time).
+- **Azure for Students (verified 2026-10-15) may only deploy to:** belgiumcentral, norwayeast, switzerlandnorth, francecentral, italynorth (subscription policy "Allowed resource deployment regions", read 2026-10-16). **Azure Static Web Apps is not offered in any of these**, so the planned hosting (brief §7.5) needs a replacement — **DECIDED 2026-10-16: Azure App Service, Free F1, France Central, Node 22** (`web/server/server.mjs`); the same server can host the room backend later. Any database or room backend must also use one of these regions.
+

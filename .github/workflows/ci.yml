@@ -56,23 +56,39 @@ jobs:
         run: npm run build
 
   deploy:
-    # Runs only on main, after the checks pass, and only once the repository secret is set.
+    # Runs only on main, after the checks pass, and only once the publish profile secret and the app name are set.
+    # Hosting: Azure App Service (Linux, Node 22, Free F1, France Central). Static Web Apps is not available in the
+    # regions this Azure for Students subscription may use (docs/OPEN_QUESTIONS.md).
     needs: check
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     env:
-      SWA_TOKEN: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+      PUBLISH_PROFILE: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+      APP_NAME: ${{ vars.AZURE_WEBAPP_NAME }}
     steps:
-      - uses: actions/checkout@v4
-        if: env.SWA_TOKEN != ''
-      - name: Deploy to Azure Static Web Apps
-        if: env.SWA_TOKEN != ''
-        uses: Azure/static-web-apps-deploy@v1
-        with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
-          action: upload
-          app_location: web
-          output_location: dist
       - name: Deployment skipped
-        if: env.SWA_TOKEN == ''
-        run: echo "AZURE_STATIC_WEB_APPS_API_TOKEN is not set yet; nothing deployed."
+        if: env.PUBLISH_PROFILE == '' || env.APP_NAME == ''
+        run: echo "Set the AZURE_WEBAPP_PUBLISH_PROFILE secret and the AZURE_WEBAPP_NAME variable to deploy."
+      - uses: actions/checkout@v4
+        if: env.PUBLISH_PROFILE != '' && env.APP_NAME != ''
+      - uses: actions/setup-node@v4
+        if: env.PUBLISH_PROFILE != '' && env.APP_NAME != ''
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Build and package (server + built app, no dependencies)
+        if: env.PUBLISH_PROFILE != '' && env.APP_NAME != ''
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+          rm -rf server/dist
+          cp -r dist server/dist
+      - name: Deploy to Azure App Service
+        if: env.PUBLISH_PROFILE != '' && env.APP_NAME != ''
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: web/server

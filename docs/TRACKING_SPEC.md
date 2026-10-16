@@ -33,7 +33,7 @@ web                                      TV pitch, phone follow views, laptop co
 - Uniform **5 Hz** (one frame every 200 ms), both periods back to back; frame *i* of period *p* is at `periods[p].start_ms + 200·i`. Array index = (frames of earlier periods) + *i*. All arrays have `sum(frames)` entries.
 - **Decimetres** (int): x 0–1050, y 0–680, same coordinate system as the events (`coord_system` in the match file). **−1 = not on the pitch** (bench, substituted off, sent off).
 - 29 entities: the ball, then `HAR-1..14`, `COP-1..14`. 2D only.
-- Size ≈ 28k frames × 29 × 2 ≈ 1.6 M integers ≈ 8 MB as JSON, ~2–3 MB gzipped (Azure Static Web Apps serves gzip). Only the TV and laptop need it; the phone fetches it lazily when the viewer follows someone.
+- Size ≈ 28k frames × 29 × 2 ≈ 1.6 M integers ≈ 8 MB as JSON, about 1.1 MB gzipped (the App Service server compresses it). Only the TV and laptop need it; the phone fetches it lazily when the viewer follows someone.
 - The synthesizer runs its physics at **10 Hz** internally and stores every second frame. 10 Hz windows around the question moments (brief: "hero moments") can be added later without changing the format idea (not in v1).
 
 ## 4. What each screen does with it  (PROPOSED — owner to confirm)
