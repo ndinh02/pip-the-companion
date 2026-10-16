@@ -17,13 +17,13 @@ Do these before adding new features.
 
 Complete these first.
 
-- [ ] **Fix the Git repository boundary.** The project folder currently resolves to a Git repository at `/Users/admin`, rather than having its own repository metadata. Confirm that `pippi-the-companion` is an independent repository, contains the project files, has a clean history, and is pushed to its required public GitHub URL.
-- [ ] **Register for the hackathon** before 2026-10-20 21:00 German time.
-- [ ] **Create the Azure account/subscription** required for the planned hosted demo. Record the selected region and any Student subscription restrictions.
+- [x] **Fix the Git repository boundary.** Done 2026-10-14: project has its own repository (one local commit); the stray repo in the home folder was removed. Not pushed yet. The project folder currently resolves to a Git repository at `/Users/admin`, rather than having its own repository metadata. Confirm that `pippi-the-companion` is an independent repository, contains the project files, has a clean history, and is pushed to its required public GitHub URL.
+- [x] **Register for the hackathon** — done 2026-10-15.
+- [x] **Create the Azure account/subscription** — Azure for Students verified 2026-10-15. Still to record: chosen region and any Student subscription restrictions.
 - [ ] **Deploy the web app** to Azure Static Web Apps (or an owner-approved equivalent). Test the public URL in a private browser window and keep it available through 2026-11-10.
-- [ ] **Add a minimal CI workflow.** On each push: web type-check/build, copy check, Match Lab tests, and Match Reader tests. On `main`: deploy the static app.
-- [ ] **Add baseline hosting security.** Include `staticwebapp.config.json` with a Content Security Policy and sensible security headers. Do not add secrets to the repository.
-- [ ] **Update the README** with the hosted URL, exact local run steps, what is implemented today, synthetic-data notice, and a short architecture diagram.
+- [x] **Add a minimal CI workflow.** Written (`.github/workflows/ci.yml`); runs once pushed. On each push: web type-check/build, copy check, Match Lab tests, and Match Reader tests. On `main`: deploy the static app.
+- [x] **Add baseline hosting security.** `web/public/staticwebapp.config.json`; untested until deployed. Include `staticwebapp.config.json` with a Content Security Policy and sensible security headers. Do not add secrets to the repository.
+- [x] **Update the README** (hosted URL still to add) with the hosted URL, exact local run steps, what is implemented today, synthetic-data notice, and a short architecture diagram.
 
 ### Definition of done
 
