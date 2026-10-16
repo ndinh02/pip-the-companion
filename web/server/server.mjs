@@ -1,11 +1,12 @@
 // Pip web server for Azure App Service (Linux, Node 22). No dependencies.
 // Serves the built app from ./dist with security headers, gzip and a single-page-app fallback.
-// The room backend (OPEN question 3) will add routes under /api here.
+// Rooms for separate phones live under /api/rooms (rooms.mjs).
 import { createServer } from "node:http";
 import { readFile, stat } from "node:fs/promises";
 import { extname, join, normalize, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
+import { handleRooms } from "./rooms.mjs";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
 // On App Service the build sits next to this file (server/dist); locally it is web/dist.
@@ -62,9 +63,14 @@ function send(res, status, headers, body) {
   res.end(body);
 }
 
-const server = createServer(async (req, res) => {
+export const server = createServer(async (req, res) => {
+  const url = new URL(req.url ?? "/", "http://x");
+  if (url.pathname.startsWith("/api/")) {
+    if (await handleRooms(req, res, url, SECURITY_HEADERS)) return;
+    return send(res, 404, { "Content-Type": "text/plain" }, "not found");
+  }
   if (req.method !== "GET" && req.method !== "HEAD") return send(res, 405, { Allow: "GET, HEAD" }, "");
-  const path = new URL(req.url ?? "/", "http://x").pathname;
+  const path = url.pathname;
   if (path === "/healthz") return send(res, 200, { "Content-Type": "text/plain" }, "ok");
 
   let file = path === "/" ? join(ROOT, "index.html") : await fileFor(path);
@@ -94,4 +100,4 @@ const server = createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => console.log(`Pip server on :${PORT}, serving ${ROOT}`));
+if (process.env.PIP_NO_LISTEN !== "1") server.listen(PORT, () => console.log(`Pip server on :${PORT}, serving ${ROOT}`));

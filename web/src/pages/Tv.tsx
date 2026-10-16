@@ -115,7 +115,7 @@ export default function Tv() {
     return () => clearInterval(id);
   }, [match, added, running, speed]);
 
-  const send = useRoomChannel(room, (m: Msg) => {
+  const send = useRoomChannel(room, "tv", (m: Msg) => {
     if (m.t === "hello") {
       devices.current.add(m.device);
       setAnswerTick((n) => n + 1);

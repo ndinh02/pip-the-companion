@@ -29,8 +29,10 @@ def run_card(match: Dict[str, Any], cand: Dict[str, Any], approved_card: Dict[st
     feedback: Optional[List[str]] = None
     final = None
     for attempt in range(1, MAX_RETRIES + 2):
+        if hasattr(writer, "moment_key"):
+            writer.moment_key = cand.get("reveal_key", "")  # e.g. "offside:stands": what happened, in words for the writer
         draft = writer.write(approved_card, tools, feedback)
-        errors = check_card(draft.card, draft.facts, truth)
+        errors = check_card(draft.card, draft.facts, truth, cand.get("reveal_key", ""))
         attempts.append({
             "attempt": attempt, "writer": writer.name, "note": draft.note,
             "expert_en": draft.card["reveal"]["expert"]["en"], "plain_en": draft.card["reveal"]["plain"]["en"],
@@ -43,7 +45,7 @@ def run_card(match: Dict[str, Any], cand: Dict[str, Any], approved_card: Dict[st
         feedback = errors
     if final is None:
         fallback = TemplateWriter().write(approved_card, tools, None)
-        errors = check_card(fallback.card, fallback.facts, truth)
+        errors = check_card(fallback.card, fallback.facts, truth, cand.get("reveal_key", ""))
         if errors:  # the fixed template itself is broken: stop, never ship
             raise ValueError("fallback template failed the checker for %s: %s" % (approved_card["card_id"], errors))
         attempts.append({"attempt": len(attempts) + 1, "writer": "template (fallback)", "note": "retries used up",

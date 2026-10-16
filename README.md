@@ -18,7 +18,7 @@ npm run dev
 ```
 Then open:
 - `http://localhost:5173/tv` — the shared screen. Use the demo controls (bottom right): `Next ▸` jumps to the next question.
-- `Open phone ↗` on that page — the phone view, in a second tab **of the same browser** (see "Not built yet").
+- `Open phone ↗` on that page — the phone view, in a second tab of the same browser. (With `npm run dev` there is no room server, so screen and phone talk inside one browser. The hosted demo and the production server below let real phones join by QR code.)
 - `http://localhost:5173/console` — operator view: tracking, the content workflow, "Catch me lying".
 
 ## What works today
@@ -33,10 +33,11 @@ Then open:
 | Shared screen: pitch with players, question card, real-time replay at the reveal, added-time explainer, half-time card | built |
 | Phone: answers, room tally, two-depth reveal, "Who's that?", Follow, ghost run, EN / DE / VI | built (DE / VI copy are drafts) |
 | Console: tracking panel, workflow trace, held-back log | built |
+| Rooms across separate devices: screen and phones on any network, by HTTP polling | built (`web/server/rooms.mjs`); rooms live in memory and expire |
+| AI writer on a local model (Foundry Local) through the same checker | trial run only (`data/agent-trace-llm.json`); the shipped cards are still the reviewed templates |
 
 ## Not built yet
-- **Separate devices in one room.** Screen and phones currently talk inside one browser (`BroadcastChannel`). A real phone cannot join yet.
-- **An LLM writer.** The workflow, checker and fallback exist; the model is not chosen or connected.
+- **AI-written cards in the shipped match.** The local-model writer works and passes the checker, but its lines are not yet reviewed for voice, and German/Vietnamese re-voicing is not built.
 - The browser side-panel extension, Match Print.
 
 ## How it fits together

@@ -1,6 +1,7 @@
 """Command line, from agents/:
 
     python3 -m pippi_agents.run --seed 43 --out ../data/agent-trace.json
+    python3 -m pippi_agents.run --seed 43 --writer llm --model qwen2.5-7b --out ../data/agent-trace-llm.json
 
 Writes the trace of the real run (today: template writer, no AI) plus the "Catch me lying"
 integrity demo: the same match with two sabotaged writers, to prove bad text cannot ship.
@@ -39,11 +40,42 @@ def build(seed: int) -> dict:
     return real
 
 
+def _run_llm(args) -> int:
+    """Trial run with a local model. Writes a separate trace; the shipped match file is not touched."""
+    import time
+    from .llm_writer import LLMWriter
+
+    match = generate_match(args.seed)
+    writer = LLMWriter(args.model)
+    writer.team_names = {t["team_id"]: t["name"] for t in match["teams"]}
+    started = time.time()
+    data = run_match(match, writer)
+    data["model_replies"] = writer.raw
+    data["seconds"] = round(time.time() - started, 1)
+    os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
+    with open(args.out, "w", encoding="utf-8") as fh:
+        fh.write(json.dumps(data, sort_keys=True, indent=1, ensure_ascii=False) + "\n")
+    first_try = sum(1 for c in data["cards"] if c["attempts"][0]["checker"] == "pass")
+    by_model = sum(1 for c in data["cards"] if c["approved_by"].startswith("llm:"))
+    print("wrote %s with %s in %ss: %d cards, %d passed the checker first time, %d approved from the model, %d fell back to the template" % (
+        args.out, writer.model, data["seconds"], len(data["cards"]), first_try, by_model, len(data["cards"]) - by_model))
+    for c in data["cards"]:
+        print(" %s  %-26s %s" % (c["card_id"], c["approved_by"][:26], c["approved_plain_en"]))
+        for a in c["attempts"]:
+            if a["checker"] == "fail":
+                print("        rejected draft %d: %s" % (a["attempt"], "; ".join(a["errors"])[:160]))
+    return 0
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--seed", type=int, required=True)
     parser.add_argument("--out", required=True)
+    parser.add_argument("--writer", choices=["template", "llm"], default="template")
+    parser.add_argument("--model", default="qwen2.5-7b", help="Foundry Local model alias (with --writer llm)")
     args = parser.parse_args(argv)
+    if args.writer == "llm":
+        return _run_llm(args)
     data = build(args.seed)
     os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
     with open(args.out, "w", encoding="utf-8") as fh:

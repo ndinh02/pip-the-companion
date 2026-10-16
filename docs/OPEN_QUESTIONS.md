@@ -3,8 +3,8 @@
 | # | Question | Status |
 |---|---|---|
 | 1 | Name: Pip vs Pippi | **DECIDED: Pip** (owner, 2026-10-16; was Pippi from 2026-10-13). A quick trademark search for "Pip" in the product's classes is still sensible before public launch. |
-| 2 | LLM provider (Foundry Local / Azure OpenAI / both) | OPEN — needed by Oct 18 (agents). Needs Python ≥ 3.10 on the Mac either way. |
-| 3 | Real-time rooms (Web PubSub / polling / single-device) | OPEN — mock uses single-device mode (BroadcastChannel). |
+| 2 | LLM provider (Foundry Local / Azure OpenAI / both) | **Foundry Local installed 2026-10-16** (CLI 0.11.0, qwen2.5-7b); first trial through the checker works (`data/agent-trace-llm.json`). Writer uses Foundry Local's local endpoint with the standard library, so no new Python is needed. Azure OpenAI fallback still open. |
+| 3 | Real-time rooms (Web PubSub / polling / single-device) | **DECIDED 2026-10-16: HTTP polling** on the App Service server (`web/server/rooms.mjs`); single-device mode stays as the local fallback. |
 | 4 | Colour clash | **DECIDED:** team blue → `#2E7FC4`. |
 | 5 | Cosmos DB vs Table Storage | OPEN — after Azure signup. |
 | 6 | Hero moments with 10 Hz tracking | **CHANGED 2026-10-13:** owner wants a tracking system → full-match synthetic tracking at 5 Hz (`docs/TRACKING_SPEC.md`); 10 Hz windows around question moments later. Screen use (§4) still PROPOSED. |

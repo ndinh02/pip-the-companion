@@ -42,7 +42,7 @@ export default function Play() {
       .catch(() => undefined);
   }, []);
 
-  const send = useRoomChannel(valid ? room : "INVALID", (m: Msg) => {
+  const send = useRoomChannel(valid ? room : "INVALID", "phone", (m: Msg) => {
     if (m.t === "state") setState(m);
   });
   useEffect(() => {

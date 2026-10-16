@@ -33,7 +33,7 @@ A fresh browser can open the public URL, complete the demo without any local sof
 
 The brief's agent design is strong; it needs one working, inspectable vertical slice. Do not imply an agent exists until it does.
 
-- [ ] Decide the LLM route with the owner: Foundry Local, Azure OpenAI in Foundry, or both with a fallback. This is OPEN question 2.
+- [x] LLM route: Foundry Local on the owner's Mac (installed 2026-10-16); Azure OpenAI as a later fallback.
 - [ ] Build one bounded content workflow:
   1. Read only code-computed facts through tools/functions.
   2. Produce one English question and one explanation with `fact_ids` and placeholders.
@@ -52,10 +52,10 @@ A judge can watch one generated card travel from checked facts through the bound
 
 The existing `BroadcastChannel` transport is a good single-device fallback, but it does not connect separate phones.
 
-- [ ] Ask the owner to choose the demo transport: Azure Web PubSub, polling, or single-device-only fallback (OPEN question 3).
+- [x] Owner chose **polling** (2026-10-16).
 - [ ] Keep `web/src/lib/channel.ts` as the one transport boundary, so the TV and phone screens do not need a redesign.
-- [ ] If Web PubSub is chosen, implement only the minimum messages: join, current state, answer, and follow/unfollow.
-- [ ] Server-validate room codes, known answer IDs, known player IDs, and message size/rate limits.
+- [x] Minimum messages implemented over polling: join (hello), current state, answer, follow/unfollow.
+- [x] Server-validates room codes, id formats, message size and rate limits; the screen also rejects unknown answer/player ids.
 - [ ] Store only the privacy-approved temporary data. No names, free text, accounts, tracking across matches, or viewer profiles.
 - [ ] Test TV + two physically separate phones on different networks/browsers.
 

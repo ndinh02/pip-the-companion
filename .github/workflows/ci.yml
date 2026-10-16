@@ -55,6 +55,10 @@ jobs:
         working-directory: web
         run: npm run build
 
+      - name: Server tests (rooms, validation, rate limit, security headers)
+        working-directory: web
+        run: node --test server/server.test.mjs
+
   deploy:
     # Runs only on main, after the checks pass, and only once the publish profile secret and the app name are set.
     # Hosting: Azure App Service (Linux, Node 22, Free F1, France Central). Static Web Apps is not available in the
