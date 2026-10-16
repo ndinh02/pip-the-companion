@@ -390,7 +390,13 @@ def moment_times(match: Dict[str, Any], cand: Dict[str, Any]) -> Dict[str, int]:
         st = cand["stoppage"]
         nxt = next((e for e in events if e["t_ms"] >= st["t_end_ms"] and e["type"] not in _QUIET_TYPES), None)
         restart = nxt["t_ms"] if nxt else st["t_end_ms"]
-        return {"dead_ms": st["t_start_ms"], "restart_ms": restart, "reveal_ms": st["t_end_ms"]}
+        shot = cand["event"]
+        pass_ev = next((e for e in reversed(events) if e["t_ms"] < shot["t_ms"] and e["team_id"] == shot["team_id"]
+                        and e["type"] in ("pass", "cross", "free_kick", "corner", "throw_in")), None)
+        times = {"dead_ms": st["t_start_ms"], "restart_ms": restart, "reveal_ms": st["t_end_ms"]}
+        if pass_ev and shot["t_ms"] - pass_ev["t_ms"] < 15000:
+            times["frame_ms"] = pass_ev["t_ms"]  # the frame VAR judges offside on
+        return times
     if cand["trigger"] == "substitution":
         t = cand["t_ms"]
         nxt = next((e for e in events if e["t_ms"] > t and e["type"] not in _QUIET_TYPES), None)

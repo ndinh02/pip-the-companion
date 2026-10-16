@@ -24,6 +24,8 @@ export interface Card {
   dead_ms?: number;
   restart_ms?: number;
   reveal_ms?: number;
+  /** VAR only: the moment of the pass the check is judged on. */
+  frame_ms?: number;
   expected_break_s?: number;
   team_id: string;
   pitch: { x: number; y: number };

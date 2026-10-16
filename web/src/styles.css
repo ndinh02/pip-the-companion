@@ -66,6 +66,10 @@ a { color: var(--sky); }
   font-size: max(16px, 1.5vw);
   animation: hop 300ms ease-out;
 }
+.stadium3d { position: absolute; inset: 0; }
+.stadium3d canvas { width: 100%; height: 100%; display: block; }
+.replay-badge { position: absolute; top: 12%; left: 50%; transform: translateX(-50%); background: #c8102e; color: #fff; font-weight: 800; letter-spacing: 0.18em; padding: 0.3vw 0.9vw; border-radius: 4px; font-size: max(13px, 1vw); }
+.controls select { background: var(--navy-2); color: inherit; border: 1px solid #2c4468; border-radius: 6px; padding: 4px 6px; font: inherit; }
 .skip-note { position: absolute; top: 5%; left: 50%; transform: translateX(-50%); background: rgba(14, 26, 43, 0.9); border: 1px solid var(--sky); color: var(--sky); border-radius: 999px; padding: 0.4vw 1.2vw; font-weight: 800; font-size: max(14px, 1.1vw); }
 .window-note { font-size: 0.75em; color: var(--dim); }
 .lower-third.locked .opts li { opacity: 0.6; }

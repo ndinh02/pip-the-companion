@@ -30,7 +30,7 @@ Then open:
 | Player stats per minute from events and tracking | built (`match-reader/matchreader/players.py`) |
 | Checker: numbers match the events, no betting words, no invented numbers, card schema | built |
 | Content workflow: writer → checker → up to 2 retries → fixed template, with a trace and the "Catch me lying" integrity demo | built (`agents/`), **template writer only — no LLM connected yet** |
-| Shared screen: pitch with players, question card, real-time replay at the reveal, added-time explainer, half-time card | built |
+| Shared screen: TV-like 3D view of the synthetic match (three.js) with cameras — main stand, far side, behind each goal, close-up, overhead VAR with the offside line on the frame of the pass, tactical 2D — an automatic director, TV-style replays at each reveal, followed players marked in every camera; question card, added-time explainer, half-time card | built |
 | Phone: answers, room tally, two-depth reveal, "Who's that?", Follow, ghost run, EN / DE / VI | built (DE / VI copy are drafts) |
 | Console: tracking panel, workflow trace, held-back log | built |
 | Rooms across separate devices: screen and phones on any network, by HTTP polling | built (`web/server/rooms.mjs`); rooms live in memory and expire |
@@ -53,6 +53,8 @@ data/*.json      approved cards, facts, tracking, player stats, added time, work
                                              │
 web              /tv (shared screen)   /play/:room (phone)   /console (operator)   (replays the files)
 ```
+Players are simple club-neutral figures (no likenesses). Because the match is synthetic, every player's position is known exactly, so a followed player stays marked in every camera; doing that on real broadcast video would need the broadcaster's tracking data or image recognition, which this project does not attempt.
+
 Every number a viewer sees is filled in by code from `facts` or tracking; text only carries placeholders such as `{c2_fk_cross}`.
 
 ## Rebuild the demo match (seed 43)

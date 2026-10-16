@@ -29,6 +29,7 @@
     "dead_ms": { "description": "Ball went dead: the question opens (a live feed signals this at once).", "type": "integer", "minimum": 0 },
     "restart_ms": { "description": "Play restarted: answers close. Not known in advance when live.", "type": "integer", "minimum": 0 },
     "reveal_ms": { "description": "The outcome is visible: the reveal shows.", "type": "integer", "minimum": 0 },
+    "frame_ms": { "description": "VAR only: the moment of the pass the check is judged on.", "type": "integer", "minimum": 0 },
     "expected_break_s": { "description": "Average length of this kind of break; used only to decide whether to ask.", "type": "integer", "minimum": 0 },
     "team_id": { "type": "string" },
     "pitch": {

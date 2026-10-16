@@ -1,0 +1,509 @@
+import { useEffect, useRef } from "react";
+import * as THREE from "three";
+import type { Tracking } from "../lib/tracking";
+import type { CameraId } from "../lib/cameras";
+import type { Team } from "../lib/types";
+
+/** TV-like 3D view of the synthetic match, driven by the 5 Hz tracking.
+ *
+ *  Players are simple, club-neutral figures in kit colours with their shirt number above them (no likenesses,
+ *  AGENTS.md rule 4). Because the data is synthetic, every player's position is known exactly, so a followed
+ *  player keeps their marker in every camera. With a broadcaster's real tracking data the same would hold;
+ *  spotting players in real video is a different, much harder problem and is not attempted here. */
+
+export interface Stadium3DProps {
+  tracking: Tracking;
+  teams: Team[];
+  /** Match time to show (ms). Between updates the view runs on smoothly at `speed`. */
+  tMs: number;
+  speed: number;
+  running: boolean;
+  camera: CameraId;
+  /** What the auto-director should frame. */
+  focus: { kind: "play" | "setpiece" | "var" | "replay"; x?: number; y?: number; playerId?: string | null; defending?: string };
+  ringId?: string | null;
+  followed?: Record<string, number>;
+  /** Show the "REPLAY" badge. */
+  replay?: boolean;
+  /** Broadcast-style badge, e.g. "REPLAY" or "VAR CHECK". */
+  badge?: string | null;
+}
+
+const L = 105;
+const W = 68;
+// pitch metres (x along, y across, origin bottom-left) -> three.js (x right, y up, z towards the main stand)
+const toX = (x: number) => x - L / 2;
+const toZ = (y: number) => W / 2 - y;
+
+// ---------- static scenery --------------------------------------------------------------------------------------
+
+function pitchTexture(): THREE.CanvasTexture {
+  const s = 10; // px per metre
+  const pad = 5;
+  const c = document.createElement("canvas");
+  c.width = (L + 2 * pad) * s;
+  c.height = (W + 2 * pad) * s;
+  const g = c.getContext("2d")!;
+  for (let i = 0; i < 24; i++) {
+    g.fillStyle = i % 2 ? "#2c7a3f" : "#2f8445";
+    g.fillRect((i * c.width) / 24, 0, c.width / 24 + 1, c.height);
+  }
+  g.translate(pad * s, pad * s);
+  g.strokeStyle = "rgba(255,255,255,0.92)";
+  g.lineWidth = 0.14 * s;
+  const rect = (x: number, y: number, w: number, h: number) => g.strokeRect(x * s, y * s, w * s, h * s);
+  const arc = (x: number, y: number, r: number, a0: number, a1: number) => {
+    g.beginPath();
+    g.arc(x * s, y * s, r * s, a0, a1);
+    g.stroke();
+  };
+  rect(0, 0, L, W);
+  g.beginPath();
+  g.moveTo((L / 2) * s, 0);
+  g.lineTo((L / 2) * s, W * s);
+  g.stroke();
+  arc(L / 2, W / 2, 9.15, 0, Math.PI * 2);
+  for (const [x0, dir] of [[0, 1], [L, -1]] as const) {
+    const bx = dir > 0 ? 0 : L - 16.5;
+    rect(bx, W / 2 - 20.16, 16.5, 40.32);
+    rect(dir > 0 ? 0 : L - 5.5, W / 2 - 9.16, 5.5, 18.32);
+    const spot = x0 + dir * 11;
+    g.fillStyle = "white";
+    g.beginPath();
+    g.arc(spot * s, (W / 2) * s, 0.25 * s, 0, Math.PI * 2);
+    g.fill();
+    const a = Math.acos(5.5 / 9.15);
+    if (dir > 0) arc(spot, W / 2, 9.15, -a, a);
+    else arc(spot, W / 2, 9.15, Math.PI - a, Math.PI + a);
+  }
+  for (const [cx, cy] of [[0, 0], [L, 0], [0, W], [L, W]]) arc(cx, cy, 1, 0, Math.PI * 2);
+  g.fillStyle = "white";
+  g.beginPath();
+  g.arc((L / 2) * s, (W / 2) * s, 0.25 * s, 0, Math.PI * 2);
+  g.fill();
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 8;
+  return tex;
+}
+
+function addScenery(scene: THREE.Scene) {
+  const pad = 5;
+  const pitch = new THREE.Mesh(new THREE.PlaneGeometry(L + 2 * pad, W + 2 * pad), new THREE.MeshStandardMaterial({ map: pitchTexture(), roughness: 0.95 }));
+  pitch.rotation.x = -Math.PI / 2;
+  scene.add(pitch);
+  const surround = new THREE.Mesh(new THREE.PlaneGeometry(220, 170), new THREE.MeshStandardMaterial({ color: "#1d4a2b", roughness: 1 }));
+  surround.rotation.x = -Math.PI / 2;
+  surround.position.y = -0.02;
+  scene.add(surround);
+
+  // goals: posts, bar and a light net
+  const white = new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.4 });
+  const net = new THREE.MeshBasicMaterial({ color: "#ffffff", transparent: true, opacity: 0.18, side: THREE.DoubleSide, wireframe: true });
+  for (const side of [-1, 1]) {
+    const gx = side * (L / 2);
+    for (const pz of [-3.66, 3.66]) {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.44, 8), white);
+      post.position.set(gx, 1.22, pz);
+      scene.add(post);
+    }
+    const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 7.32, 8), white);
+    bar.rotation.x = Math.PI / 2;
+    bar.position.set(gx, 2.44, 0);
+    scene.add(bar);
+    const back = new THREE.Mesh(new THREE.PlaneGeometry(7.32, 2.44, 14, 5), net);
+    back.rotation.y = Math.PI / 2;
+    back.position.set(gx + side * 1.8, 1.22, 0);
+    scene.add(back);
+  }
+
+  // stands under floodlights: dark tiers with a yellow rim (brand Floodlight)
+  const stand = new THREE.MeshStandardMaterial({ color: "#16233a", roughness: 0.9 });
+  const rim = new THREE.MeshBasicMaterial({ color: "#FFD23F" });
+  const tiers: [number, number, number, number, number][] = [
+    // x, z, width, depth, rotationY
+    [0, -W / 2 - 14, L + 30, 16, 0],
+    [0, W / 2 + 14, L + 30, 16, Math.PI],
+    [-L / 2 - 16, 0, W + 10, 16, Math.PI / 2],
+    [L / 2 + 16, 0, W + 10, 16, -Math.PI / 2],
+  ];
+  for (const [x, z, w, d, ry] of tiers) {
+    const g = new THREE.Group();
+    for (let i = 0; i < 4; i++) {
+      const step = new THREE.Mesh(new THREE.BoxGeometry(w, 1.6 + i * 1.8, d / 4), stand);
+      step.position.set(0, (1.6 + i * 1.8) / 2, -d / 2 + (i + 0.5) * (d / 4));
+      g.add(step);
+    }
+    const edge = new THREE.Mesh(new THREE.BoxGeometry(w, 0.25, 0.25), rim);
+    edge.position.set(0, 1.7, -d / 2);
+    g.add(edge);
+    g.position.set(x, 0, z);
+    g.rotation.y = ry;
+    scene.add(g);
+  }
+  // floodlight towers
+  for (const [x, z] of [[-L / 2 - 12, -W / 2 - 12], [L / 2 + 12, -W / 2 - 12], [-L / 2 - 12, W / 2 + 12], [L / 2 + 12, W / 2 + 12]]) {
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.6, 34, 8), stand);
+    pole.position.set(x, 17, z);
+    scene.add(pole);
+    const lamp = new THREE.Mesh(new THREE.BoxGeometry(5, 2.5, 0.6), new THREE.MeshBasicMaterial({ color: "#fff6d6" }));
+    lamp.position.set(x, 34, z);
+    lamp.lookAt(0, 0, 0);
+    scene.add(lamp);
+  }
+
+  scene.add(new THREE.HemisphereLight("#e8f0ff", "#1d3b26", 1.1));
+  const sun = new THREE.DirectionalLight("#fff4dd", 1.6);
+  sun.position.set(-30, 60, 40);
+  scene.add(sun);
+}
+
+// ---------- players and ball ------------------------------------------------------------------------------------
+
+function numberSprite(text: string, fg: string, bg: string): THREE.Sprite {
+  const c = document.createElement("canvas");
+  c.width = 128;
+  c.height = 128;
+  const g = c.getContext("2d")!;
+  g.fillStyle = bg;
+  g.beginPath();
+  g.arc(64, 64, 56, 0, Math.PI * 2);
+  g.fill();
+  g.lineWidth = 8;
+  g.strokeStyle = fg;
+  g.stroke();
+  g.fillStyle = fg;
+  g.font = "800 64px 'Be Vietnam Pro', system-ui, sans-serif";
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  g.fillText(text, 64, 68);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, sizeAttenuation: false }));
+  sprite.scale.set(0.032, 0.032, 1); // fraction of the screen height: same size in every camera
+  sprite.renderOrder = 10;
+  return sprite;
+}
+
+interface Body {
+  group: THREE.Group;
+  legs: [THREE.Mesh, THREE.Mesh];
+  label: THREE.Sprite;
+  ring: THREE.Mesh; // player on the ball
+  follow: THREE.Mesh; // followed by phones in the room
+  followTag: THREE.Sprite | null;
+  followCount: number;
+  stride: number;
+  last: THREE.Vector3 | null;
+  heading: number;
+}
+
+function makeBody(id: string, team: Team | undefined): Body {
+  const kit = team?.kit ?? { primary: "#888888", secondary: "#ffffff" };
+  const isKeeper = id.endsWith("-1");
+  const shirt = new THREE.MeshStandardMaterial({ color: isKeeper ? "#c9d63f" : kit.primary, roughness: 0.7 });
+  const shorts = new THREE.MeshStandardMaterial({ color: kit.secondary, roughness: 0.8 });
+  const skin = new THREE.MeshStandardMaterial({ color: "#b89a84", roughness: 0.8 }); // one neutral tone for all: no likenesses
+  const group = new THREE.Group();
+  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 0.55, 4, 10), shirt);
+  torso.position.y = 1.25;
+  const hips = new THREE.Mesh(new THREE.CylinderGeometry(0.27, 0.25, 0.3, 10), shorts);
+  hips.position.y = 0.82;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.17, 12, 10), skin);
+  head.position.y = 1.78;
+  const legGeo = new THREE.CylinderGeometry(0.09, 0.07, 0.72, 6);
+  legGeo.translate(0, -0.36, 0);
+  const legL = new THREE.Mesh(legGeo, skin);
+  const legR = new THREE.Mesh(legGeo, skin);
+  legL.position.set(0, 0.72, -0.12);
+  legR.position.set(0, 0.72, 0.12);
+  const shadow = new THREE.Mesh(new THREE.CircleGeometry(0.45, 16), new THREE.MeshBasicMaterial({ color: "#000", transparent: true, opacity: 0.28 }));
+  shadow.rotation.x = -Math.PI / 2;
+  shadow.position.y = 0.02;
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.75, 0.95, 32), new THREE.MeshBasicMaterial({ color: "#F6F3EC", transparent: true, opacity: 0.95 }));
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.y = 0.04;
+  ring.visible = false;
+  const follow = new THREE.Mesh(new THREE.RingGeometry(1.05, 1.35, 40), new THREE.MeshBasicMaterial({ color: "#FFD23F" }));
+  follow.rotation.x = -Math.PI / 2;
+  follow.position.y = 0.05;
+  follow.visible = false;
+  const label = numberSprite(id.split("-")[1], kit.secondary, isKeeper ? "#c9d63f" : kit.primary);
+  label.position.y = 2.45;
+  group.add(torso, hips, head, legL, legR, shadow, ring, follow, label);
+  return { group, legs: [legL, legR], label, ring, follow, followTag: null, followCount: 0, stride: 0, last: null, heading: 0 };
+}
+
+/** Ball height is not in the 2D tracking: long, fast flights (crosses, clearances, long passes) get an arc. */
+function ballHeights(tr: Tracking): Float32Array {
+  const xs = tr.x.ball;
+  const ys = tr.y.ball;
+  const n = xs.length;
+  const z = new Float32Array(n);
+  const dt = 1 / tr.hz;
+  let i = 1;
+  while (i < n) {
+    const sp = Math.hypot(xs[i] - xs[i - 1], ys[i] - ys[i - 1]) / 10 / dt;
+    if (sp < 2) {
+      i++;
+      continue;
+    }
+    let j = i;
+    let dist = 0;
+    while (j < n && Math.hypot(xs[j] - xs[j - 1], ys[j] - ys[j - 1]) / 10 / dt >= 2) {
+      dist += Math.hypot(xs[j] - xs[j - 1], ys[j] - ys[j - 1]) / 10;
+      j++;
+    }
+    const secs = (j - i + 1) * dt;
+    if (dist > 22 && dist / secs > 12) {
+      const h = Math.min(11, 0.13 * dist);
+      let run = 0;
+      for (let k = i; k < j; k++) {
+        run += Math.hypot(xs[k] - xs[k - 1], ys[k] - ys[k - 1]) / 10;
+        const s = run / dist;
+        z[k] = 4 * h * s * (1 - s);
+      }
+    }
+    i = j + 1;
+  }
+  return z;
+}
+
+function frameIndex(tr: Tracking, tMs: number): { i0: number; i1: number; a: number } {
+  const step = 1000 / tr.hz;
+  let offset = 0;
+  let p = tr.periods[0];
+  for (const q of tr.periods) if (tMs >= q.start_ms) p = q;
+  for (const q of tr.periods) {
+    if (q === p) break;
+    offset += q.frames;
+  }
+  const f = Math.max(0, Math.min(p.frames - 1, (tMs - p.start_ms) / step));
+  const i0 = Math.floor(f);
+  return { i0: offset + i0, i1: offset + Math.min(p.frames - 1, i0 + 1), a: f - i0 };
+}
+
+// ---------- the component ---------------------------------------------------------------------------------------
+
+export default function Stadium3D(props: Stadium3DProps) {
+  const host = useRef<HTMLDivElement>(null);
+  const live = useRef(props);
+  live.current = props;
+  const propAt = useRef(performance.now());
+  const lastT = useRef(props.tMs);
+  if (lastT.current !== props.tMs) {
+    lastT.current = props.tMs;
+    propAt.current = performance.now();
+  }
+
+  useEffect(() => {
+    const el = host.current!;
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
+    el.appendChild(renderer.domElement);
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color("#0b1626");
+    scene.fog = new THREE.Fog("#0b1626", 140, 260);
+    addScenery(scene);
+    const cam = new THREE.PerspectiveCamera(32, 16 / 9, 0.5, 600);
+
+    const tr = live.current.tracking;
+    const z = ballHeights(tr);
+    const bodies = new Map<string, Body>();
+    for (const id of tr.entities) {
+      if (id === "ball") continue;
+      const team = live.current.teams.find((t) => id.startsWith(`${t.team_id}-`));
+      const b = makeBody(id, team);
+      scene.add(b.group);
+      bodies.set(id, b);
+    }
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(0.24, 16, 12), new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.35 }));
+    const ballShadow = new THREE.Mesh(new THREE.CircleGeometry(0.28, 16), new THREE.MeshBasicMaterial({ color: "#000", transparent: true, opacity: 0.35 }));
+    ballShadow.rotation.x = -Math.PI / 2;
+    ballShadow.position.y = 0.03;
+    scene.add(ball, ballShadow);
+    // VAR line: across the pitch at the defending team's second-last player, shown in the overhead camera
+    const varLine = new THREE.Mesh(new THREE.PlaneGeometry(0.25, W), new THREE.MeshBasicMaterial({ color: "#6CB4EE", transparent: true, opacity: 0.85 }));
+    varLine.rotation.x = -Math.PI / 2;
+    varLine.position.y = 0.06;
+    varLine.visible = false;
+    scene.add(varLine);
+
+    const camPos = new THREE.Vector3(0, 30, 75);
+    const camTarget = new THREE.Vector3(0, 0, 0);
+    const wantPos = new THREE.Vector3();
+    const wantTarget = new THREE.Vector3();
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let lastCamera: CameraId | null = null;
+
+    const resize = () => {
+      const w = el.clientWidth || 1;
+      const h = el.clientHeight || 1;
+      renderer.setSize(w, h, false);
+      cam.aspect = w / h;
+      cam.updateProjectionMatrix();
+    };
+    resize();
+    const ro = new ResizeObserver(resize);
+    ro.observe(el);
+
+    let raf = 0;
+    const draw = () => {
+      raf = requestAnimationFrame(draw);
+      const p = live.current;
+      // run smoothly between the 10 updates per second the screen gives us
+      const ahead = p.running ? Math.min(150, performance.now() - propAt.current) * p.speed : 0;
+      const t = p.tMs + ahead;
+      const { i0, i1, a } = frameIndex(tr, t);
+
+      const bx0 = tr.x.ball[i0];
+      const bx1 = tr.x.ball[i1];
+      const bx = (bx0 + (bx1 - bx0) * a) / 10;
+      const by = (tr.y.ball[i0] + (tr.y.ball[i1] - tr.y.ball[i0]) * a) / 10;
+      const bz = z[i0] + (z[i1] - z[i0]) * a;
+      ball.position.set(toX(bx), 0.24 + bz, toZ(by));
+      ballShadow.position.set(toX(bx), 0.03, toZ(by));
+
+      let ringPos: THREE.Vector3 | null = null;
+      for (const [id, b] of bodies) {
+        const x0 = tr.x[id][i0];
+        const x1 = tr.x[id][i1];
+        if (x0 < 0) {
+          b.group.visible = false;
+          b.last = null;
+          continue;
+        }
+        b.group.visible = true;
+        const px = (x1 >= 0 ? x0 + (x1 - x0) * a : x0) / 10;
+        const py = (x1 >= 0 ? tr.y[id][i0] + (tr.y[id][i1] - tr.y[id][i0]) * a : tr.y[id][i0]) / 10;
+        const pos = new THREE.Vector3(toX(px), 0, toZ(py));
+        if (b.last) {
+          const d = pos.distanceTo(b.last);
+          if (d > 0.01 && d < 3) {
+            b.stride += d * 3.2;
+            const want = Math.atan2(pos.x - b.last.x, pos.z - b.last.z);
+            let diff = want - b.heading;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            b.heading += diff * 0.25;
+          }
+          const swing = Math.sin(b.stride) * Math.min(0.7, d * 9);
+          b.legs[0].rotation.z = swing;
+          b.legs[1].rotation.z = -swing;
+        }
+        b.last = pos;
+        b.group.position.copy(pos);
+        b.group.rotation.y = b.heading - Math.PI / 2;
+        b.label.material.rotation = 0;
+        const isRing = p.ringId === id;
+        b.ring.visible = isRing;
+        if (isRing) ringPos = pos;
+        const n = p.followed?.[id] ?? 0;
+        b.follow.visible = n > 0;
+        if (n !== b.followCount) {
+          if (b.followTag) b.group.remove(b.followTag);
+          b.followTag = n > 0 ? numberSprite(n > 1 ? `★${n}` : "★", "#0E1A2B", "#FFD23F") : null;
+          if (b.followTag) {
+            b.followTag.position.y = 3.3;
+            b.followTag.scale.set(0.03, 0.03, 1);
+            b.group.add(b.followTag);
+          }
+          b.followCount = n;
+        }
+      }
+
+      // ---- cameras ----
+      const f = p.focus;
+      let cid: CameraId = p.camera;
+      if (cid === "auto") {
+        if (f.kind === "var") cid = "overhead";
+        else if (f.kind === "replay") cid = "close";
+        else if (f.kind === "setpiece") cid = (f.x ?? bx) > L / 2 ? "goal-right" : "goal-left";
+        else cid = "broadcast";
+      }
+      const fx = toX(bx);
+      const fz = toZ(by);
+      const followId = Object.entries(p.followed ?? {}).sort((x, y) => y[1] - x[1])[0]?.[0];
+      const subject = (f.kind === "replay" && ringPos) || (followId && bodies.get(followId)?.group.visible ? bodies.get(followId)!.group.position : null);
+      switch (cid) {
+        case "broadcast":
+          wantTarget.set(fx * 0.85, 0, fz * 0.35);
+          wantPos.set(fx * 0.7, 24, W / 2 + 30);
+          break;
+        case "opposite":
+          wantTarget.set(fx * 0.85, 0, fz * 0.35);
+          wantPos.set(fx * 0.7, 24, -W / 2 - 30);
+          break;
+        case "goal-left":
+          wantTarget.set(-L / 2 + 11, 0, fz * 0.3);
+          wantPos.set(-L / 2 - 6, 17, fz * 0.12);
+          break;
+        case "goal-right":
+          wantTarget.set(L / 2 - 11, 0, fz * 0.3);
+          wantPos.set(L / 2 + 6, 17, fz * 0.12);
+          break;
+        case "close": {
+          const c = subject ?? ball.position;
+          wantTarget.set(c.x, 1, c.z);
+          wantPos.set(c.x * 0.92, 7, c.z + 13);
+          break;
+        }
+        case "overhead": {
+          // frame the ball and the goal being attacked, so attacker and last defenders are in view
+          const gx = (bx > L / 2 ? 1 : -1) * (L / 2 - 8);
+          const cx = (fx + gx) / 2;
+          wantTarget.set(cx, 0, fz * 0.4);
+          wantPos.set(cx, 62, fz * 0.4 + 8);
+          break;
+        }
+      }
+      // VAR line at the defending side's second-last player (overhead camera only)
+      varLine.visible = cid === "overhead";
+      if (varLine.visible) {
+        const end = bx > L / 2 ? 1 : -1;
+        const near = [...bodies.entries()]
+          .filter(([id, b]) => b.group.visible && (!f.defending || id.startsWith(`${f.defending}-`)))
+          .map(([, b]) => b.group.position.x * end)
+          .sort((u, v) => v - u);
+        if (near.length > 1) varLine.position.x = near[1] * end;
+      }
+      const fov = cid === "goal-left" || cid === "goal-right" ? 52 : cid === "close" ? 38 : cid === "overhead" ? 40 : 32;
+      if (cam.fov !== fov) {
+        cam.fov = fov;
+        cam.updateProjectionMatrix();
+      }
+      const jump = reduceMotion || lastCamera !== cid;
+      lastCamera = cid;
+      const k = jump ? 1 : 0.06;
+      camPos.lerp(wantPos, k);
+      camTarget.lerp(wantTarget, k);
+      cam.position.copy(camPos);
+      cam.lookAt(camTarget);
+      renderer.render(scene, cam);
+    };
+    draw();
+
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      renderer.dispose();
+      scene.traverse((o) => {
+        const m = o as THREE.Mesh;
+        m.geometry?.dispose?.();
+        const mat = m.material as THREE.Material | THREE.Material[] | undefined;
+        (Array.isArray(mat) ? mat : mat ? [mat] : []).forEach((x) => {
+          (x as THREE.MeshBasicMaterial).map?.dispose();
+          x.dispose();
+        });
+      });
+      el.removeChild(renderer.domElement);
+    };
+    // the scene is built once per tracking file; everything else is read live from props
+  }, [props.tracking]);
+
+  return (
+    <div className="stadium3d" ref={host} aria-hidden="true">
+      {(props.badge ?? (props.replay ? "REPLAY" : null)) && <div className="replay-badge">{props.badge ?? "REPLAY"}</div>}
+    </div>
+  );
+}

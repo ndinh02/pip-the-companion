@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import Mascot from "../components/Mascot";
 import AddedBreakdown from "../components/AddedBreakdown";
 import HalfTimeCard from "../components/HalfTimeCard";
 import Pitch from "../components/Pitch";
+import { CAMERAS, type CameraId } from "../lib/cameras";
 import { addedHeadline } from "../lib/addedTime";
 import { useRoomChannel } from "../lib/channel";
 import { buildHalf, HALF_MIN } from "../lib/halfTime";
@@ -14,7 +15,11 @@ import { ui } from "../lib/i18n";
 import { answerLabel, fill, loadAddedTime, loadMatch, randomRoom, ROOM_RE, scoreAt, t } from "../lib/match";
 import { LANGS, type AddedTime, type Lang, type Match, type Msg, type StateMsg } from "../lib/types";
 
+// The 3D view is a big library: load it only on the shared screen (phones never download it).
+const Stadium3D = lazy(() => import("../components/Stadium3D"));
 const TICK_MS = 100;
+const REPLAY_PRE_MS = 2_500; // a replay starts this long before play restarted
+const REPLAY_POST_MS = 2_000; // and runs this long past the outcome
 const SPEEDS = [1, 4, 16];
 
 export default function Tv() {
@@ -28,6 +33,7 @@ export default function Tv() {
   const [lang, setLang] = useState<Lang>("en");
   const [answerTick, setAnswerTick] = useState(0);
   const [clk, setClk] = useState<Clock>(() => startClock(params.get("mode") === "full" ? "full" : "highlights"));
+  const [camera, setCamera] = useState<CameraId | "tactical">(() => (params.get("cam") as CameraId | "tactical") ?? "auto");
 
   const room = useMemo(() => {
     const r = params.get("room")?.toUpperCase() ?? "";
@@ -146,7 +152,14 @@ export default function Tv() {
   const away = match.teams[1];
   const joinUrl = `${location.origin}/play/${room}`;
   const team = card ? match.teams.find((x) => x.team_id === card.team_id) : undefined;
-  const dots = tracking ? positionsAt(tracking, clk.tMs) : null;
+  // At the reveal, show the moment again like TV does: from just before the kick to just after the outcome.
+  const replayLen = card ? card.reveal_ms + REPLAY_POST_MS - (card.restart_ms - REPLAY_PRE_MS) : 0;
+  const intoReveal = card && phase === "reveal" ? clk.tMs - card.reveal_ms : -1;
+  const replaying = !!card && phase === "reveal" && card.trigger !== "var" && card.trigger !== "substitution" && intoReveal >= 0 && intoReveal < replayLen;
+  // VAR: while the check runs, show the frame it is judged on (the pass before the goal), like a VAR still.
+  const varStill = !!card && card.trigger === "var" && card.frame_ms !== undefined && (phase === "ask" || phase === "locked");
+  const viewMs = varStill && card ? card.frame_ms! : replaying && card ? card.restart_ms - REPLAY_PRE_MS + intoReveal : clk.tMs;
+  const dots = tracking ? positionsAt(tracking, viewMs) : null;
   // The player who takes the set piece (or scored, for VAR), ringed while the moment plays out.
   const ringId = card && tracking ? nearestToBall(positionsAt(tracking, card.restart_ms), card.team_id) : null;
   const followed: Record<string, number> = {};
@@ -156,7 +169,38 @@ export default function Tv() {
 
   return (
     <div className="tv">
-      <Pitch marker={card?.pitch} dots={dots} teams={match.teams} ringId={ringId} followed={followed} easeMs={TICK_MS} />
+      {tracking && camera !== "tactical" ? (
+        <Suspense fallback={<Pitch dots={dots} teams={match.teams} />}>
+          <Stadium3D
+            tracking={tracking}
+            teams={match.teams}
+            tMs={viewMs}
+            speed={clk.speed}
+            running={clk.running && clk.halfUntil === null && !varStill}
+            camera={camera}
+            focus={
+              replaying
+                ? { kind: "replay", playerId: ringId }
+                : card && (phase === "ask" || phase === "locked")
+                  ? card.trigger === "var"
+                    ? { kind: "var", defending: match.teams.find((x) => x.team_id !== card.team_id)?.team_id }
+                    : card.trigger === "substitution"
+                      ? { kind: "play" }
+                      : { kind: "setpiece", x: card.pitch.x, y: card.pitch.y }
+                  : { kind: "play" }
+            }
+            ringId={card ? ringId : null}
+            followed={followed}
+            replay={replaying}
+            badge={varStill ? "VAR CHECK" : replaying ? "REPLAY" : null}
+          />
+        </Suspense>
+      ) : (
+        <>
+          <Pitch marker={card?.pitch} dots={dots} teams={match.teams} ringId={ringId} followed={followed} easeMs={TICK_MS} />
+          {replaying && <div className="replay-badge">REPLAY</div>}
+        </>
+      )}
 
       {/* Scoreboard stays clear of the card (top-left, inside the 5% safe area). */}
       <div className="scoreboard" aria-label="Scoreboard">
@@ -253,6 +297,10 @@ export default function Tv() {
         <button onClick={() => setClk((c) => ({ ...c, speed: SPEEDS[(SPEEDS.indexOf(c.speed) + 1) % SPEEDS.length] }))} aria-label="Speed">×{clk.speed}</button>
         <button className={clk.mode === "highlights" ? "on" : ""} onClick={() => setMode("highlights")} aria-pressed={clk.mode === "highlights"}>Highlights</button>
         <button className={clk.mode === "full" ? "on" : ""} onClick={() => setMode("full")} aria-pressed={clk.mode === "full"}>Full match</button>
+        <label className="dim" htmlFor="cam">Camera</label>
+        <select id="cam" value={camera} onChange={(e) => setCamera(e.target.value as CameraId | "tactical")}>
+          {CAMERAS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+        </select>
         <button onClick={() => { answers.current.clear(); setClk((c) => ({ ...startClock(c.mode), speed: c.speed })); setAnswerTick((n) => n + 1); }}>Restart</button>
         {LANGS.map((l) => (
           <button key={l} className={l === lang ? "on" : ""} onClick={() => setLang(l)}>{l.toUpperCase()}</button>
