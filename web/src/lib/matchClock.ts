@@ -26,7 +26,10 @@ export interface Period {
   end_ms: number;
 }
 export interface Goal {
+  /** When the ball is in the goal: from the tracking (the ball reaches the goal line or leaves the pitch after the
+   *  shot), else the shot time. Everything the viewer sees about the goal (pop-up, celebration, score) uses this. */
   t_ms: number;
+  shot_ms: number;
   team_id: string;
   player_id: string;
   restart_ms: number; // the kick-off after it
@@ -59,8 +62,27 @@ export function buildTimeline(match: Match, tracking: Tracking | null, added: Ad
   });
   const goals: Goal[] = match.score_timeline
     .filter((g) => g.t_ms !== undefined && g.team_id && g.player_id)
-    .map((g) => ({ t_ms: g.t_ms!, team_id: g.team_id!, player_id: g.player_id!, restart_ms: g.restart_ms ?? g.t_ms! + 45_000 }));
+    .map((g) => ({ t_ms: tracking ? ballInGoalMs(tracking, g.t_ms!) : g.t_ms!, shot_ms: g.t_ms!, team_id: g.team_id!, player_id: g.player_id!, restart_ms: g.restart_ms ?? g.t_ms! + 45_000 }));
   return { periods, cards, boards, goals, hasFirstHalfCards: cards.some((c) => c.restart_ms < periods[1].start_ms) };
+}
+
+/** First tracking frame after a goal's shot where the ball is on or past a goal line, or off the pitch (in the net).
+ *  Falls back to the shot time if nothing like that happens within 4 s. */
+function ballInGoalMs(tr: Tracking, shotMs: number): number {
+  let off = 0;
+  for (const p of tr.periods) {
+    const end = p.start_ms + p.frames * (1000 / tr.hz);
+    if (shotMs < end) {
+      const i0 = Math.max(0, Math.floor((shotMs - p.start_ms) / (1000 / tr.hz)));
+      for (let i = i0; i < Math.min(p.frames, i0 + 4 * tr.hz); i++) {
+        const x = tr.x.ball[off + i];
+        if (x <= 0 || x >= 1050) return p.start_ms + (i * 1000) / tr.hz;
+      }
+      return shotMs;
+    }
+    off += p.frames;
+  }
+  return shotMs;
 }
 
 function minuteToMatchMs(periods: Period[], minute: number): number {

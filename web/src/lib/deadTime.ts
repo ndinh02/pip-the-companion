@@ -62,6 +62,6 @@ export function goalShot(tl: Timeline, tMs: number): DeadShot | null {
   if (s < 2_500) return { ...base, viewMs: tMs, slow: false, focus: "play", badge: null };
   if (s < 12_000) return { ...base, viewMs: tMs, slow: false, focus: "player", badge: null };
   const replayLen = 7_000 / SLOWMO;
-  if (s < 12_000 + replayLen) return { ...base, viewMs: g.t_ms - 6_000 + (s - 12_000) * SLOWMO, slow: true, focus: "player", badge: "REPLAY" };
+  if (s < 12_000 + replayLen) return { ...base, viewMs: g.shot_ms - 6_000 + (s - 12_000) * SLOWMO, slow: true, focus: "player", badge: "REPLAY" };
   return { ...base, viewMs: tMs, slow: false, focus: "play", badge: null };
 }

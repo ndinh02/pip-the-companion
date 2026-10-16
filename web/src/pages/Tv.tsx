@@ -174,7 +174,10 @@ export default function Tv() {
   if (error) return <div className="center">Could not load the match: {error}</div>;
   if (!match || !tl || !view) return <div className="center">…</div>;
 
-  const score = scoreAt(match, clockMinute(tl, clk.tMs));
+  // The score changes when the ball is in the goal on screen (from the tracking), not at the minute in the event list.
+  const score = { HAR: 0, COP: 0 };
+  for (const g of tl.goals) if (clk.tMs >= g.t_ms) score[g.team_id as "HAR" | "COP"] += 1;
+  if (!tl.goals.length) Object.assign(score, scoreAt(match, clockMinute(tl, clk.tMs)));
   const home = match.teams[0];
   const away = match.teams[1];
   const joinUrl = `${location.origin}/play/${room}`;
