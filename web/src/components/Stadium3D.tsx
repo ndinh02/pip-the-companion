@@ -4,6 +4,7 @@ import type { Tracking } from "../lib/tracking";
 import { animalOf, KEEPER_KIT } from "../lib/animals";
 import type { CameraId } from "../lib/cameras";
 import { makeCharacter, type Character } from "./characters";
+import { newGait, samplePoint, separate, stepGait, type GaitState } from "./locomotion";
 import type { Team } from "../lib/types";
 
 /** TV-like 3D view of the synthetic match, driven by the 5 Hz tracking.
@@ -259,9 +260,8 @@ interface Body {
   follow: THREE.Mesh; // followed by phones in the room
   followTag: THREE.Sprite | null;
   followCount: number;
-  stride: number;
-  last: THREE.Vector3 | null;
-  heading: number;
+  gait: GaitState;
+  offset: [number, number]; // visual separation nudge (metres), eased
 }
 
 function makeBody(id: string, team: Team | undefined): Body {
@@ -285,7 +285,7 @@ function makeBody(id: string, team: Team | undefined): Body {
   const label = numberSprite(id.split("-")[1], kit.secondary, kit.primary);
   label.position.y = 3.3;
   group.add(char.root, shadow, ring, follow, label);
-  return { group, char, label, ring, follow, followTag: null, followCount: 0, stride: 0, last: null, heading: 0 };
+  return { group, char, label, ring, follow, followTag: null, followCount: 0, gait: newGait(), offset: [0, 0] };
 }
 
 /** Ball height is not in the 2D tracking: long, fast flights (crosses, clearances, long passes) get an arc. */
@@ -321,6 +321,16 @@ function ballHeights(tr: Tracking): Float32Array {
     i = j + 1;
   }
   return z;
+}
+
+/** First and last array index of the period that contains frame `i` (splines must not cross half-time). */
+function periodBounds(tr: Tracking, i: number): [number, number] {
+  let start = 0;
+  for (const p of tr.periods) {
+    if (i < start + p.frames) return [start, start + p.frames - 1];
+    start += p.frames;
+  }
+  return [0, start - 1];
 }
 
 function frameIndex(tr: Tracking, tMs: number): { i0: number; i1: number; a: number } {
@@ -404,6 +414,7 @@ export default function Stadium3D(props: Stadium3DProps) {
     ro.observe(el);
 
     let raf = 0;
+    let lastFrame = performance.now();
     const draw = () => {
       raf = requestAnimationFrame(draw);
       const p = live.current;
@@ -420,44 +431,60 @@ export default function Stadium3D(props: Stadium3DProps) {
       ball.position.set(toX(bx), 0.24 + bz, toZ(by));
       ballShadow.position.set(toX(bx), 0.03, toZ(by));
 
-      let ringPos: THREE.Vector3 | null = null;
+      // real time since the last drawn frame, turned into match time (0 while paused)
+      const nowReal = performance.now();
+      const realDt = Math.min(0.1, (nowReal - lastFrame) / 1000);
+      lastFrame = nowReal;
+      const matchDt = p.running ? realDt * p.speed : 0;
+
+      // 1. smooth positions (Catmull-Rom through the 5 Hz samples) and velocity over the last 0.1 s of match time
+      const { i0: j0, a: ja } = frameIndex(tr, t - 100);
+      const per = periodBounds(tr, i0);
+      const perPrev = periodBounds(tr, j0);
+      const onPitch: { id: string; b: Body; x: number; z: number; vx: number; vz: number }[] = [];
       for (const [id, b] of bodies) {
-        const x0 = tr.x[id][i0];
-        const x1 = tr.x[id][i1];
-        if (x0 < 0) {
+        const pt = samplePoint(tr.x[id], tr.y[id], i0, a, per[0], per[1]);
+        if (pt === null) {
           b.group.visible = false;
-          b.last = null;
+          b.gait = newGait();
           continue;
         }
+        const [px, py] = pt;
+        const [qx, qy] = samplePoint(tr.x[id], tr.y[id], j0, ja, perPrev[0], perPrev[1]) ?? pt;
+        let vx = (toX(px) - toX(qx)) / 0.1;
+        let vz = (toZ(py) - toZ(qy)) / 0.1;
+        if (Math.hypot(vx, vz) > 12) vx = vz = 0; // a jump (coming on, half-time) is not a run
+        onPitch.push({ id, b, x: toX(px), z: toZ(py), vx, vz });
+      }
+
+      // 2. personal space: nudge overlapping bodies apart (visual only; the data is unchanged)
+      const spaced = separate(onPitch.map((l) => [l.x, l.z] as [number, number]));
+
+      let ringPos: THREE.Vector3 | null = null;
+      for (let k = 0; k < onPitch.length; k++) {
+        const { id, b, x, z, vx, vz } = onPitch[k];
+        const ease = Math.min(1, realDt * 10);
+        b.offset[0] += (spaced[k][0] - x - b.offset[0]) * ease;
+        b.offset[1] += (spaced[k][1] - z - b.offset[1]) * ease;
         b.group.visible = true;
-        const px = (x1 >= 0 ? x0 + (x1 - x0) * a : x0) / 10;
-        const py = (x1 >= 0 ? tr.y[id][i0] + (tr.y[id][i1] - tr.y[id][i0]) * a : tr.y[id][i0]) / 10;
-        const pos = new THREE.Vector3(toX(px), 0, toZ(py));
-        if (b.last) {
-          const d = pos.distanceTo(b.last);
-          if (d > 0.01 && d < 3) {
-            b.stride += d * 3.2;
-            const want = Math.atan2(pos.x - b.last.x, pos.z - b.last.z);
-            let diff = want - b.heading;
-            while (diff > Math.PI) diff -= Math.PI * 2;
-            while (diff < -Math.PI) diff += Math.PI * 2;
-            b.heading += diff * 0.25;
-          }
-          const amt = Math.min(0.75, d * 9);
-          const swing = Math.sin(b.stride) * amt;
-          b.char.legs[0].rotation.z = swing;
-          b.char.legs[1].rotation.z = -swing;
-          b.char.arms[0].rotation.z = -swing * 0.8;
-          b.char.arms[1].rotation.z = swing * 0.8;
-          b.char.body.position.y = Math.abs(Math.sin(b.stride)) * amt * 0.08; // a little hop in each step
-        }
-        b.last = pos;
-        b.group.position.copy(pos);
-        b.group.rotation.y = b.heading - Math.PI / 2;
-        b.label.material.rotation = 0;
+        b.group.position.set(x + b.offset[0], 0, z + b.offset[1]);
+
+        // 3. gait, facing and lean from the real speed
+        const toBall = Math.atan2(ball.position.x - x, ball.position.z - z);
+        const [gait, pose] = stepGait(b.gait, vx, vz, toBall, matchDt);
+        b.gait = gait;
+        // legs swing along the direction of travel relative to the body: forwards, sideways or backpedalling
+        b.char.legs[0].rotation.set(-pose.swingSide, 0, pose.swingFwd);
+        b.char.legs[1].rotation.set(pose.swingSide, 0, -pose.swingFwd);
+        b.char.arms[0].rotation.z = -pose.swingFwd * 0.8;
+        b.char.arms[1].rotation.z = pose.swingFwd * 0.8;
+        b.char.body.position.y = pose.hop;
+        b.char.root.rotation.z = -pose.lean; // lean into the run (local +x is forward)
+        b.group.rotation.y = pose.heading - Math.PI / 2;
+
         const isRing = p.ringId === id;
         b.ring.visible = isRing;
-        if (isRing) ringPos = pos;
+        if (isRing) ringPos = b.group.position;
         const n = p.followed?.[id] ?? 0;
         b.follow.visible = n > 0;
         if (n !== b.followCount) {

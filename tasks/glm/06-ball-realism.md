@@ -21,12 +21,15 @@ The ball always looks played: it is at a player's feet, in flight after a kick, 
 5. **Every kick has a kicker.** Whenever the ball speeds up by more than 4 m/s between two frames, a player is within 1.2 m of it at that frame.
 6. **Ball height `z`.** Add an optional `"z": {"ball": [...]}` to the tracking file (decimetres, ≥ 0, −1 when off the pitch). Heights come from the event that started the flight: `cross`, crossed corners/free kicks, `clearance`, `goal_kick`, passes ≥ 30 m → an arc (peak 3–12 m, higher for longer); shots → low (≤ 2.4 m at the goal line, i.e. under the bar when on target, higher when off target); everything else rolling (0–0.3 m). Extend `schemas/tracking.schema.json` with an optional `z` property (same shape as `x`, only the `ball` key required inside it).
 
+7. **Speed profile of the players (owner feedback: "they don't run at the speed the data says, they hang around").** Seed 43 today: standing 22 %, walking 28 %, jogging 46 %, running (4–5.5 m/s) 3 %, high-speed (5.5–7) 0.6 %, sprint (> 7) 0.7 %. Real top players (Mohr et al. 2003, see `docs/MOTION.md`): standing ~20 %, walking ~42 %, jogging ~17 %, running ~17 %, sprinting ~1.5 %. Re-tune the off-ball behaviour so outfield players **walk more when far from the ball, run with purpose when the play comes their way** (pressing, supporting runs, recovery runs at 4–7 m/s), and sprint in short bursts. Keep the distance-per-90 calibration (8.5–12.3 km) and the speed caps.
+
 ## Tests (`match-lab/tests/test_tracking_ball.py`; measure from the 5 Hz output, seeds 1–5 for fast tests)
 - Frames where the ball is **on the pitch and still** with nobody within 3 m: **< 2 %** of on-pitch frames (fouls/free kicks waiting excluded — the taker stands within 3 m anyway).
 - Frames where the ball moves 4–12 m/s with nobody within 3 m: **< 15 %** (long passes in flight are allowed).
 - **Kick rule:** 0 accelerations > 4 m/s per frame without a player within 1.2 m.
 - **Out of play:** for every corner / throw-in / goal kick event, the ball is −1 at some frame between the previous event and the restart, and on the spot (±1 m) at the restart frame.
 - **Height:** `z` exists, matches `x` in length, is ≥ 0 on pitch; crosses peak ≥ 3 m; shots on target cross the goal line below 2.44 m.
+- **Speed profile** (outfield players, seeds 1–5, from the 5 Hz output; walk 0.5–2, jog 2–4, run 4–7, sprint > 7 m/s): standing 12–28 %, walking 30–50 %, jogging 12–25 %, running 10–22 %, sprinting 0.5–3 %.
 - Everything from Task 04 still passes (consistency, physics, calibration 8.5–12.3 km per 90, determinism, events unchanged except `player_id`), and match-reader's `players.py` tests still pass (distances may shift slightly; ranges must still hold).
 
 ## Output
