@@ -60,7 +60,7 @@ Every number a viewer sees is filled in by code from `facts` or tracking; text o
 ## Rebuild the demo match (seed 43)
 ```bash
 cd match-lab    && python3 -m matchlab.track --seed 43 --out-match ../data/tracked-seed-43.json --out-tracking ../data/tracking-seed-43.json
-cd ../match-reader && python3 -m matchreader.build --seed 43 --out ../data/demo-match.json
+cd ../match-reader && python3 -m matchreader.build --in ../data/tracked-seed-43.json --out ../data/demo-match.json
 python3 -m matchreader.players --seed 43 --out ../data/players.json
 cd ../agents    && python3 -m pippi_agents.run --seed 43 --out ../data/agent-trace.json
 cd ..           && python3 scripts/added_time.py --in data/mock-seed-43.json --out web/public/data/added-time.json

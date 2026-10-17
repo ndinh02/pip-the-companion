@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import AddedBreakdown from "../components/AddedBreakdown";
 import HalfTimeCard from "../components/HalfTimeCard";
@@ -10,14 +10,20 @@ import { addedHeadline } from "../lib/addedTime";
 import { deviceId, useRoomChannel } from "../lib/channel";
 import { NAME } from "../lib/brand";
 import { HALF_MIN, shareText } from "../lib/halfTime";
-import { clampMinute, followLine, loadFollow, saveFollow } from "../lib/whoThat";
+import { clampMinute, followLine, loadFollow, POSITION_LABEL, saveFollow, teamName } from "../lib/whoThat";
 import { deviceLang, nowKey, ui } from "../lib/i18n";
 import { factAt } from "../lib/didYouKnow";
 import { avatarOf } from "../lib/avatar";
+import { kitOf } from "../lib/kit";
+import { ANIMAL_LABEL, animalOf } from "../lib/animals";
+import Confetti from "../components/Confetti";
+import LiveStats from "../components/LiveStats";
 import { choiceStyle } from "../lib/choices";
 import { alertsWanted, buzz, disableAlerts, enableAlerts, keepAwake, resumeSound } from "../lib/buzz";
 import { answerLabel, fill, loadMatch, loadPlayers, ROOM_RE, t } from "../lib/match";
 import { LANGS, type HalfSummary, type Lang, type Match, type Msg, type PlayersFeed, type StateMsg } from "../lib/types";
+
+const PlayerModel = lazy(() => import("../components/PlayerModel"));
 
 export default function Play() {
   const room = (useParams().room ?? "").toUpperCase();
@@ -31,7 +37,8 @@ export default function Play() {
   const [showHalf, setShowHalf] = useState(false);
   const [players, setPlayers] = useState<PlayersFeed | null>(null);
   const [showWho, setShowWho] = useState(false);
-  const [whoStart, setWhoStart] = useState<string | null>(null); // open "Who's that?" straight on this player
+  const [whoStart, setWhoStart] = useState<string | null>(null);
+  const [seen, setSeen] = useState<Record<string, boolean>>({}); // reveals the viewer closed with "Got it" // open "Who's that?" straight on this player
   const [showFollow, setShowFollow] = useState(false);
   const [tracking, setTracking] = useState<Tracking | null>(null);
   const [followId, setFollowId] = useState<string | null>(loadFollow);
@@ -130,8 +137,9 @@ export default function Play() {
 
   const card = state?.card ?? null;
   const mine = card ? picked[card.card_id] : undefined;
+  const seenReveal = !!card && !!seen[card.card_id] && state?.phase === "reveal";
   const remain = state ? Math.max(0, Math.min(1, (state.deadline - now) / (state.total_ms || 1))) : 0;
-  const dark = (!state || state.phase === "play" || state.phase === "locked") && !showHalf && !showWho && !showFollow; // "Eyes up": nothing moves during open play
+  const dark = (!state || state.phase === "play" || state.phase === "locked" || seenReveal) && !showHalf && !showWho && !showFollow; // "Eyes up": nothing moves during open play
 
   const share = async () => {
     if (!match || !half) return;
@@ -186,7 +194,7 @@ export default function Play() {
         <span className="mono">{room}</span>
         <span className="dim">{state ? state.clock ?? `${state.minute}'` : ""}</span>
         {followed && match && (
-          <button className="follow-chip" aria-label={ui("yourPlayer", lang)} onClick={() => { setShowWho(false); setShowFollow(true); }}>★ {followed.team_id} #{followed.shirt_no}</button>
+          <button className="follow-chip" aria-label={ui("yourPlayer", lang)} onClick={() => { setShowWho(false); setShowFollow(true); }}>★ #{followed.shirt_no}</button>
         )}
         {alerts && (
           <button className="alert-chip" aria-label={ui("alertsOff", lang)} title={ui("alertsOff", lang)} onClick={() => { disableAlerts(); setAlerts(false); }}>🔔</button>
@@ -207,15 +215,46 @@ export default function Play() {
         </main>
       )}
 
-      {state && dark && state.phase !== "locked" && !showWho && !showFollow && (
-        <main className="center">
-          <div className="sleep-dot" aria-hidden="true" />
-          <p className="dim">{ui("eyesUp", lang)}</p>
-          {scorerButton}
-          {alertsOptIn}
-          {half && <button className="ghost" onClick={() => setShowHalf(true)}>{ui("halfCard", lang)}</button>}
-          {whoButton}
-        </main>
+      {state && dark && (state.phase !== "locked" || seenReveal) && !showWho && !showFollow && (
+        followed && match && players ? (
+          // Waiting with "your player": their character on a turntable and their numbers as of the TV clock.
+          <main className="wait-follow">
+            <div className="wf-card" style={{ background: `linear-gradient(180deg, ${kitOf(followed.player_id, match.teams).primary}55, transparent 75%)` }}>
+              <Suspense fallback={<div className="player-model" style={{ height: 230 }} />}>
+                <PlayerModel playerId={followed.player_id} teams={match.teams} height={230} />
+              </Suspense>
+              <div className="wf-id">
+                <span className="eyebrow">★ {ui("yourPlayer", lang)}</span>
+                <h2>{teamName(match, followed.team_id)} · #{followed.shirt_no}</h2>
+                <span className="dim">{ANIMAL_LABEL[animalOf(followed.player_id)].emoji} {ANIMAL_LABEL[animalOf(followed.player_id)][lang]} · {POSITION_LABEL[followed.position][lang]}</span>
+              </div>
+              <LiveStats p={followed} m={clampMinute(players, state.minute)} lang={lang} match={match} />
+              <div className="wf-actions">
+                <button className="ghost" onClick={() => { setWhoStart(followed.player_id); setShowWho(true); }}>{ui("profile", lang)}</button>
+                <button className="ghost" onClick={() => { setShowFollow(true); }}>{ui("wherePitch", lang)}</button>
+                <button className="ghost" onClick={() => { setWhoStart(null); setShowWho(true); }}>{ui("changePlayer", lang)}</button>
+              </div>
+            </div>
+            <p className="dim small center-text">{ui("eyesUp", lang)}</p>
+            {scorerButton}
+            {alertsOptIn}
+            {half && <button className="ghost" onClick={() => setShowHalf(true)}>{ui("halfCard", lang)}</button>}
+          </main>
+        ) : (
+          <main className="center">
+            <Mascot pose="wave" size={110} />
+            <p className="dim">{ui("eyesUp", lang)}</p>
+            {players && match && (
+              <button className="pick-follow" onClick={() => { setWhoStart(null); setShowWho(true); }}>
+                <strong>☆ {ui("pickFollow", lang)}</strong>
+                <span className="dim">{ui("pickFollowHint", lang)}</span>
+              </button>
+            )}
+            {scorerButton}
+            {alertsOptIn}
+            {half && <button className="ghost" onClick={() => setShowHalf(true)}>{ui("halfCard", lang)}</button>}
+          </main>
+        )
       )}
 
       {showWho && !showFollow && players && match && state && state.phase !== "ask" && (
@@ -274,11 +313,17 @@ export default function Play() {
         const st = choiceStyle(i);
         return (
           <main className="kq-locked" key={`${card.card_id}-locked`} style={{ background: st.bg, color: st.fg }}>
-            <div className="big-shape" aria-hidden="true">{st.shape}</div>
+            <div className="big-shape" aria-hidden="true"><span>{st.shape}</span></div>
             <div className="eyebrow">✓ {ui("locked", lang)}</div>
             <h2>{answerLabel(card, mine, lang)}</h2>
-            <p className="count">{state.joined ? `${state.answered} / ${Math.max(state.answered, state.joined)}` : state.answered} {ui("answeredOf", lang)}</p>
-            <p className="verdict">⏳ {ui("waitVerdict", lang)}</p>
+            <div className="room-meter" aria-label={`${state.answered} ${ui("answeredOf", lang)}`}>
+              <div className="rm-avatars">
+                {(state.answered_by ?? []).map((a, k) => <span key={k} style={{ animationDelay: `${k * 60}ms` }}>{a}</span>)}
+              </div>
+              <div className="rm-bar"><i style={{ width: `${state.joined ? Math.min(100, (state.answered / Math.max(1, state.joined)) * 100) : 100}%` }} /></div>
+              <p className="count">{state.joined ? `${state.answered} / ${Math.max(state.answered, state.joined)}` : state.answered} {ui("answeredOf", lang)}</p>
+            </div>
+            <p className="verdict"><span className="hourglass" aria-hidden="true">⏳</span> {ui("waitVerdict", lang).replace(/…$/, "")}<span className="dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></p>
             <p className="me">{ui("youAre", lang)} {avatarOf(device)}</p>
             {fact && (
               <section className="fact-card" key={fact}>
@@ -299,38 +344,42 @@ export default function Play() {
         </main>
       )}
 
-      {state && card && match && state.phase === "reveal" && (
-        <main>
-          {mine && (
-            <div className={`verdict-banner ${mine === card.reveal.answer ? "right" : "wrong"}`} role="status">
-              {mine === card.reveal.answer ? `✓ ${ui("calledIt", lang)}` : ui("notThisTime", lang)}
+      {state && card && match && state.phase === "reveal" && !seenReveal && (() => {
+        const right = !!mine && mine === card.reveal.answer;
+        const mood = !mine ? "neutral" : right ? "right" : "learn";
+        return (
+          <main className={`reveal-screen ${mood}`} key={`${card.card_id}-reveal`}>
+            {right && <Confetti />}
+            <div className="rv-head">
+              <div className="rv-title">{right ? `🎉 ${ui("calledIt", lang)}` : mine ? `💡 ${ui("learnTitle", lang)}` : ui("matchSays", lang)}</div>
+              <div className="rv-answer">{ui("matchSays", lang)}: <strong>{answerLabel(card, card.reveal.answer, lang)}</strong></div>
+              {mine && !right && <div className="dim">{ui("youSaid", lang)}: {answerLabel(card, mine, lang)}</div>}
             </div>
-          )}
-          <Mascot pose={card.reveal.pose} size={96} />
-          <div className="eyebrow turf">{ui("matchSays", lang)}: {answerLabel(card, card.reveal.answer, lang)}</div>
-          <p className="plain">{fill(t(card.reveal.plain, lang), match.facts)}</p>
-
-          <button className="ghost" onClick={() => setDeep((d) => !d)} aria-expanded={deep}>
-            {deep ? ui("hide", lang) : ui("goDeeper", lang)}
-          </button>
-          {deep && <p className="expert">{fill(t(card.reveal.expert, lang), match.facts)}</p>}
-
-          <section className="tally" aria-label={ui("roomSays", lang)}>
-            <div className="eyebrow">{ui("roomSays", lang)}</div>
-            {card.question.options.map((o) => {
-              const n = state.tally[o.id] ?? 0;
-              const pct = state.answered ? (n / state.answered) * 100 : 0;
-              return (
-                <div className="row" key={o.id}>
-                  <span>{t(o.label, lang)}{mine === o.id ? ` · ${ui("you", lang)}` : ""}{card.question.pippi_call === o.id ? " 🐤" : ""}</span>
-                  <span className="track"><i style={{ width: `${pct}%` }} /></span>
-                  <span className="n">{n}</span>
-                </div>
-              );
-            })}
-          </section>
-        </main>
-      )}
+            <Mascot pose={card.reveal.pose} size={84} />
+            <p className="plain">{fill(t(card.reveal.plain, lang), match.facts)}</p>
+            <details className="fold">
+              <summary>{ui("goDeeper", lang)}</summary>
+              <p className="expert">{fill(t(card.reveal.expert, lang), match.facts)}</p>
+            </details>
+            <section className="tally" aria-label={ui("roomSays", lang)}>
+              <div className="eyebrow">{ui("roomSays", lang)}</div>
+              {card.question.options.map((o, i) => {
+                const n = state.tally[o.id] ?? 0;
+                const pct = state.answered ? (n / state.answered) * 100 : 0;
+                const st = choiceStyle(i);
+                return (
+                  <div className={`row ${o.id === card.reveal.answer ? "is-answer" : ""}`} key={o.id}>
+                    <span><i className="opt-shape" style={{ background: st.bg, color: st.fg }}>{st.shape}</i> {t(o.label, lang)}{mine === o.id ? ` · ${ui("you", lang)}` : ""}{card.question.pippi_call === o.id ? " 🐤" : ""}</span>
+                    <span className="track"><i style={{ width: `${pct}%` }} /></span>
+                    <span className="n">{n}</span>
+                  </div>
+                );
+              })}
+            </section>
+            <button className="got-it" onClick={() => setSeen((x) => ({ ...x, [card.card_id]: true }))}>{ui("gotIt", lang)}</button>
+          </main>
+        );
+      })()}
 
       {state && state.phase === "added" && state.board && (
         <main>

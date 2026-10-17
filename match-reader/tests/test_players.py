@@ -493,7 +493,11 @@ class DemoUnchangedTest(unittest.TestCase):
         repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + "/.."
         with open(os.path.join(repo, "data", "demo-match.json"), encoding="utf-8") as fh:
             on_disk = fh.read()
-        self.assertEqual(on_disk, dumps(build_output(generate_match(43))))
+        # Built from the tracked events: the tracking may reassign who did what (e.g. the scorer), and viewers see
+        # the tracking, so its player ids are the ones the demo must name.
+        with open(os.path.join(repo, "data", "tracked-seed-43.json"), encoding="utf-8") as fh:
+            tracked = json.load(fh)
+        self.assertEqual(on_disk, dumps(build_output(tracked)))
 
 
 if __name__ == "__main__":

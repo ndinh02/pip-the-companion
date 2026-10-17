@@ -175,3 +175,41 @@ export function saveFollow(id: string | null): void {
     /* storage blocked: following simply lasts until reload */
   }
 }
+
+// ---- "This match": short notes about the player, as news, written by code from the stats (no spoilers) ----------
+const NOTE = {
+  started: { en: "Started the match", de: "Stand in der Startelf", vi: "Đá chính từ đầu" },
+  cameOn: { en: "Came on", de: "Eingewechselt", vi: "Vào sân" },
+  wentOff: { en: "Went off", de: "Ausgewechselt", vi: "Rời sân" },
+  goal: { en: "Scored", de: "Tor erzielt", vi: "Ghi bàn" },
+  firstShot: { en: "First shot of their match", de: "Erster Schuss im Spiel", vi: "Cú sút đầu tiên trong trận" },
+  topSpeed: { en: "Top speed so far: {v} km/h", de: "Bisheriges Spitzentempo: {v} km/h", vi: "Tốc độ cao nhất đến giờ: {v} km/h" },
+  ballWins: { en: "{v} ball wins so far", de: "Bisher {v} Balleroberungen", vi: "Đã giành lại bóng {v} lần" },
+} satisfies Record<string, Record<Lang, string>>;
+
+/** First minute at which `key` reached `value` (the minute something happened), or null. */
+function minuteReached(p: PlayerRow, key: StatKey, value: number, upTo: number): number | null {
+  const arr = p.stats[key];
+  for (let m = 0; m <= Math.min(upTo, arr.length - 1); m++) if (arr[m] >= value && value > 0) return m;
+  return null;
+}
+
+export interface Note { min: number; text: string }
+/** Newest first. Every note is a fact from the match file or the players feed at or before `minute`. */
+export function matchNotes(match: Match, p: PlayerRow, minute: number, lang: Lang): Note[] {
+  const notes: Note[] = [];
+  const st = statusAt(p, minute);
+  if (p.on_min === 0) notes.push({ min: 0, text: NOTE.started[lang] });
+  else if (p.on_min !== null && p.on_min <= minute) notes.push({ min: Math.floor(p.on_min), text: NOTE.cameOn[lang] });
+  if (st.kind === "wentOff" && st.at !== undefined) notes.push({ min: st.at, text: NOTE.wentOff[lang] });
+  for (const g of match.score_timeline) if (g.player_id === p.player_id && g.from_min <= minute) notes.push({ min: Math.floor(g.from_min), text: `⚽ ${NOTE.goal[lang]}` });
+  const shot = minuteReached(p, "shots", 1, minute);
+  if (shot !== null && !notes.some((n) => n.min === shot && n.text.startsWith("⚽"))) notes.push({ min: shot, text: NOTE.firstShot[lang] });
+  const top = stat(p, "top_speed_dmh", minute);
+  const topAt = minuteReached(p, "top_speed_dmh", top, minute);
+  if (top >= 250 && topAt !== null) notes.push({ min: topAt, text: NOTE.topSpeed[lang].replace("{v}", kmh(top)) });
+  const wins = stat(p, "ball_wins", minute);
+  const winsAt = minuteReached(p, "ball_wins", wins, minute);
+  if (wins >= 3 && winsAt !== null) notes.push({ min: winsAt, text: NOTE.ballWins[lang].replace("{v}", String(wins)) });
+  return notes.sort((a, b) => b.min - a.min);
+}

@@ -23,8 +23,9 @@ export const ANIMAL_LABEL: Record<Animal, Record<Lang, string> & { emoji: string
   elephant: { en: "Elephant", de: "Elefant", vi: "Voi", emoji: "🐘" },
 };
 
-/** Goalkeepers wear their own colour: different from both teams and from each other. */
+/** Goalkeepers wear their own colour: different from both teams, from each other, and from the grass (a green kit
+ *  made the Harbour keeper vanish into the pitch, owner feedback 2026-10-17). */
 export const KEEPER_KIT: Record<string, { primary: string; secondary: string }> = {
-  HAR: { primary: "#3FAE5A", secondary: "#0E1A2B" },
+  HAR: { primary: "#F25C9A", secondary: "#0E1A2B" },
   COP: { primary: "#7B4FC9", secondary: "#FFFFFF" },
 };

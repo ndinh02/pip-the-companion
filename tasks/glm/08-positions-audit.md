@@ -34,6 +34,35 @@ Task 06 is reviewed and accepted (Claude, 2026-10-16). This task fixes what an a
 - Team shape sanity (per team per half, average distance from own goal line): GK < DF < MF < FW.
 - Everything from Tasks 04–06 still passes.
 
+---
+
+# Part B — the ball, substitutions and "statues" (audit 2026-10-17)
+
+A full audit of seed 43 is in **`docs/DATA_AUDIT_2026-10-17.md`** (read it: it lists every case with match times). The owner saw these on screen: "sometimes the ball just disappears", "the ball went into the goal but it doesn't count — no animation of the keeper catching it". Fix them in `tracking.py` (same allowed paths as above). Already fixed by Claude, not your job: the HAR keeper kit colour, and the demo match file now built from `data/tracked-seed-43.json` (correct scorer ids).
+
+## Requirements
+7. **Saves look like saves.** At a `keeper_save` the ball reaches the keeper (≤ 1 m) and stays in their hands (moves with them, z ≈ 1 m) until they release it (pass/goal kick/throw) — or, for a parry, is deflected away from goal (≥ 30° change of direction). A saved shot never continues to the goal line. A keeper's catch is followed by the keeper's restart, a parry out of play by a corner — keep events as they are, adjust only the tracking path (tell Claude if an event sequence makes this impossible).
+8. **Blocked shots deflect.** At a blocked shot, a defender is within 1.2 m of the ball at the block frame and the ball changes direction there (it does not fly on into the goal). After the block it stays on the pitch and continuous: **no teleports** (12:55, 13:08, 22:46, 57:48, 59:43 jump 24–35 m while hidden).
+9. **Off-target shots look off target.** The ball visibly passes wide of a post or over the bar (z ≥ 2.6 m at the line) before it goes out; it is not hidden before it crosses the line.
+10. **Out of play means out.** The ball is hidden (−1) only after it has crossed a touchline or goal line (or is in the net / in a keeper's hands is NOT hidden). A failed pass that leads to a throw-in/corner/goal kick must travel to the line first (41 of 50 restarts vanish mid-pitch today, up to 33 m from any line).
+11. **Goal kicks from the goal area** (7 of 24 are taken where a failed pass ended).
+12. **Substitutions don't move the ball.** Substitution events carry a pitch position; the ball must not be routed to it (75:05–76:20 the ball rolls 90 m alone). The player going off has left the pitch **before** the substitute steps on (today a team has 12–13 players for 10–21 s, 318 frames).
+13. **Kick-offs after goals:** the conceding keeper is in their own goal, not at the centre spot (COP-1 at 4:15, HAR-1 at 74:12).
+14. **No statues.** During long stoppages (VAR 2:05–3:45, injury 58:00–59:17) players keep small, slow movements (shifting, walking a few steps, < 1.5 m/s) instead of standing frozen for 60–100 s; nobody stands exactly on a touchline unless taking a throw-in.
+15. **No long overlaps:** two players closer than 0.5 m for more than 2 s only in a tackle/aerial duel (today 8 cases, up to 40 s).
+16. **The actor is at the ball at their event:** distance ≤ 2 m at the event frame for ≥ 98 % of events (today 203 of 1,454 are > 2 m, worst 17.1 m for the 15:06 shot).
+
+## Tests (add to `test_tracking_positions.py` or a new `test_tracking_ball2.py`)
+- Every `keeper_save`: keeper within 1 m of the ball within 0.6 s of the event; the ball never crosses the goal line in the following 2 s.
+- Every blocked shot: a defender within 1.2 m of the ball at the block; direction change ≥ 30°; ball not −1 within 2 s after.
+- Every off-target shot: at the goal-line crossing frame, |y − 34| > 3.66 or z > 2.44 m; the ball is visible at that frame.
+- No −1 spell starts more than 2 m inside the pitch, except in a keeper's hands (which is not −1) — i.e. every hide starts at/after a line crossing or in the net.
+- No visible jump > 12 m between the last frame before a −1 spell and the first frame after it, unless a restart event (throw-in/corner/goal kick/free kick/kick-off) happens there.
+- Goal kicks: ball within the goal area at the kick frame.
+- At every frame, each team has ≤ 11 players on the pitch.
+- No player with speed < 0.05 m/s for > 20 s.
+- Overlaps < 0.5 m longer than 2 s: 0 outside duels; actor-to-ball ≤ 2 m for ≥ 98 % of events.
+
 ## Output
 Regenerate `data/tracked-seed-43.json`, `data/tracking-seed-43.json` and `data/players.json` (as in Task 06). Then do Task 07.
 

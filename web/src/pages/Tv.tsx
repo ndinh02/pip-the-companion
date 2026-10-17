@@ -155,6 +155,7 @@ export default function Tv() {
       deadline: phase === "reveal" ? now + revealLeft : 0,
       total_ms: phase === "reveal" ? 12_000 / clk.speed : 0,
       tally, answered, scorer, joined: devices.current.size,
+      answered_by: card ? [...(answers.current.get(card.card_id)?.keys() ?? [])].map(avatarOf) : [],
     };
     const key = JSON.stringify([msg.phase, msg.minute, msg.card?.card_id, msg.board?.period, msg.half?.rows.length, msg.tally, msg.scorer]);
     if (key !== lastSent.current) {
