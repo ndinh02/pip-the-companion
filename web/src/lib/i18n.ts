@@ -71,7 +71,7 @@ export const UI = {
   pickFollow: { en: "Pick a player to follow", de: "Such dir einen Spieler aus", vi: "Chọn một cầu thủ để theo dõi" },
   pickFollowHint: { en: "Their character and live numbers wait here for you between moments.", de: "Figur und Live-Werte warten hier zwischen den Momenten auf dich.", vi: "Nhân vật và số liệu trực tiếp sẽ chờ bạn ở đây giữa các khoảnh khắc." },
   learnTitle: { en: "Not this time. Here's why", de: "Diesmal nicht. Hier ist der Grund", vi: "Lần này chưa đúng. Đây là lý do" },
-  youSaid: { en: "You said", de: "Dein Tipp", vi: "Bạn chọn" },
+  youSaid: { en: "You said", de: "Deine Wahl", vi: "Bạn chọn" },
   gotIt: { en: "Got it", de: "Verstanden", vi: "Đã hiểu" },
   onPitch: { en: "on the pitch", de: "auf dem Platz", vi: "trên sân" },
   pickPlayer: { en: "tap a player", de: "tippe auf ein Gesicht", vi: "chạm vào một cầu thủ" },
