@@ -150,6 +150,10 @@ Ritual phrase: "Call it!" (EN) · "Sag's an!" (DE) · "Đoán đi!" (VI).
 - Single-device demo mode (TV + phone + extension side by side).
 
 ### 5.5 Stretch / roadmap (do not build unless asked)
+**Later stage, optional (owner decision 2026-10-17: in the plan, not in the hackathon build):**
+- **Player names.** Today players are team + shirt number + animal only (decision D1). Later: synthetic names per team locale, screened so that no name matches a real player (a name list check before shipping), shown on the phone profile and the TV spotlight. For licensed real-match data, the real names come with the data rights.
+- **Player news and social links.** Today the profile shows "This match" notes written by code from the match data (honest by construction). Later, only with **real** players and licensed data: recent news headlines from a licensed news feed and the player's official social accounts (verified handles from the rights holder). Never invented for synthetic players: fake news or handles could point at real people's accounts.
+
 Fuel gauge (fatigue) + "Who comes off?", The duel, tactical switch detector, match chapters, rule radar, crowd's call across rooms, room map (drag a dot), Pip's pulse (vibration, Android only), smart lights, season comic, jargon catcher, newsroom ticker co-pilot console, readability report for broadcasters.
 
 ---

@@ -1,6 +1,9 @@
-// Checks the match file's viewer-facing copy: banned betting words, placeholders, lengths.
+// Checks viewer-facing copy. Rule that never changes: NO BETTING LANGUAGE anywhere a viewer can read (AGENTS.md).
+// 1. The match file: banned words, placeholders, lengths, no hard-coded numbers.
+// 2. Every other viewer-facing string: the app's UI text (all `en:/de:/vi:` strings in web/src) and every card
+//    template variant (match-reader/templates) — banned words and empty strings.
 // Run: cd web && npm run check:copy
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -45,8 +48,47 @@ for (const card of match.cards) {
   }
 }
 
+// ---- 2. UI strings and templates: banned words everywhere ----------------------------------------------------------
+let uiCount = 0;
+function checkPlain(where, lang, text) {
+  uiCount++;
+  if (typeof text !== "string" || !text.trim()) return errors.push(`${where}.${lang}: empty`);
+  const hit = text.match(bannedRegex[lang]);
+  if (hit) errors.push(`${where}.${lang}: banned word "${hit[1]}" in "${text}"`);
+}
+function walk(dir, out = []) {
+  for (const name of readdirSync(dir)) {
+    const p = join(dir, name);
+    if (statSync(p).isDirectory()) walk(p, out);
+    else if (/\.(ts|tsx)$/.test(name)) out.push(p);
+  }
+  return out;
+}
+const src = join(here, "../web/src");
+for (const f of walk(src)) {
+  const text = readFileSync(f, "utf8");
+  // translated strings are written as  en: "…", de: "…", vi: "…"  (double quotes, no template literals)
+  for (const m of text.matchAll(/\b(en|de|vi):\s*"((?:[^"\\]|\\.)*)"/g)) {
+    const line = text.slice(0, m.index).split("\n").length;
+    checkPlain(`${f.slice(src.length + 1)}:${line}`, m[1], m[2]);
+  }
+}
+const tplDir = join(here, "../match-reader/templates");
+for (const name of readdirSync(tplDir).filter((n) => n.endsWith(".json"))) {
+  const visit = (node, path) => {
+    if (Array.isArray(node)) node.forEach((v, i) => visit(v, `${path}[${i}]`));
+    else if (node && typeof node === "object") {
+      for (const [k, v] of Object.entries(node)) {
+        if (LANGS.includes(k) && typeof v === "string") checkPlain(`templates/${name}${path}`, k, v);
+        else visit(v, `${path}.${k}`);
+      }
+    }
+  };
+  visit(JSON.parse(readFileSync(join(tplDir, name), "utf8")), "");
+}
+
 if (errors.length) {
   console.error(`✗ copy check failed (${errors.length})\n` + errors.map((e) => "  - " + e).join("\n"));
   process.exit(1);
 }
-console.log(`✓ copy check passed: ${match.cards.length} cards × ${LANGS.length} languages`);
+console.log(`✓ copy check passed: ${match.cards.length} cards × ${LANGS.length} languages, ${uiCount} UI and template strings, no betting language`);

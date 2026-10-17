@@ -8,7 +8,7 @@
 | 4 | Colour clash | **DECIDED:** team blue → `#2E7FC4`. |
 | 5 | Cosmos DB vs Table Storage | OPEN — after Azure signup. |
 | 6 | Hero moments with 10 Hz tracking | **CHANGED 2026-10-13:** owner wants a tracking system → full-match synthetic tracking at 5 Hz (`docs/TRACKING_SPEC.md`); 10 Hz windows around question moments later. Screen use (§4) still PROPOSED. |
-| 7 | Player-name locales + screening | **DECIDED for the demo (2026-10-13):** no names; players are identified by team + shirt number + position. Names stay OPEN for later. |
+| 7 | Player-name locales + screening | **DECIDED for the demo (2026-10-13):** no names; players are identified by team + shirt number + position. Names stay OPEN for later. **2026-10-17:** names and player news/social links are in the brief (§5.5) as optional later-stage items, not in the hackathon build. |
 | 8 | Must-have list (§5.4) | OPEN — mock covers: Call it!, two-depth reveal, DE/EN/VI. |
 | 9 | Brand (colours, type, voice) | OPEN — mock uses the draft brand. |
 | 10 | Licences | PROPOSED: MIT + CC BY 4.0 — unconfirmed. |
