@@ -63,6 +63,16 @@ A full audit of seed 43 is in **`docs/DATA_AUDIT_2026-10-17.md`** (read it: it l
 - No player with speed < 0.05 m/s for > 20 s.
 - Overlaps < 0.5 m longer than 2 s: 0 outside duels; actor-to-ball ≤ 2 m for ≥ 98 % of events.
 
+## Definition of done — the full-match check (owner: "check the whole full match")
+Claude wrote **`scripts/match_qa.py`**: it scans every frame of the match for everything the owner saw (ball disappearing, teleporting, shots flying into the goal with no goal, goals never seen going in, saves without the keeper, keepers far from goal or out of place at kick-offs, 12–13 players, statues, overlaps, goal kicks from the wrong spot, a player far from the ball for their own action). Today, seed 43: **13 of 14 checks fail.**
+
+```
+/usr/bin/python3 scripts/match_qa.py                       # seed 43
+/usr/bin/python3 scripts/match_qa.py --events E.json --tracking T.json   # any seed
+```
+
+**Task 08 is done only when `match_qa.py` prints "All 14 checks pass" for seed 43 and for seeds 1–5** (generate them with `matchlab.track` into a temp folder). Paste the final output of all six runs into the Result. Do not edit `scripts/match_qa.py`; if a check looks wrong to you, explain why in the Result and Claude decides. After acceptance Claude adds it to CI so it can never come back.
+
 ## Output
 Regenerate `data/tracked-seed-43.json`, `data/tracking-seed-43.json` and `data/players.json` (as in Task 06). Then do Task 07.
 
