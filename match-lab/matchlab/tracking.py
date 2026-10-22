@@ -52,7 +52,8 @@ DECIDE_EVERY = 5    # rethink targets every 0.5 s
 ACCEL_MAX = 5.0     # m/s^2
 DECEL_MAX = 6.5     # m/s^2 (arrive deceleration)
 _ARRIVE = math.sqrt(2.0 * DECEL_MAX)
-SEP_MIN = 0.65          # players closer than this are pushed apart (test limit 0.5)
+SEP_MIN = 0.8           # players closer than this are pushed apart (task 08
+                        # rule 15: no < 0.5 m pairs for 3 s; test limit 0.5)
 
 # ---- ball (task 06) ------------------------------------------------------------
 FLIGHT_CAP = 38.0   # m/s cap on any ball flight
@@ -146,9 +147,19 @@ FATIGUE_UP = 0.0045     # fatigue gain per second spent above 60% top speed
 FATIGUE_DOWN = 0.0035   # recovery per second below it
 
 SETPIECE_WINDOW = 30.0   # dead-ball slots take over this long before a restart
-LOOKAHEAD_EVENTS = 3     # actors are chosen this many events ahead ...
+LOOKAHEAD_EVENTS = 6     # actors are chosen this many events ahead ...
 LOOKAHEAD_S = 16.0       # ... and at most this early (restarts: as soon as they
                          # are next, so the taker walks there during the delay)
+NET_REST_S = 2.8    # task 08: a goal ball rests in the net at least this long
+                    # before it is retrieved (rule 5: stays >= 2 s)
+IDLE_AFTER_S = 2.6   # task 08: a player on one recorded spot this long starts
+                    # shifting weight / taking a step (rule 14: no statues)
+GOAL_AREA_DEPTH = 5.5  # task 08 rule 11: goal kicks are taken from the goal area
+GOAL_AREA_Y = (25.5, 42.5)
+SEND_OUT_TOP = 11.0  # m/s cap on a ball rolling itself off the pitch (rule 10)
+KO_GUARD_S = 60.0    # task 08 rules 3/13: this long before a kick-off, no event
+                     # after it may be assigned or walked to -- the formation holds
+
 FEASIBLE = 0.62          # reachable at <= 0.62 x v_max in the time available.
                          # 0.8x made the nearest player sprint to almost every
                          # chained open-play event (one midfielder: 46 sprints/90);
@@ -226,24 +237,31 @@ def _setpiece(ev: Dict[str, Any], idx_of: Dict[str, int],
     out: Dict[int, Tuple[float, float]] = {}
     other = AWAY if team == HOME else HOME
 
-    def assign(side: str, slots: List[Tuple[float, float]]) -> None:
+    # Task 08: the taking team's keeper never gets a field slot (they were standing
+    # at the centre spot at kick-offs and on the ball at attacking free kicks) —
+    # every keeper gets a fixed home just off their own goal line instead.
+    def assign(side: str, slots: List[Tuple[float, float]], gk_slot: Tuple[float, float]) -> None:
         got = on_pitch[side]
         keepers = [i for i in got if role_of[i] == "GK"]
         outfield = [i for i in got if role_of[i] != "GK"]
-        for i, slot in zip(keepers + outfield, slots):
+        for i in keepers:
+            out[i] = gk_slot
+        for i, slot in zip(outfield, slots):
             out[i] = slot
 
     u_s = sx if plus else PITCH_L - sx  # event spot in the attacking frame
     if typ == "corner":
         assign(team, [A(8.0, 34.0)] + [A(97, 27), A(97, 41), A(93, 21), A(93, 47),
-                  A(89, 34), A(80, 27), A(80, 41), A(62, 34), A(45, 30), A(45, 38)])
-        assign(other, [D(1.5, 34.0), D(2.5, 30.5), D(2.5, 37.5), D(6, 26), D(6, 34),
-                       D(6, 42), D(10, 30), D(10, 38), D(45, 34), D(58, 40)])
+                  A(89, 34), A(80, 27), A(80, 41), A(62, 34), A(45, 30), A(45, 38)],
+               A(6.0, 34.0))
+        assign(other, [D(2.5, 30.5), D(2.5, 37.5), D(6, 26), D(6, 34),
+                       D(6, 42), D(10, 30), D(10, 38), D(45, 34), D(58, 40),
+                       D(2.0, 36.0)], D(1.5, 34.0))
     elif typ == "free_kick" and u_s > PITCH_L / 2:
         assign(team, [A(u_s - 2, _clamp(sy + 6, 3, 65)), A(96, 30), A(96, 38),
                       A(max(u_s - 10, 40), 28), A(max(u_s - 10, 40), 40),
                       A(max(u_s - 18, 30), 34), A(60, 24), A(60, 44), A(40, 34),
-                      A(30, 34), A(12, 34)])
+                      A(30, 34)], A(12, 34))
         wall_y = sy
         assign(other, [D(2.0, _clamp(sy + (2.0 if sy < 34 else -2.0), 26, 42)),
                        D(PITCH_L - (u_s - 9), _clamp(wall_y - 1.0, 2, 66)),
@@ -252,17 +270,19 @@ def _setpiece(ev: Dict[str, Any], idx_of: Dict[str, int],
                        D(PITCH_L - (u_s - 14), _clamp(sy - 6, 3, 65)),
                        D(PITCH_L - (u_s - 14), _clamp(sy + 6, 3, 65)),
                        D(PITCH_L - (u_s - 22), 34), D(60, 30), D(60, 38),
-                       D(45, 34), D(25, 34)])
+                       D(45, 34)], D(2.5, 34.0))
     elif typ == "goal_kick":
-        assign(team, [A(5.5, sy), A(22, 5), A(20, 26), A(20, 42), A(22, 63),
-                      A(48, 15), A(48, 34), A(48, 53), A(72, 17), A(72, 34), A(72, 51)])
-        assign(other, [D(3, 34), D(50, 20), D(50, 48), D(57, 12), D(57, 56),
-                       D(63, 26), D(63, 42), D(68, 34), D(45, 30), D(45, 38), D(40, 34)])
+        assign(team, [A(22, 5), A(20, 26), A(20, 42), A(22, 63),
+                      A(48, 15), A(48, 34), A(48, 53), A(72, 17), A(72, 34), A(72, 51)],
+               A(5.5, sy))
+        assign(other, [D(50, 20), D(50, 48), D(57, 12), D(57, 56),
+                       D(63, 26), D(63, 42), D(68, 34), D(45, 30), D(45, 38), D(40, 34)],
+               D(3, 34))
     elif typ == "pass" and sub == "kick_off":
         assign(team, [A(52.0, 36.5), A(50, 31), A(50, 37), A(40, 15), A(40, 34),
-                      A(40, 53), A(25, 11), A(25, 26), A(25, 42), A(25, 57), A(5, 34)])
+                      A(40, 53), A(25, 11), A(25, 26), A(25, 42), A(25, 57)], A(5, 34))
         assign(other, [D(20, 11), D(20, 26), D(20, 42), D(20, 57), D(28, 15),
-                       D(28, 34), D(28, 53), D(36, 17), D(36, 34), D(36, 51), D(3, 34)])
+                       D(28, 34), D(28, 53), D(36, 17), D(36, 34), D(36, 51)], D(3, 34))
     else:
         return {}
     return out
@@ -311,6 +331,18 @@ class _Sim:
         self.kick_t = 0.0          # struck one (frozen through the follow-
         self.kick_pos = (0.0, 0.0) # through, so the kick rule frame holds)
         self.out_since = 0.0
+        self.out_glimpse = False    # one last visible record AT the line the
+                                    # ball is leaving (task 08 rule 9/10: the
+                                    # crossing itself must be seen)
+        self.net_rest = False       # this flight ends in the net (a goal)
+        self.net_until = 0.0        # the goal ball stays visible until then
+        self.hold_gk = -1           # task 08 rule 7: keeper holding the ball
+                                    # in their hands (z ~ 1 m) until release
+        self.block_shot = -1        # event idx of a blocked shot being routed
+        self.block_j = -1           # its first leg is in the air (bounce next)
+        self.block_delay = 0.0      # launch hold so the blocker arrives with it
+        self.roll_out = False       # a roll that ends off the pitch (rule 10)
+        self.roll_top = FLIGHT_V_LO # cap while accelerating that roll
         self.spot: Tuple[float, float] = (PITCH_L / 2.0, PITCH_W / 2.0)
         # flight bookkeeping
         self.f0 = self.f1 = 0.0
@@ -370,6 +402,13 @@ class _Sim:
         self.ny = [0.0] * n
         self.walkoff_at = [float("inf")] * n   # time the outgoing player is -1
         self.walkoff_tgt: List[Optional[Tuple[float, float]]] = [None] * n
+        self.pending_on: List[Tuple[float, int, int]] = []  # task 08 rule 12:
+        # (t_event, sub idx, out idx) -- the substitute steps on only once the
+        # outgoing player has left the pitch
+        self.moved_at = [0.0] * n     # last recorded dm move (statue guard)
+        self.idle_t = [0.0] * n       # idle sway target re-roll time
+        self.idle_x = [0.0] * n
+        self.idle_y = [0.0] * n
 
         # event bookkeeping
         ne = len(self.events)
@@ -409,6 +448,13 @@ class _Sim:
         elif not flag and self.on[i]:
             self.on[i] = False
             self.actives.remove(i)
+        # a roster change during a set-piece window invalidates the cached
+        # slot map: a substitute who steps on inside the window (e.g. during
+        # the goal celebration before a kick-off) was not on the pitch when
+        # the map was built, stands in no slot, and drifts over the halfway
+        # line at the kick-off frame (task 08 rule 2)
+        if self.setpiece_ev >= 0 and self.setpiece_ev in self.setpiece_cache:
+            del self.setpiece_cache[self.setpiece_ev]
 
     def _sprint_top(self, i: int) -> float:
         """Sprint cruise for player i: fraction of top speed with the fatigue
@@ -428,6 +474,47 @@ class _Sim:
             if self.team[i] == team and self.shirt[i] == 1:
                 return i
         return -1
+
+    def _spot_of(self, ev: Dict[str, Any]) -> Tuple[float, float]:
+        """Where a restart is taken from (task 08 rule 11): goal kicks always
+        from inside the goal area -- the generator parks some where a failed
+        pass ended, up to 30 m away -- everything else where the event says."""
+        sx, sy = ev["start"]["x"], ev["start"]["y"]
+        if ev["type"] != "goal_kick":
+            return (sx, sy)
+        plus = _attacks_plus_x(ev["team_id"], ev["period"])
+        own = 0.0 if plus else PITCH_L
+        lo, hi = (own + 0.6, own + GOAL_AREA_DEPTH - 0.5) if plus \
+            else (own - GOAL_AREA_DEPTH + 0.5, own - 0.6)
+        return (_clamp(sx, lo, hi), _clamp(sy, GOAL_AREA_Y[0], GOAL_AREA_Y[1]))
+
+    def _sub_enter(self, inc: int) -> None:
+        """A substitute steps on at the halfway touchline with a clean slate."""
+        self._set_active(inc, True)
+        self.px[inc], self.py[inc] = PITCH_L / 2.0, 0.0
+        self.vx[inc] = self.vy[inc] = 0.0
+        self.wpt[inc] = []
+        self.sprint_until[inc] = -1.0
+        self.nspr[inc] = 0        # fresh legs: no inherited sprint budget
+        self.rdist[inc] = 0.0     # or distance base for the governor
+        self.srun[inc] = 0
+        self.nep[inc] = 0
+        self.lx[inc] = None
+        self.moved_at[inc] = 0.0
+        self.idle_t[inc] = 0.0
+
+    def _parry_out(self, t: float, actor: int) -> None:
+        """A save parried out (task 08 rule 7): the ball is deflected wide of
+        the post and over the keeper's own goal line, visibly out."""
+        own = 0.0 if _attacks_plus_x(self.team[actor], self._period(t)) else PITCH_L
+        ey = 29.0 if self.by < PITCH_W / 2.0 else 39.0  # wide of the posts
+        ex, ey = own, _clamp(ey, 1.5, PITCH_W - 1.5)
+        d = math.hypot(ex - self.bx, ey - self.by)
+        gap = max(abs(self.bx - own) - 0.3, 0.3)
+        v = _clamp(d / gap, FLIGHT_V_HI, FLIGHT_CAP)
+        self._start_flight(t, self.bx, self.by, ex, ey,
+                           {"type": "parry", "end": {"y": ey}}, v, kick=actor)
+
 
     # -- event handling ----------------------------------------------------------
 
@@ -453,34 +540,46 @@ class _Sim:
             out = self.idx_of[ev["player_out_id"]]
             end_s = self.sub_end_ms.get(ev["t_ms"], ev["t_ms"] + 25000) / 1000.0
             self.slot_of[inc] = self.slot_of[out]
-            self._set_active(inc, True)
-            self.px[inc], self.py[inc] = PITCH_L / 2.0, 0.0
-            self.vx[inc] = self.vy[inc] = 0.0
-            self.wpt[inc] = []
-            self.sprint_until[inc] = -1.0
-            self.nspr[inc] = 0        # fresh legs: no inherited sprint budget
-            self.rdist[inc] = 0.0     # or distance base for the governor
-            self.srun[inc] = 0
-            self.nep[inc] = 0
-            self.lx[inc] = None
-            if self.on[out]:  # walk off to the nearest touchline
+            if self.on[out]:
+                # task 08 rule 12: the player going off leaves BEFORE the
+                # substitute steps on (no 12-13 player frames). The sub is
+                # staged and _move activates them once the pitch is clear.
                 self.walkoff_at[out] = end_s
                 oy = 0.0 if self.py[out] < PITCH_W / 2.0 else PITCH_W
                 self.walkoff_tgt[out] = (self.px[out], oy)
                 self.wpt[out] = []
+                self.pending_on.append((ev["t_ms"] / 1000.0, inc, out))
+            else:
+                # a chained double sub at one stoppage (13 on for 8, 14 on
+                # for 13): the "out" player is a sub still staged to enter.
+                # They go straight back off -- cancel their entry and stage
+                # this sub behind the same outgoing player, so the roster
+                # stays at 11 (task 08 rule 12)
+                staged = [p for p in self.pending_on if p[1] == out]
+                if staged:
+                    self.pending_on.remove(staged[0])
+                    self.pending_on.append((staged[0][0], inc, staged[0][2]))
+                else:
+                    self._sub_enter(inc)
         # ball (task 06)
         typ = ev["type"]
         te = ev["t_ms"] / 1000.0
         if typ == "keeper_save":
             # the shot before this ended at the goal this keeper guards: they
-            # pick the ball up. The generator puts some save starts at the
-            # wrong end of the pitch (quirk, task 04) -- then the ball, which
-            # is at the shot's end, just stays where it is.
+            # pick the ball up (task 08 rule 7). A save followed by a corner
+            # is a parry straight out over the line; anything else is a catch
+            # -- the ball rides in their hands until they release it.
             if actor is not None and actor >= 0 and self.on[actor] and \
                     math.hypot(self.px[actor] - self.bx, self.py[actor] - self.by) < 3.0:
-                self.bmode = "attach"
-                self.battach = actor
-                self.spot = (self.bx, self.by)
+                parry = any(self.events[k]["type"] == "corner"
+                            for k in range(j + 1, min(j + 3, len(self.events))))
+                if parry:
+                    self._parry_out(t, actor)
+                else:
+                    self.bmode = "attach"
+                    self.battach = actor
+                    self.hold_gk = actor
+                    self.spot = (self.bx, self.by)
         elif typ in _BALL_KICKS:
             self._launch(j, te)
         elif typ in ("foul", "tackle", "interception"):
@@ -511,14 +610,15 @@ class _Sim:
             if best < 0:
                 self.assigned[j] = -1
                 return
+            sx, sy = self._spot_of(ev)  # goal kicks: inside the goal area
             ft, fx, fy = self._free_at(best, t)  # position/time after pending work
-            feasible = math.hypot(sx - fx, sy - fy) <= FEASIBLE * self.vmax[best] * max(te - ft, 0.0) \
-                and ft < te
+            if not (math.hypot(sx - fx, sy - fy) <= FEASIBLE * self.vmax[best] * max(te - ft, 0.0)
+                    and ft < te):
+                self.infeasible_events += 1
             self.assigned[j] = best
-            if feasible:
-                self.wpt[best].append((te, sx, sy, j))
-            else:
-                self.infeasible_events += 1  # keeper_save quirk: stay home
+            # task 08 rule 4/16: the keeper is AT the ball whatever the clock
+            # says -- the waypoint stands even when it needs a hurry
+            self.wpt[best].append((te, sx, sy, j))
             return
         cands = [i for i in self._on_pitch_now(team) if self.role[i] != "GK"]
         if not cands:
@@ -533,7 +633,11 @@ class _Sim:
                 continue
             d = math.hypot(sx - fx, sy - fy)
             busy = 1 if self.wpt[i] else 0
-            if d <= FEASIBLE * self.vmax[i] * (te - ft):
+            # feasibility at the pace they can actually sustain (fatigue
+            # included): a booking that ignores fatigue puts the event
+            # frame's actor still metres short of the spot (rule 4)
+            spd = max(FEASIBLE * self.vmax[i] * (1.0 - self.fat[i]), 2.5)
+            if d <= spd * (te - ft):
                 key = (d + 22.0 * busy, busy)  # ~22 m penalty for a detour
                 if not feasible or key[0] < best_d:
                     best, best_d, best_busy, feasible = i, key[0], busy, True
@@ -546,10 +650,6 @@ class _Sim:
                 if late < best_d:
                     best, best_d = i, late
             self.infeasible_events += 1
-            # way out of reach (keeper_save quirk): name the nearest, no waypoint
-            if best_d > 1.5:
-                self.assigned[j] = best
-                return
         self.assigned[j] = best
         self.wpt[best].append((te, sx, sy, j))
 
@@ -568,6 +668,221 @@ class _Sim:
         ex, ey = ev["end"]["x"], ev["end"]["y"]
         nxt = self.events[j + 1] if j + 1 < len(self.events) else None
         gap = (nxt["t_ms"] / 1000.0 - t) if nxt else 3.0
+        # a restart kick (goal kick, corner, throw-in, free kick) fires a
+        # quarter-second late: the restart's own frame then shows the ball
+        # still on its spot with the taker over it, not already underway
+        rdelay = 0.25 if (_is_out_restart(ev) or ev["type"] == "free_kick") \
+            else 0.0
+        # task 08: a shot (or a shooting free kick) ends where its OUTCOME
+        # says, not where the event's end coordinates park the ball (all
+        # shot ends sit on the goal line -- rules 5, 7, 8, 9).
+        self.block_shot = -1
+        self.block_delay = 0.0
+        if ev["type"] == "shot" or (ev["type"] == "free_kick"
+                                    and ev.get("subtype") == "shoot"):
+            oc = ev.get("outcome")
+            if oc == "goal":
+                # into the net between the posts: the flight crosses the line
+                # visibly and the ball rests there (rule 5)
+                ey = _clamp(ey, 31.9, 36.1)
+            elif oc == "saved" and nxt is not None \
+                    and nxt["type"] == "keeper_save":
+                # to the saving keeper at their own goal (rule 7): the saved
+                # shot never flies on to the goal line
+                kx, ky = self._spot_of(nxt)
+                ex, ey = kx + (0.7 if ex >= kx else -0.7), ky
+            elif oc == "blocked":
+                # a defender in the shot's path meets it (rule 8): the block
+                # happens on the pitch, well short of the line. The blocker
+                # is chosen by the launch delay their run needs -- a block
+                # point nobody can reach (the old path midpoint, or the spot
+                # a moving defender has already run off) puts nobody within
+                # arm's reach at the block frame.
+                best, bd = -1, 1e9
+                bk = 1e18  # fallback ranking key (keeper +10 m penalty)
+                vx_, vy_ = ex - self.bx, ey - self.by
+                vv = math.hypot(vx_, vy_)
+                # the shot branch flies a blocked shot at this speed
+                # (tt = 0.7 s), not plain FLIGHT_V_HI -- the block routing
+                # must pace runs and holds against the real flight time
+                v_shot = _clamp(vv / 0.7, FLIGHT_V_HI, FLIGHT_CAP)
+                mx_, my_ = None, None
+                pick_key, pick_s = None, 0.0
+                if vv > 1e-9:
+                    vx_, vy_ = vx_ / vv, vy_ / vv
+                    mx_, my_ = self.bx + (ex - self.bx) * 0.55, \
+                        self.by + (ey - self.by) * 0.55
+                    for i in self.actives:
+                        if self.team[i] == ev["team_id"] or self.role[i] == "GK":
+                            continue
+                        rx, ry = self.px[i] - self.bx, self.py[i] - self.by
+                        s = rx * vx_ + ry * vy_
+                        # the ex >= 1.6 clamp below keeps the block well
+                        # short of the line, so a low band is safe here
+                        if 0.1 * vv <= s <= 0.85 * vv:
+                            perp = abs(rx * (-vy_) + ry * vx_)
+                            spd_i = max(0.8 * self.vmax[i] * (1.0 - self.fat[i]),
+                                        2.5)
+                            moving = math.hypot(self.vx[i], self.vy[i]) > 2.5
+                            if perp <= 12.0 and not moving:
+                                # block at their feet: they are planted in
+                                # the lane, the firm ball is played straight
+                                # at them and they just stand there
+                                key = (1 if self.wpt[i] else 0, 0.0, perp)
+                                tgt = (self.px[i], self.py[i])
+                                dly = 0.0
+                            elif perp <= 30.0:
+                                # block at their path point: they run onto it
+                                # while the ball is (held on the boot until
+                                # they can) -- a moving defender's spot is
+                                # already behind them the moment the ball flies
+                                # +0.35 settle: same run-in deceleration
+                                # margin as the fallback branch below
+                                dly = perp / spd_i + 0.35 \
+                                    - (0.2 + s / v_shot)
+                                if dly > max(0.0, min(2.5, gap - 0.9)):
+                                    # the run needs more hold than the
+                                    # schedule allows -- clamping the delay
+                                    # would just rebound the ball off nobody
+                                    continue
+                                key = (1 if self.wpt[i] else 0, dly, perp)
+                                tgt = (self.bx + vx_ * s, self.by + vy_ * s)
+                            else:
+                                continue  # hopeless even with the delay cap
+                            if pick_key is None or key < pick_key:
+                                pick_key, best, bd, pick_s = key, i, perp, s
+                                mx_, my_ = tgt
+                                self.block_delay = _clamp(
+                                    dly, 0.0, max(0.0, min(2.5, gap - 0.9)))
+                if best < 0 and vv > 1e-9 and mx_ is not None:
+                    # nobody even near the path (a counter-attack, or a
+                    # defender caught on the shooter's side of the ball):
+                    # the nearest opponent runs into the path and the ball
+                    # is held on the boot until they can meet it there --
+                    # letting it fly to the shot's own destination would
+                    # rebound off nobody at the goal line. The meeting
+                    # point walks down the ray toward the ball until their
+                    # run fits the hold the schedule allows: a fixed
+                    # midpoint 9 m from everyone rebounds off nobody too.
+                    # The next event in this shape (no defender in the
+                    # lane) is not waiting on this ball, so only 0.55 s
+                    # of its window is reserved.
+                    for i in self.actives:
+                        if self.team[i] == ev["team_id"]:
+                            continue
+                        # the keeper is a last resort (an outfield block
+                        # is always the truer read), but a point-blank
+                        # shot with every outfield defender 15+ m away
+                        # is smothered by the spreading keeper -- the
+                        # ray runs at their own goal, so the meeting
+                        # point stays deep inside their leash
+                        gk = 1 if self.role[i] == "GK" else 0
+                        d2 = math.hypot(self.px[i] - mx_, self.py[i] - my_)
+                        key2 = d2 + (10.0 if gk else 0.0)
+                        if best < 0 or key2 < bk:
+                            best, bd, bk = i, d2, key2
+                    if best >= 0:
+                        spd_b = max(0.8 * self.vmax[best]
+                                    * (1.0 - self.fat[best]), 2.5)
+                        cap = max(0.0, min(2.5, gap - 0.55))
+                        for f in (0.55, 0.4, 0.25, 0.12):
+                            px_ = self.bx + (ex - self.bx) * f
+                            py_ = self.by + (ey - self.by) * f
+                            d_f = math.hypot(self.px[best] - px_,
+                                             self.py[best] - py_)
+                            # +0.35 not +0.25: the run-in decelerates
+                            # near the point (_move's arrive cap), so a
+                            # defender paced exactly to the landing
+                            # finishes a few tens of cm short; the ball
+                            # term is the measured hold+ramp+travel
+                            need = d_f / spd_b + 0.35 \
+                                - (0.2 + f * vv / v_shot)
+                            if need <= cap:
+                                mx_, my_ = px_, py_
+                                self.block_delay = _clamp(need, 0.0, cap)
+                                break
+                        else:
+                            px_ = self.bx + (ex - self.bx) * 0.12
+                            py_ = self.by + (ey - self.by) * 0.12
+                            mx_, my_ = px_, py_
+                            self.block_delay = cap
+                if best >= 0:
+                    ex, ey = mx_, my_
+                if best >= 0:
+                    # never ON the goal line: a landing frame at the line
+                    # between the posts reads as the ball going in
+                    if ex > PITCH_L - 1.6:
+                        ex = PITCH_L - 1.6
+                    elif ex < 1.6:
+                        ex = 1.6
+                    self.block_shot = j
+                    self.block_j = best
+                    # the defender steps into the ball's path and blocks it.
+                    # The waypoint is paced to the ball's own schedule --
+                    # launch hold + ramp + travel (the hold and ramp
+                    # compress to ~0.2 s on the 5 Hz grid, measured on the
+                    # seeded traces) -- because _move cruises at
+                    # d/remain*1.35: a due time past the landing has the
+                    # defender strolling in behind the ball (rule 8). A
+                    # next-event deadline can still sit 30 s away, so
+                    # without a pin a defender already on the point drifts
+                    # off it long before the ball arrives.
+                    tt = math.hypot(ex - self.bx, ey - self.by) / v_shot
+                    due = max(t + 0.6, t + self.block_delay + tt + 0.2)
+                    if nxt is not None:
+                        due = min(due, nxt["t_ms"] / 1000.0 - 0.3)
+                    if not any(w[3] == j for w in self.wpt[best]):
+                        self.wpt[best].append((max(t + 0.6, due), ex, ey, j))
+        if ev["type"] in ("pass", "cross", "clearance") and nxt is not None \
+                and nxt["type"] not in ("substitution", "card") \
+                and not _is_out_restart(nxt) \
+                and 0.25 <= nxt["t_ms"] / 1000.0 - t <= 8.0 \
+                and self._follow_on_s(nxt, ex, ey) <= 0.0:
+            # task 08 rule 4 (meet): the delivery lands where the NEXT
+            # action's taker can actually be when their event fires. A
+            # generator chain break (the booked spot 15-45 m from a taker
+            # with 2 s to get there) otherwise parks the ball where nobody
+            # is, and the event frame shows its actor meters from the ball.
+            # The ball is delivered to the point on the taker's line to the
+            # spot that they reach just before their event -- their waypoint
+            # is moved with it, so player and ball arrive together.
+            a1 = self.assigned[j + 1]
+            if a1 is not None and a1 >= 0 and self.on[a1] and a1 != a:
+                t1 = nxt["t_ms"] / 1000.0
+                spd1 = max(0.67 * self.vmax[a1] * (1.0 - self.fat[a1]), 2.0)
+                dx1, dy1 = ex - self.px[a1], ey - self.py[a1]
+                d1 = math.hypot(dx1, dy1)
+                reach = spd1 * (t1 - t)
+                if d1 > reach * 0.95 + 0.3:
+                    g = reach * 0.9
+                    if d1 > 1e-9 and g > 0.0:
+                        ex = _clamp(self.px[a1] + dx1 / d1 * g, 1.0, PITCH_L - 1.0)
+                        ey = _clamp(self.py[a1] + dy1 / d1 * g, 1.5, PITCH_W - 1.5)
+                    self.wpt[a1] = [w for w in self.wpt[a1] if w[3] != j + 1]
+                    self.wpt[a1].append((max(t1 - 0.3, t + 0.2), ex, ey, j + 1))
+        if self.hold_gk >= 0 and self.bmode == "attach" \
+                and self.battach == self.hold_gk and a != self.hold_gk:
+            # task 08 rule 7 (release): the keeper puts the ball down for the
+            # next action -- it drops from their hands and rolls loose to the
+            # next spot, whose taker picks it up and plays it (the pump
+            # replays this launch once they have it)
+            gk = self.hold_gk
+            self.hold_gk = -1
+            sx, sy = self._spot_of(ev)
+            self.bx, self.by = self._feet(gk)
+            self.bz = 0.1
+            d2 = math.hypot(sx - self.bx, sy - self.by)
+            if d2 > 1.0:
+                self.bmode = "rollp"
+                self.bv = min(FLIGHT_V_HI, max(1.2, d2 / max(gap - 0.4, 0.4)))
+                self.spot = (sx, sy)
+            else:
+                self.bmode = "place"
+                self.spot = (sx, sy)
+            self.pk = j
+            self.pk_end = (ex, ey)
+            self.pk_lim = t + 6.0
+            return
         if self.bmode == "flight" and self.f1 > t:
             # a delivery is still in the air: launching now would tear the
             # ball off its flight. The kick waits for the landing (the pump
@@ -730,8 +1045,27 @@ class _Sim:
             self.bx, self.by = ox, oy
             self.spot = (ox, oy)
             return
-        # just-in-time delivery: the ball arrives ~0.3 s before the next
-        # event, so the receiver meets it within 0.4 s (rule 4 first branch)
+        if self.block_shot == j or (ev["type"] == "shot"
+                                    and ev.get("outcome") in ("goal", "saved",
+                                                              "off_target")) \
+                or (ev["type"] == "free_kick" and ev.get("subtype") == "shoot"):
+            # task 08 rules 5-9: a shot is struck the moment it happens -- a
+            # firm ball away (never held, never mid-band), so it visibly
+            # crosses the line, reaches the keeper or meets the blocker
+            # inside the QA's 3 s window. A blocked shot routed to a defender
+            # travels the first leg to where they stand, held on the boot for
+            # up to block_delay first so the blocker's run arrives with it.
+            oc = ev.get("outcome")
+            tt = 0.85 if oc == "goal" else (0.7 if oc == "blocked"
+                                            else max(gap - 0.2, 0.5))
+            v = _clamp(d / max(tt, 0.4), FLIGHT_V_HI, FLIGHT_CAP)
+            bj = self.block_j if self.block_shot == j else -1
+            bdly = self.block_delay if self.block_shot == j else 0.0
+            self._start_flight(t, ox, oy, ex, ey, ev, v, kick=a, delay=bdly)
+            self.block_j = bj  # _start_flight clears it; the block flight
+            return
+        # just-in-time delivery: the ball arrives ~0.7 s before the next
+        # event, so the receiver meets it on the frame (rule 4 first branch)
         # and it never lies at the spot alone for long. The speed for that is
         # either out of the 4-12 m/s band the realism tests look at, or the
         # kick is held: the kicker stands over the ball and plays it firm
@@ -740,10 +1074,10 @@ class _Sim:
             # the ball is leaving the pitch: play it out firmly now, so the
             # out-of-play window (rule 1) opens well before the restart
             self._start_flight(t, ox, oy, ex, ey, ev,
-                               _clamp(d / max(gap - 0.3, 0.3), FLIGHT_V_HI, FLIGHT_CAP),
-                               kick=a)
+                               _clamp(d / max(gap - 0.7, 0.3), FLIGHT_V_HI, FLIGHT_CAP),
+                               kick=a, delay=rdelay)
             return
-        v_t = d / max(gap - 0.3 - self._follow_on_s(nxt, ex, ey), 0.3)
+        v_t = d / max(gap - 0.7 - self._follow_on_s(nxt, ex, ey), 0.3)
         if FLIGHT_V_LO < v_t < FLIGHT_V_HI:
             # mid-band: hold at the kicker's feet, fire firm just in time.
             # A taker who has just sprinted onto the ball needs a moment to
@@ -755,7 +1089,7 @@ class _Sim:
             self.battach = a
             self.spot = (ex, ey)
             self.hold_j = j
-            self.hold_t = t + max(plant, max(0.0, gap - 0.3
+            self.hold_t = t + max(plant, max(0.0, gap - 0.7
                                              - self._follow_on_s(nxt, ex, ey)
                                              - d / FLIGHT_V_HI))
             self.hold_end = (ex, ey)
@@ -766,7 +1100,7 @@ class _Sim:
                            self.by - ev["start"]["y"]) <= 1.5
             return
         self._start_flight(t, ox, oy, ex, ey, ev, _clamp(v_t, 1.5, FLIGHT_CAP),
-                           kick=a)
+                           kick=a, delay=rdelay)
 
     def _follow_on_s(self, nxt: Optional[Dict[str, Any]],
                      ex: float, ey: float) -> float:
@@ -849,17 +1183,71 @@ class _Sim:
         d_left = math.hypot(ex - self.bx, ey - self.by)
         t_next = (nxt["t_ms"] / 1000.0) if nxt else t + 3.0
         if d_left > 20.0 and d_left > FLIGHT_V_LO * max(t_next - t - 0.3, 0.2):
+            # hopeless delivery: when the next action is a restart the ball
+            # still travels to the line first (rule 10) -- only then hidden.
+            # With no restart booked it stays visible and rolls on late (a
+            # mid-pitch hide is rule 10's violation and a teleport later)
+            if nxt is not None and _is_out_restart(nxt) and self.bmode != "out":
+                self._send_out(t, nxt)
+                return
             if self.bmode != "out":
-                self.bmode = "out"
-                self.out_since = t
+                self.bmode = "rollp"
+                self.bv = _clamp(d_left / max(t_next - t, 1.0), 1.2,
+                                 SEND_OUT_TOP)
+                self.spot = (ex, ey)
+                j_n = -1
+                for k in range(max(0, self.ep - 1),
+                               min(len(self.events), self.ep + 3)):
+                    if self.events[k] is nxt:
+                        j_n = k
+                        break
+                self._book_meet(t, j_n)
             return
         self.bmode = "roll"       # no time even at flat sprint: the
         self.broll_point = True   # rolling ball is sent on ahead alone
         self.bv = max(self.bv, 0.5)
         self.spot = (ex, ey)
 
+    def _book_meet(self, t: float, j: int) -> None:
+        """Task 08 rule 4 for a late delivery: the rolling ball cannot reach
+        event j's spot before the event fires. The taker leaves the spot they
+        were booked on and walks to where the ball will actually be at their
+        event time, so the event frame shows them AT the ball; the pump then
+        has them pick it up and play it from there."""
+        if j < 0 or j >= len(self.events) or self.bmode != "rollp":
+            return
+        ev = self.events[j]
+        if _is_out_restart(ev) or ev["type"] in ("substitution", "card"):
+            return
+        a = self.assigned[j]
+        if a is None or a < 0 or not self.on[a]:
+            return
+        t1 = ev["t_ms"] / 1000.0
+        if t1 <= t:
+            return
+        sx, sy = self.spot
+        d = math.hypot(sx - self.bx, sy - self.by)
+        if d < 1e-6 or d / max(self.bv, 0.1) <= (t1 - t) + 2.0:
+            return  # on time, or close enough that the projection is noise:
+            # re-booking on a marginal call drags the taker off a spot the
+            # ball does reach (the roll gets re-budgeted faster later), so
+            # only a hopelessly late ball -- 2 s or more -- re-books the meet
+        frac = max(0.0, min(1.0, self.bv * (t1 - t) / d))
+        mx = self.bx + (sx - self.bx) * frac
+        my = self.by + (sy - self.by) * frac
+        old = self.wpt[a]
+        self.wpt[a] = [w for w in old if w[3] != j]
+        ft, fx, fy = self._free_at(a, t)
+        dm = math.hypot(mx - fx, my - fy)
+        if ft < t1 and dm <= 0.9 * self.vmax[a] * (t1 - ft):
+            self.wpt[a].append((t1, mx, my, j))
+        else:
+            self.wpt[a] = old  # they cannot make the meet either
+
     def _start_flight(self, t: float, ox: float, oy: float, ex: float, ey: float,
-                      ev: Dict[str, Any], v: float, kick: int = -1) -> None:
+                      ev: Dict[str, Any], v: float, kick: int = -1,
+                      delay: float = 0.0) -> None:
+        self.block_j = -1
         if kick >= 0:
             # freeze the kicker through the follow-through: the frame before
             # the flight visibly starts must keep them within 1.2 m
@@ -875,11 +1263,24 @@ class _Sim:
         # last frame at the landing either
         per = self.periods[self._period(t) - 1]
         pstart = per["start_ms"] / 1000.0
-        rel = (t - pstart) * 5.0
+        rel = ((t + delay) - pstart) * 5.0
         g0 = math.ceil(rel - 1e-9)
         if g0 <= rel + 1e-9:
             g0 += 1.0
         g0 = pstart + g0 / 5.0
+        if kick >= 0 and ev is not None and ev.get("t_ms") is not None:
+            # task 08 rule 4: the kicker's own event frame must still show
+            # the ball at their boot. The first flight frame is never that
+            # frame or an earlier one -- a kick firing just before its event
+            # is already a full 0.2 s underway at frame one of the grid-
+            # aligned flight (cruise speed from the back-dated clock), and
+            # the event frame would show the actor metres from a ball they
+            # just played. The ball waits at the boot until the frame after.
+            per_e = self.periods[self._period(ev["t_ms"] / 1000.0) - 1]
+            ps_e = per_e["start_ms"] / 1000.0
+            f_ev = ps_e + round((ev["t_ms"] / 1000.0 - ps_e) * 5.0) / 5.0
+            if g0 <= f_ev + 1e-9:
+                g0 = f_ev + 0.2
         n = max(2, int(round(d / (0.2 * v))))
         v = d / (0.2 * n)
         while v > FLIGHT_CAP:  # whole frames only: keep the cap honest
@@ -898,12 +1299,31 @@ class _Sim:
             v = d / (0.2 * n)
         self.bmode = "flight"
         self.framp = True
-        self.f0 = g0 - 0.2 - v / (2.0 * KICK_A)
+        if delay > 0.0:
+            # a delayed restart kick: the records before g0 hold the ball on
+            # the spot, so the restart's own frame shows the kick being taken,
+            # not a ball already metres underway (task 08 rule 11)
+            self.f0 = g0
+        else:
+            self.f0 = g0 - 0.2 - v / (2.0 * KICK_A)
         self.fxs, self.fys, self.fxe, self.fye = ox, oy, ex, ey
         self.fd = d
         self.fv = v
         self.fstyle, self.fh = _flight_height(ev, d)
         self.f1 = self.f0 + n * 0.2 + v / (2.0 * KICK_A)
+        # task 08: this flight ends in the net (a goal) -- the landing rests
+        # the ball on the line instead of routing it on; and any kick releases
+        # a keeper's hold on the ball (rule 7)
+        self.net_rest = ev is not None and ev.get("outcome") == "goal" and \
+            (ev["type"] == "shot" or (ev["type"] == "free_kick"
+                                      and ev.get("subtype") == "shoot"))
+        if self.net_rest:
+            # the retrieval clock starts when the ball LANDS in the net -- a
+            # stale net_until would hide the flight mid-air the step after
+            # launch (the ball would never be seen crossing the line)
+            self.net_until = self.f1 + NET_REST_S
+        if kick >= 0:
+            self.hold_gk = -1
 
     def _flight_s(self, tau: float) -> float:
         """Distance flown tau seconds into the current flight. The launch ramp
@@ -924,9 +1344,117 @@ class _Sim:
             return self.fh * frac
         return 0.1  # flat: rolling height
 
+    def _send_out(self, t: float, ev: Optional[Dict[str, Any]]) -> None:
+        """Task 08 rule 10: a ball leaving play travels to the line first --
+        it is hidden only once it has crossed, with one visible record AT the
+        line (out_glimpse). The exit is the nearest line point, but never
+        through the goal mouth (a deflected ball rolling out there between
+        the posts reads as a goal)."""
+        bx, by = self.bx, self.by
+        # candidate exit points: touchline, or the goal line wide of the posts
+        cands = []
+        ty = 0.0 if by < PITCH_W / 2.0 else PITCH_W
+        cands.append((_clamp(bx, 1.0, PITCH_L - 1.0), ty))
+        for gx in (0.0, PITCH_L):
+            gy = by
+            if abs(gy - PITCH_W / 2.0) < 5.5:  # the goal mouth: step aside
+                gy = PITCH_W / 2.0 - 5.5 if gy < PITCH_W / 2.0 + 1.0 \
+                    else PITCH_W / 2.0 + 5.5
+            gy = _clamp(gy, 1.5, PITCH_W - 1.5)
+            cands.append((gx, gy))
+        ex, ey = min(cands, key=lambda c: math.hypot(c[0] - bx, c[1] - by))
+        d = math.hypot(ex - bx, ey - by)
+        te = (ev["t_ms"] / 1000.0) if ev is not None else t + 5.0
+        if bx <= 0.3 or bx >= PITCH_L - 0.3 or by <= 0.3 or by >= PITCH_W - 0.3:
+            # already ON a line -- an off-target shot whose flight landed on
+            # the goal line: the goal-mouth step-aside above would measure
+            # metres of "distance to the line" and hide the ball mid-pitch
+            # (rule 10). Hidden at the crossing, glimpsed there (rule 9)
+            self.bmode = "out"
+            self.out_since = t
+            self.out_glimpse = True
+            self.bx = _clamp(bx, 0.0, PITCH_L)
+            self.by = _clamp(by, 0.0, PITCH_W)
+            return
+        if d <= 0.5:
+            # already at the line: hidden now, glimpsed at the crossing
+            self.bmode = "out"
+            self.out_since = t
+            self.out_glimpse = True
+            self.bx, self.by = ex, ey
+            return
+        if d > SEND_OUT_TOP * max(te - t - 0.5, 0.0):
+            # cannot reach the line before the restart (rare -- a chain break
+            # far from any line). The ball still rolls visibly toward the
+            # line and hides at the crossing like every other out ball: a
+            # mid-pitch hide breaks rule 10 (the QA flags it) and reads as a
+            # teleport when the ball comes back on the restart spot
+            self.roll_top = SEND_OUT_TOP
+        else:
+            # an accelerating roll to the line, on the ground, in time for the
+            # restart (the ball is dead; nobody needs to touch it)
+            self.roll_top = _clamp(d / max(te - t - 1.2, 0.8), 1.2, SEND_OUT_TOP)
+        self.bmode = "roll"
+        self.broll_point = True
+        self.bv = min(self.bv, 2.0)
+        self.spot = (ex, ey)
+        self.roll_out = True
+
     def _land(self, t: float, ev: Optional[Dict[str, Any]]) -> None:
         """The flight ends: met, rolling, kept travelling, or out of play."""
         self.bx, self.by = self.fxe, self.fye
+        if self.block_j >= 0:
+            # task 08 rule 8: the blocked shot bounces off the defender. The
+            # deflection is well off the incoming line and back into the field
+            # -- never a dead stop (nothing happened) and never a continuation
+            # toward the goal it was struck at (which reads as a goal)
+            self.block_j = -1
+            self.block_shot = -1
+            dx, dy = self.fxe - self.fxs, self.fye - self.fys
+            dd = math.hypot(dx, dy)
+            if dd > 1e-9:
+                dx, dy = dx / dd, dy / dd
+                gx_sign = 1.0 if dx > 0.0 else -1.0  # the attacked goal
+                best_s, best_sc = 0.0, -1e9
+                for s_ in (1.0, -1.0):
+                    ox_ = -0.55 * dx - 0.835 * s_ * dy
+                    oy_ = -0.55 * dy + 0.835 * s_ * dx
+                    # prefer away from the goal, then toward the pitch centre
+                    sc = -ox_ * gx_sign + (34.0 - self.by) * oy_ * 0.02
+                    if sc > best_sc:
+                        best_sc, best_s = sc, s_
+                ox_ = -0.55 * dx - 0.835 * best_s * dy
+                oy_ = -0.55 * dy + 0.835 * best_s * dx
+                dist = 4.0 + self.rng.random() * 5.0
+                tx = _clamp(self.bx + ox_ * dist, 1.0, PITCH_L - 1.0)
+                ty = _clamp(self.by + oy_ * dist, 1.5, PITCH_W - 1.5)
+                d2 = math.hypot(tx - self.bx, ty - self.by)
+                if d2 > 0.5:
+                    # a flat rebound at a fraction of the arrival speed
+                    v2 = _clamp(0.45 * self.fv, 3.0, 11.0)
+                    nf = max(2, int(round(d2 / (0.2 * v2))))
+                    v2 = d2 / (0.2 * nf)
+                    self.bmode = "flight"
+                    self.framp = False
+                    self.f0 = t
+                    self.fxs, self.fys, self.fxe, self.fye = \
+                        self.bx, self.by, tx, ty
+                    self.fd = d2
+                    self.fv = v2
+                    self.fstyle, self.fh = "flat", 0.0
+                    self.f1 = t + nf * 0.2
+                    return
+            self.bmode = "place"
+            self.spot = (self.bx, self.by)
+            return
+        if self.net_rest:
+            # task 08 rule 5: the ball rests in the net (ON the line -- the
+            # schema has no coordinates behind it) until it is retrieved
+            self.bmode = "place"
+            self.spot = (self.bx, self.by)
+            self.bz = 0.0
+            self.net_until = t + NET_REST_S
+            return
         if self._pending_viable(t):
             # a deferred kick is still booked on this ball (it was held back
             # behind the flight that just landed): the ball waits at the
@@ -936,8 +1464,7 @@ class _Sim:
             self.spot = (self.bx, self.by)
             return
         if ev is None or _is_out_restart(ev):
-            self.bmode = "out"
-            self.out_since = t
+            self._send_out(t, ev)
             return
         sx, sy = ev["start"]["x"], ev["start"]["y"]
         d = math.hypot(sx - self.bx, sy - self.by)
@@ -955,23 +1482,33 @@ class _Sim:
             # would drift it off the spot the next event is booked at.
             t2 = ev["t_ms"] / 1000.0 - t
             top = min(self.fv, FLIGHT_CAP)
-            if d > 20.0 and d > top * max(t2 - 0.3, 0.2):
+            if d > 20.0 and d > top * max(t2, 0.2):
                 # the next action is far from where this ball lands and
                 # there is no reaching it even flat out (a generator chain
                 # break: a shot followed by a restart 30-100 m away): the
-                # ball goes off the pitch and is placed on the next spot
-                # once its taker is there, instead of flying there alone
-                self.bmode = "out"
-                self.out_since = t
+                # ball leaves play -- rolling to the line first when the
+                # next action IS a restart (rule 10) -- and is placed on the
+                # next spot once its taker is there
+                if ev is not None and _is_out_restart(ev):
+                    self._send_out(t, ev)
+                else:
+                    # no restart is booked: the ball stays VISIBLE and rolls on
+                    # toward the next spot, late -- a mid-pitch hide breaks
+                    # rule 10 and reads as a teleport when it comes back
+                    self.bmode = "rollp"
+                    self.bv = _clamp(d / max(t2 - 0.4, 0.4), 1.2,
+                                     min(top, SEND_OUT_TOP))
+                    self.spot = (sx, sy)
+                    self._book_meet(t, self.ep)
                 return
             if d / max(t2, 0.5) > FLIGHT_V_LO and top >= FLIGHT_V_HI:
                 # a roll cannot reach the next spot in time: a flat follow-on
                 # flight -- never faster than the ball arrived (the handover
                 # frame shows no speed-up -- kick rule), never in the mid
                 # band while nobody is near it, and just in time like every
-                # delivery: it lands ~0.3 s before the next event
+                # delivery: it lands ~0.7 s before the next event
                 if d >= 0.2 * 2 * FLIGHT_V_HI:
-                    vt = _clamp(d / max(t2 - 0.3, 0.4), FLIGHT_V_HI, top)
+                    vt = _clamp(d / max(t2 - 0.7, 0.4), FLIGHT_V_HI, top)
                     nf = max(2, int(round(d / (0.2 * vt))))
                     while d / (0.2 * nf) > top and nf < 1000:
                         nf += 1
@@ -992,7 +1529,21 @@ class _Sim:
                 self.f1 = t + nf * 0.2
             else:
                 self.bmode = "rollp"
-                self.bv = min(FLIGHT_V_LO, max(1.2, d / max(t2, 0.5)))
+                need_ = d / max(t2 - 0.4, 0.4)
+                top_ = FLIGHT_V_LO
+                if a >= 0 and math.hypot(self.px[a] - sx, self.py[a] - sy) <= 15.0:
+                    # the taker is at or converging on the spot: a firm
+                    # pass-like roll arrives with them, not after their event
+                    top_ = FLIGHT_V_HI
+                if need_ > FLIGHT_V_LO:
+                    # the soft creep cannot arrive by the event: a firm roll
+                    # (still never a flight while nobody is near it) beats a
+                    # ball that is metres short when its taker acts
+                    top_ = FLIGHT_V_HI
+                self.bv = min(top_, max(1.2, need_))
+                if need_ > top_:
+                    # even the firm roll lands late: send the taker to meet it
+                    self._book_meet(t, self.ep)
                 self.spot = (sx, sy)
         else:
             # the receiver is on the end point: the ball waits there for them
@@ -1029,8 +1580,21 @@ class _Sim:
         # flight/dribble has ended, the ball is off the pitch being retrieved,
         # until the taker reaches the spot (only exception: the taker is at
         # the spot already and the ball has been placed for them)
-        if ev is not None and _is_out_restart(ev) and self.bmode != "out":
-            sx, sy = ev["start"]["x"], ev["start"]["y"]
+        if self.net_rest and self.bmode not in ("out", "flight") \
+                and t >= self.net_until:
+            # task 08 rule 5: the goal ball has rested in the net long enough
+            # -- it is retrieved (hidden at the line, where it crossed) until
+            # the restart gathers it
+            self.bmode = "out"
+            self.out_since = t
+            self.out_glimpse = False
+            self.net_rest = False
+        if ev is not None and _is_out_restart(ev) and self.bmode != "out" \
+                and self.hold_gk < 0 and not self.roll_out and not self.net_rest:
+            # (a goal ball resting in the net is exempt: the net_rest branch
+            # above hides it once it has rested its full NET_REST_S -- task 08
+            # rule 5, the ball stays visible in the goal >= 2 s)
+            sx, sy = self._spot_of(ev)
             a = self._next_actor()
             at_spot = self.bmode == "attach" and a >= 0 and self.battach == a and \
                 math.hypot(self.px[a] - sx, self.py[a] - sy) <= APPEAR_R
@@ -1039,10 +1603,9 @@ class _Sim:
                     not self._pending_viable(t):
                 # the previous action's delivery is still being played (a
                 # taker converging on the ball): the out window opens when it
-                # finishes, not now -- forcing the ball off the pitch here
-                # would kill that kick entirely
-                self.bmode = "out"
-                self.out_since = t
+                # finishes, not now -- and it opens at the LINE, not wherever
+                # the ball happens to be (rule 10)
+                self._send_out(t, ev)
         if self.hold_j >= 0:
             # the held kick: the ball sits at the kicker's feet (attach, kept
             # alive by the hold guard below) until the last moment a firm
@@ -1098,10 +1661,14 @@ class _Sim:
                         self.bmode = "place"
                         self.spot = (ox, oy)
                     else:
-                        self._start_flight(t, ox, oy, ex, ey, self.events[j],
-                                           _clamp(d / max(gap - 0.3 - self._follow_on_s(nxt, ex, ey),
-                                                          0.3), FLIGHT_V_HI, FLIGHT_CAP),
-                                           kick=a)
+                        j_ev = self.events[j]
+                        self._start_flight(
+                            t, ox, oy, ex, ey, j_ev,
+                            _clamp(d / max(gap - 0.7 - self._follow_on_s(nxt, ex, ey),
+                                           0.3), FLIGHT_V_HI, FLIGHT_CAP),
+                            kick=a,
+                            delay=0.25 if (_is_out_restart(j_ev)
+                                           or j_ev["type"] == "free_kick") else 0.0)
                     if self.rq >= 0:
                         # a launch held back while this hold was pending: the
                         # held kick is away (or nothing was left to deliver) --
@@ -1124,12 +1691,19 @@ class _Sim:
                                 self._kick_latest(
                                     ev2, dl2, n2["t_ms"] / 1000.0) + dl2)
                         self.rq = -1
+        was_flight = self.bmode == "flight" or self.bmode == "dribble"
         if self.bmode == "flight":
             tau = t - self.f0
             if tau >= self.f1 - self.f0 - 1e-6:
+                # the landing keeps the flight's final height: an off-target
+                # shot must still be over the bar (z >= 2.6) in the one
+                # visible record at the line (rule 9)
+                self.bz = self._flight_z(1.0)
                 self._land(t, ev)
             else:
                 frac = min(1.0, self._flight_s(tau) / self.fd)
+                if tau <= 0.0:
+                    frac = 0.0  # a delayed kick: the ball waits on its spot
                 self.bx = self.fxs + (self.fxe - self.fxs) * frac
                 self.by = self.fys + (self.fye - self.fys) * frac
                 self.bz = self._flight_z(frac)
@@ -1141,10 +1715,16 @@ class _Sim:
             if f >= 1.0:  # carry over: met, rolling or out, like a landing
                 self._land(t, ev)
         elif self.bmode == "out":
-            self.bz = -1.0
-            if ev is not None and t - self.out_since >= OUT_MIN_S:
+            if not self.out_glimpse:
+                self.bz = -1.0
+            if ev is not None and t - self.out_since >= OUT_MIN_S \
+                    and ev["type"] not in ("substitution", "card"):
+                # a sub/card is not a ball event: its "spot" (the halfway
+                # line) is not where a ball gone out may reappear -- after a
+                # goal the stoppage can hold subs 70+ s before the kick-off,
+                # and an early centre-spot reveal reads as a 50 m teleport
                 a = self.assigned[self.ep]
-                sx, sy = ev["start"]["x"], ev["start"]["y"]
+                sx, sy = self._spot_of(ev)
                 if a is None or a < 0 or not self.on[a]:
                     # the named taker is off the pitch (substituted while the
                     # ball was out): hand the restart to the nearest on-pitch
@@ -1164,8 +1744,14 @@ class _Sim:
                         a = best
                 if a is not None and a >= 0 and self.on[a]:
                     d = math.hypot(self.px[a] - sx, self.py[a] - sy)
-                    if d <= APPEAR_R or (d <= APPEAR_R + 1.0 and
-                                         t >= ev["t_ms"] / 1000.0 - 0.25):
+                    # the reveal may not teleport: coming back mid-pitch from a
+                    # line hide more than 3 s before the restart reads as a
+                    # jump (a short retrieve of <= 12 m is fine whenever)
+                    reveal_ok = t >= ev["t_ms"] / 1000.0 - 3.0 or \
+                        math.hypot(sx - self.bx, sy - self.by) <= 12.0
+                    if reveal_ok and (
+                            d <= APPEAR_R or (d <= APPEAR_R + 1.0 and
+                                              t >= ev["t_ms"] / 1000.0 - 0.25)):
                         # a player places the ball on the restart spot (the
                         # relaxation catches a taker one step from the spot
                         # just before the restart, so the restart frame shows
@@ -1174,12 +1760,17 @@ class _Sim:
                         self.battach = a
                         self.spot = (sx, sy)
                         self.bx, self.by = sx, sy
+                        # the retrieval is over: a stale net_until must not
+                        # re-hide the ball the step after the taker placed it
+                        # (a one-frame glimpse mid-pitch reads as a vanish)
+                        self.net_rest = False
         else:
             if self.bmode == "attach":
                 a = self.battach
                 keep = self.hold_j >= 0 or \
                     (self.pk >= 0 and self.assigned[self.pk] == a) or \
-                    (self.ep > 0 and a == self.assigned[self.ep - 1])
+                    (self.ep > 0 and a == self.assigned[self.ep - 1]) or \
+                    (a == self.hold_gk and self.on[a])
                 if not keep and (a < 0 or not self.on[a] or a != self._next_actor()):
                     # the holder is no longer the next actor: the ball becomes
                     # loose and routes itself to the next action's spot below
@@ -1187,24 +1778,40 @@ class _Sim:
                     self.spot = (self.bx, self.by)
                 else:
                     if not keep and ev is not None:
-                        self.spot = (ev["start"]["x"], ev["start"]["y"])
+                        self.spot = self._spot_of(ev)
                     if self.hold_pin and self.hold_j >= 0:
                         # a held restart: the ball waits on its own event's
                         # spot until played (the taker stands over it)
                         h_ev = self.events[self.hold_j]
-                        self.bx, self.by = h_ev["start"]["x"], h_ev["start"]["y"]
+                        self.bx, self.by = self._spot_of(h_ev)
                     else:
                         self.bx, self.by = self._feet(a)
-                    self.bz = 0.1
+                    # task 08 rule 7: a caught ball rides in the keeper's
+                    # hands at chest height, not at their feet
+                    self.bz = 1.0 if a == self.hold_gk else 0.1
             elif self.bmode == "roll":
                 if self.broll_point:
                     # a late kick played on the run: the ball accelerates
                     # gently toward the target, never out of the slow band
-                    # (nobody is near it, so it must not look like a kick)
-                    self.bv = min(self.bv + ROLL_ACC * DT, FLIGHT_V_LO)
+                    # (nobody is near it, so it must not look like a kick).
+                    # A ball being sent off the pitch (rule 10) may roll up
+                    # to SEND_OUT_TOP -- it is dead, and has a line to reach.
+                    top = self.roll_top if self.roll_out else FLIGHT_V_LO
+                    self.bv = min(self.bv + ROLL_ACC * DT, top)
                     self._roll_toward(self.spot[0], self.spot[1])
-                    if math.hypot(self.spot[0] - self.bx, self.spot[1] - self.by) <= 0.3:
-                        self.bmode = "place"
+                    dd = math.hypot(self.spot[0] - self.bx,
+                                    self.spot[1] - self.by)
+                    if dd <= 0.3:
+                        if self.roll_out:
+                            # crossed the line: hidden, with one last visible
+                            # record AT the crossing (rule 10)
+                            self.bmode = "out"
+                            self.out_since = t
+                            self.out_glimpse = True
+                            self.roll_out = False
+                            self.bz = 0.1
+                        else:
+                            self.bmode = "place"
                 else:
                     # slows to ROLL_FLOOR, but never dies while unmet
                     self.bv = max(ROLL_FLOOR, self.bv - ROLL_DECEL * DT)
@@ -1227,16 +1834,34 @@ class _Sim:
                 # someone else: a ball that rolls away from its own taker
                 # never gets picked up -- but when the pk taker IS the next
                 # actor the roll runs toward them, not away.
-                if ev is not None:
+                if ev is not None and ev["type"] not in ("substitution", "card") \
+                        and not self.net_rest:
+                    # (a goal ball resting in the net never creeps to the next
+                    # spot -- it would roll back out of the goal mid-rest,
+                    # task 08 rule 5)
+                    # task 08 rule 12: a substitution carries a pitch position
+                    # -- the ball must not route itself there
                     a = self._next_actor()
                     if self.pk < 0 or (a >= 0 and
                                        a == self.assigned[self.pk]):
-                        dsx, dsy = ev["start"]["x"] - self.bx, ev["start"]["y"] - self.by
+                        sx_, sy_ = self._spot_of(ev)
+                        dsx, dsy = sx_ - self.bx, sy_ - self.by
                         if math.hypot(dsx, dsy) > 2.5:
                             self.bmode = "rollp"
-                            t2 = max(ev["t_ms"] / 1000.0 - t, 0.5)
-                            self.bv = min(FLIGHT_V_LO, max(1.2, math.hypot(dsx, dsy) / t2))
+                            t2 = max(ev["t_ms"] / 1000.0 - t - 0.4, 0.5)
+                            need_ = math.hypot(dsx, dsy) / t2
+                            top_ = FLIGHT_V_HI if need_ > FLIGHT_V_LO else FLIGHT_V_LO
+                            if a >= 0 and math.hypot(
+                                    self.px[a] - sx_, self.py[a] - sy_) <= 15.0:
+                                # the taker is at or converging on the same
+                                # point: a firm pass-like roll to them beats a
+                                # soft creep that arrives after their event
+                                top_ = FLIGHT_V_HI
+                            self.bv = min(top_, max(1.2, need_))
                             self.spot = (ev["start"]["x"], ev["start"]["y"])
+                            if need_ > top_:
+                                # late even at the firm roll: meet the ball
+                                self._book_meet(t, self.ep)
                         elif ev["type"] in ("pass", "cross", "dribble",
                                             "clearance") and a >= 0 and \
                                 math.hypot(self.px[a] - self.bx,
@@ -1251,16 +1876,27 @@ class _Sim:
                             # from a standstill: a jump above ~4 m/s would
                             # look like a kick nobody made (rule 5)
                             self.bv = _clamp(self.bv, ROLL_FLOOR, 2.0)
-            # a player arriving at a loose ball takes it
-            if self.bmode in ("place", "roll", "rollp"):
+            # a player arriving at a loose ball takes it -- but never a ball
+            # being sent out (roll_out): it is dead, and its next transition
+            # is the line crossing (rule 10's hide). Picking it up at
+            # ATTACH_R short of the line leaves it resting visible at a
+            # taker's feet instead, and the out-reveal never gets to run
+            if self.bmode in ("place", "roll", "rollp") \
+                    and not self.roll_out:
                 a = self._next_actor()
                 if a >= 0 and \
                         math.hypot(self.px[a] - self.bx, self.py[a] - self.by) <= ATTACH_R:
                     self.bmode = "attach"
                     self.battach = a
-                    self.bx, self.by = self._feet(a)
+                    self.roll_out = False
+                    if not was_flight:
+                        # a step-on pickup jumps to the feet; a ball that just
+                        # LANDED this step stays on its landing spot for the
+                        # record -- a fast delivery's last frame plus the feet
+                        # offset can top 40 m/s as one visible step
+                        self.bx, self.by = self._feet(a)
                     if ev is not None:
-                        self.spot = (ev["start"]["x"], ev["start"]["y"])
+                        self.spot = self._spot_of(ev)
         # a deferred kick: the taker was a step or two from the ball when the
         # event fired -- play it the moment they reach it (a flight already
         # under way finishes first; the ball is never sent off without a
@@ -1315,11 +1951,14 @@ class _Sim:
                     self.bmode in ("place", "roll", "rollp") and \
                     math.hypot(self.px[a] - self.bx, self.py[a] - self.by) <= ATTACH_R:
                 # the taker reaches a loose ball: straight to their feet (the
-                # kick fires after the next record shows it there)
+                # kick fires after the next record shows it there). A ball
+                # that just landed this step stays on its landing spot -- the
+                # record must not show cruise speed plus the feet offset
                 self.bmode = "attach"
                 self.battach = a
                 self.spot = self.pk_end
-                self.bx, self.by = self._feet(a)
+                if not was_flight:
+                    self.bx, self.by = self._feet(a)
             elif t >= t_lim:
                 # the deferred kick never happened. Exception: the ball is
                 # already sitting at the next event's spot with its taker
@@ -1366,11 +2005,31 @@ class _Sim:
                 self.pending_off = [p for p in self.pending_off if p[0] > t]
                 for _, i in due:
                     self._set_active(i, False)
+        # task 08 rules 3/13: a kick-off is coming within KO_GUARD_S. Nothing
+        # after it may be assigned yet, and waypoints already booked for events
+        # after it are dropped -- players who set off early for a post-kick-off
+        # restart spot leave both teams out of formation at the kick-off frame
+        ko_guard = -1
+        for j in range(self.ep, len(events)):
+            e = events[j]
+            if e["t_ms"] / 1000.0 - t > KO_GUARD_S:
+                break
+            if e.get("subtype") == "kick_off":
+                # a kick-off due THIS tick (t=0 or the half-start tick) fires
+                # immediately after this call: the events that follow it are
+                # bookable now. Waiting for the next decide tick costs the
+                # opener's actors the half-second that separates arriving at
+                # their event spot and still metres short of it (rule 4)
+                if e["t_ms"] / 1000.0 > t + 1e-9:
+                    ko_guard = j
+                break
         # actor look-ahead
         for k in range(LOOKAHEAD_EVENTS):
             j = self.ep + k
             if j >= len(events):
                 break
+            if ko_guard >= 0 and j > ko_guard:
+                break  # the kick-off formation holds until the ball is played
             if self.assigned[j] is not None:
                 continue
             te = events[j]["t_ms"] / 1000.0
@@ -1395,12 +2054,19 @@ class _Sim:
                     self.setpiece_ev = self.ep
                     self.setpiece_map = self.setpiece_cache.get(self.ep)
                     if self.setpiece_map is None:
-                        on_pitch = {tm: sorted(self._on_pitch_now(tm)) for tm in (HOME, AWAY)}
+                        # players walking off after a sub take no slot: the
+                        # zip would otherwise hand the departing walker the
+                        # slot the incoming substitute should stand in
+                        on_pitch = {tm: sorted(i for i in self._on_pitch_now(tm)
+                                               if self.walkoff_tgt[i] is None)
+                                    for tm in (HOME, AWAY)}
                         self.setpiece_map = _setpiece(ev, self.idx_of, on_pitch, self.role)
                         self.setpiece_cache[self.ep] = self.setpiece_map
         next_ev = events[self.ep] if self.ep < len(events) else None
-        spot = (next_ev["start"]["x"], next_ev["start"]["y"]) if next_ev \
-            else (self.bx, self.by)
+        if next_ev is None or next_ev["type"] in ("substitution", "card"):
+            spot = (self.bx, self.by)  # task 08 rule 12: a sub is not a spot
+        else:
+            spot = self._spot_of(next_ev)
         # virtual ball for the shape: the real one while it is visible, eased
         # toward the restart spot at <= 10 m/s while it is off the pitch
         if self.bmode == "out":
@@ -1441,6 +2107,12 @@ class _Sim:
                         chasers[k] = (spot, 1.0)
                     else:
                         ux = spot[0] + (2.2 if spot[0] < goal_x else -2.2)
+                        # a spot within 2.2 m of a goal line (a foul by the
+                        # corner flag) pushes the goal-side offset off the
+                        # pitch: the boundary clamp then pins the chaser
+                        # exactly on the line, metres short of their target
+                        # forever -- a 20 s statue (task 08 rule 13)
+                        ux = _clamp(ux, 0.6, PITCH_L - 0.6)
                         chasers[k] = ((ux, spot[1]), 0.6)  # presses less often
 
         # per-player targets
@@ -1448,10 +2120,23 @@ class _Sim:
             w = self.wpt[i]
             if w:
                 w = [x for x in w if x[0] > t + 0.05]
+                if ko_guard >= 0:
+                    kept = []
+                    for x in w:
+                        if x[3] > ko_guard:
+                            # booked for after the kick-off: dropped, and the
+                            # event goes back into the pool for re-choosing
+                            # once the kick-off has been played
+                            self.assigned[x[3]] = None
+                        else:
+                            kept.append(x)
+                    w = kept
                 self.wpt[i] = w
             if self.walkoff_tgt[i] is not None:
                 self.tgx[i], self.tgy[i] = self.walkoff_tgt[i]  # type: ignore[assignment]
-                self.cruise[i] = WALK
+                # jog off (task 08 rule 12): the sooner they leave, the sooner
+                # the substitute may step on
+                self.cruise[i] = JOG * self.work[i]
                 continue
             if self.pk >= 0 and self.assigned[self.pk] == i:
                 # a deferred kick waits on this player: they go to the ball
@@ -1499,17 +2184,24 @@ class _Sim:
             if self.setpiece_map and i in self.setpiece_map:
                 self.tgx[i], self.tgy[i] = self.setpiece_map[i]
                 d = math.hypot(self.tgx[i] - self.px[i], self.tgy[i] - self.py[i])
-                self.cruise[i] = WALK if d < 18.0 else JOG * self.work[i]
+                # task 08 rule 3: gathering for a kick-off after a goal can
+                # mean 40-50 m to walk -- the far half hurries
+                self.cruise[i] = WALK if d < 18.0 else \
+                    (JOG * self.work[i] if d < 40.0 else RECOVER_TOP)
                 continue
             base = GK_JOG if self.role[i] == "GK" else JOG * self.work[i]
             top = self._sprint_top(i)  # sprint cruise
             if i in chasers:
                 tx, ty = chasers[i][0]
-                # stand off 1.2 m short of the spot: the actor stands on it,
-                # and converging on the exact point is a permanent shoving match
+                # stand off 1.2 m short of the spot, always: the actor (the
+                # restart taker, the receiver) stands on it, and converging
+                # on the exact point is a permanent shoving match -- the
+                # close-range gate let a chaser step onto a corner taker
+                # planted at the flag and stand inside 0.5 m of them for
+                # the whole dead-ball wait (task 08 rule 14)
                 cdx, cdy = self.px[i] - tx, self.py[i] - ty
                 cdd = math.hypot(cdx, cdy)
-                if cdd > 2.5:
+                if cdd > 1e-6:
                     tx += cdx / cdd * 1.2
                     ty += cdy / cdd * 1.2
                 self.tgx[i], self.tgy[i] = tx, ty
@@ -1672,6 +2364,41 @@ class _Sim:
                     self.tgx[i] = u if plus else PITCH_L - u
                     self.tgy[i] = yy
                     self.cruise[i] = top
+        # task 08 rule 14: no statues. Anyone who has stood on one recorded
+        # spot for IDLE_AFTER_S shifts their weight / takes a slow step --
+        # a small offset re-rolled every ~1.5-3 s, never taking anyone off
+        # the pitch or across halfway. Players still travelling to a target
+        # (a gap to their target) are left alone; their movement is real.
+        for i in list(self.actives):
+            if self.walkoff_tgt[i] is not None:
+                continue  # they are leaving; the walk itself is the movement
+            if t - self.moved_at[i] < IDLE_AFTER_S:
+                self.idle_t[i] = 0.0
+                continue
+            # a player parked on an early-arrived waypoint sways around the
+            # waypoint itself (_move reads the offsets): the usual gap check
+            # would skip them, since their tgx/tgy may be miles stale
+            w0 = None
+            if self.wpt[i]:
+                wmin = min(self.wpt[i])
+                if wmin[0] - t > 2.0:
+                    w0 = wmin
+            if w0 is None and math.hypot(self.tgx[i] - self.px[i],
+                                         self.tgy[i] - self.py[i]) > 1.2:
+                continue  # still travelling
+            if t >= self.idle_t[i]:
+                amp = 0.3 if self.role[i] == "GK" else \
+                    0.4 + self.rng.random() * 0.5
+                ang = self.rng.random() * 6.2831853
+                self.idle_x[i] = math.cos(ang) * amp
+                self.idle_y[i] = math.sin(ang) * amp
+                self.idle_t[i] = t + 1.5 + self.rng.random() * 1.7
+            if w0 is not None:
+                self.tgx[i] = _clamp(w0[1] + self.idle_x[i], 0.6, PITCH_L - 0.6)
+                self.tgy[i] = _clamp(w0[2] + self.idle_y[i], 0.6, PITCH_W - 0.6)
+            else:
+                self.tgx[i] = _clamp(self.tgx[i] + self.idle_x[i], 0.6, PITCH_L - 0.6)
+                self.tgy[i] = _clamp(self.tgy[i] + self.idle_y[i], 0.6, PITCH_W - 0.6)
 
     def _period(self, t: float) -> int:
         return 1 if t < self.periods[1]["start_ms"] / 1000.0 else 2
@@ -1724,10 +2451,20 @@ class _Sim:
                 self.py[i] = y
         self.t_now = 0.0
 
-        for period in self.periods:
+        for pi, period in enumerate(self.periods):
             start_ms, end_ms = period["start_ms"], period["end_ms"]
+            if period["id"] > 1:
+                self._reset_for_kickoff(period)
             n10 = (end_ms - start_ms) // 100 + 1
-            self.frames_per_period.append((n10 + 1) // 2)
+            # task 08 rule 2: the next period's first frame must be ITS OWN
+            # kick-off formation. QA maps an event to the first period whose
+            # frame window covers it, so this period's records must stop one
+            # frame short of the break -- otherwise the second half's kick-off
+            # reads the last pre-break positions (keeper 28 m out, five players
+            # in the wrong half)
+            nxt_start = self.periods[pi + 1]["start_ms"] \
+                if pi + 1 < len(self.periods) else None
+            recs = 0
             for step in range(n10):
                 t = start_ms / 1000.0 + step * DT
                 self.t_now = t
@@ -1742,11 +2479,81 @@ class _Sim:
                 self._move(t)
                 self._ball_step(t)
                 if step % 2 == 0:
-                    self._record(t)
+                    if nxt_start is None or start_ms + step * 100 + 200 <= nxt_start:
+                        self._record(t)
+                        recs += 1
+            self.frames_per_period.append(recs)
         # anything left pending (last event exactly at the whistle)
         while self.ep < len(self.events):
             self._process_event(self.ep, self.periods[-1]["end_ms"] / 1000.0)
             self.ep += 1
+
+    def _reset_for_kickoff(self, period: Dict[str, Any]) -> None:
+        """Task 08 rule 2: the teams switch ends during the break -- the first
+        frame of the new period is the kick-off formation for THAT period's
+        ends (keeper in their own goal, everyone in their own half, the taker
+        on the centre spot). There are no frames between periods, so the walk
+        across happens off-camera."""
+        pid = period["id"]
+        # any pending ball business from the previous period is void
+        self.pk = self.rq = self.hold_j = -1
+        self.hold_pin = False
+        self.hold_gk = -1
+        self.block_shot = -1
+        self.block_j = -1
+        self.net_rest = False
+        self.net_until = 0.0
+        self.roll_out = False
+        self.out_glimpse = False
+        # assignments the first half's look-ahead made into this period's
+        # events are void: every actor is chosen afresh from the kick-off
+        # formation (a P1 look-ahead assignment once left the taker 25 m from
+        # the ball at a P2 pass)
+        for jj, e in enumerate(self.events):
+            if e["period"] == pid:
+                self.assigned[jj] = None
+        self.setpiece_cache = {k: v for k, v in self.setpiece_cache.items()
+                               if self.events[k]["period"] != pid}
+        j_ko = -1
+        for jj, e in enumerate(self.events):
+            if e["period"] == pid and e.get("subtype") == "kick_off":
+                j_ko = jj
+                break
+        ko = self.events[j_ko] if j_ko >= 0 else None
+        spot = ((ko["start"]["x"], ko["start"]["y"]) if ko is not None
+                else (PITCH_L / 2.0, PITCH_W / 2.0))
+        t = period["start_ms"] / 1000.0
+        self.bmode = "place"
+        self.spot = spot
+        self.bx, self.by = spot
+        self.bz = 0.0
+        self.vbx, self.vby = spot
+        self.sbx, self.sby = spot
+        self.poss_team = ko["team_id"] if ko is not None else self.poss_team
+        for i in range(self.n):
+            if not self.on[i]:
+                continue
+            self.vx[i] = self.vy[i] = 0.0
+            self.spd[i] = 0.0
+            self.wpt[i] = []
+            self.sprint_until[i] = -1.0
+            u, y = SLOT[self.slot_of[i]]
+            plus = _attacks_plus_x(self.team[i], pid)
+            u = min(u, 48.0)  # everyone in their own half
+            self.px[i] = u if plus else PITCH_L - u
+            self.py[i] = y
+            self.tgx[i], self.tgy[i] = self.px[i], self.py[i]
+            self.cruise[i] = 0.0
+            self.lx[i] = None
+            self.moved_at[i] = t
+        if j_ko >= 0:
+            # the kick-off taker stands on the spot (rule 3), chosen now
+            self._choose_actor(j_ko, t)
+            a = self.assigned[j_ko]
+            if a is not None and a >= 0 and self.on[a]:
+                self.px[a], self.py[a] = spot
+                self.tgx[a], self.tgy[a] = spot
+                self.wpt[a] = [(t, spot[0], spot[1], j_ko)]
 
     def _move(self, t: float) -> None:
         px, py, vx, vy = self.px, self.py, self.vx, self.vy
@@ -1761,9 +2568,17 @@ class _Sim:
                 w0 = min(w)
                 remain = w0[0] - t
                 d = math.hypot(w0[1] - px[i], w0[2] - py[i])
-                need = d / max(remain, 0.15) * 1.35
-                cruise = _clamp(max(need, 1.0), 1.2, self._sprint_top(i))
-                tx, ty = w0[1], w0[2]
+                if d < 0.4 and remain > 2.0:
+                    # arrived well ahead of the waypoint's event (a keeper
+                    # waiting on a goal kick): idle sway around the spot --
+                    # task 08 rule 14, nobody stands like a statue
+                    tx = w0[1] + self.idle_x[i]
+                    ty = w0[2] + self.idle_y[i]
+                    cruise = WALK
+                else:
+                    need = d / max(remain, 0.15) * 1.35
+                    cruise = _clamp(max(need, 1.0), 1.2, self._sprint_top(i))
+                    tx, ty = w0[1], w0[2]
             dx = tx - px[i]
             dy = ty - py[i]
             d = math.sqrt(dx * dx + dy * dy)
@@ -1822,6 +2637,17 @@ class _Sim:
             if self.walkoff_tgt[i] is not None and t >= self.walkoff_at[i]:
                 self._set_active(i, False)
                 self.walkoff_tgt[i] = None
+        # task 08 rule 12: a substitute steps on only once the outgoing
+        # player has left the pitch (never 12 on a team); +30 s safety so a
+        # stuck walker cannot block the sub forever
+        if self.pending_on:
+            still = []
+            for t0, inc, out in self.pending_on:
+                if not self.on[out] or t >= t0 + 30.0:
+                    self._sub_enter(inc)
+                else:
+                    still.append((t0, inc, out))
+            self.pending_on = still
         # separation
         self._separate()
 
@@ -1857,7 +2683,7 @@ class _Sim:
             # but never past the player's own top speed (push + sprint used to
             # measure 37+ km/h): the push fits in the remaining headroom
             head = self.vmax[i] * (1.0 - self.fat[i]) - self.spd[i]
-            cap = min(0.4, max(head, 0.0) * DT)
+            cap = min(0.5, max(head, 0.0) * DT)
             if m > cap and m > 1e-12:
                 f = cap / m
                 dxs[i] *= f
@@ -1874,21 +2700,45 @@ class _Sim:
                 dxs[i] -= 0.3
                 dxs[j] += 0.3
             return
-        f = (SEP_MIN - d) * 0.5
+        f = (SEP_MIN - d) * 0.6
         ux, uy = dx / d, dy / d
-        dxs[i] -= ux * f
-        dys[i] -= uy * f
-        dxs[j] += ux * f
-        dys[j] += uy * f
+        # task 08 rule 15: a player pressed against a touchline cannot take
+        # their half of the push (it would only be clamped back on) -- the
+        # whole push goes to whoever has pitch to move into
+        bi = (self.px[i] < 0.4 or self.px[i] > PITCH_L - 0.4 or
+              self.py[i] < 0.4 or self.py[i] > PITCH_W - 0.4)
+        bj = (self.px[j] < 0.4 or self.px[j] > PITCH_L - 0.4 or
+              self.py[j] < 0.4 or self.py[j] > PITCH_W - 0.4)
+        if bi and not bj:
+            dxs[j] += ux * f * 2.0
+            dys[j] += uy * f * 2.0
+        elif bj and not bi:
+            dxs[i] -= ux * f * 2.0
+            dys[i] -= uy * f * 2.0
+        else:
+            dxs[i] -= ux * f
+            dys[i] -= uy * f
+            dxs[j] += ux * f
+            dys[j] += uy * f
 
     def _record(self, t: float) -> None:
         self.recs += 1
         self.rec_b = (self.bx, self.by)
         self.rec_att = self.battach if self.bmode == "attach" else -1
         if self.bmode == "out":
-            self.ox["ball"].append(-1)
-            self.oy["ball"].append(-1)
-            self.oz["ball"].append(-1)
+            if self.out_glimpse:
+                # task 08 rules 9/10: one last visible record AT the line the
+                # ball is crossing -- the crossing itself is seen (a shot
+                # going out wide, a deflection over the line), then hidden
+                self.ox["ball"].append(_to_dm(self.bx, 1050))
+                self.oy["ball"].append(_to_dm(self.by, 680))
+                self.oz["ball"].append(_to_dm(max(self.bz, 0.0), 200))
+                self.out_glimpse = False
+                self.bz = -1.0
+            else:
+                self.ox["ball"].append(-1)
+                self.oy["ball"].append(-1)
+                self.oz["ball"].append(-1)
         else:
             self.ox["ball"].append(_to_dm(self.bx, 1050))
             self.oy["ball"].append(_to_dm(self.by, 680))
@@ -1909,6 +2759,8 @@ class _Sim:
                 # that is what the reader sees.
                 if self.lx[i] is not None:
                     sp = math.hypot(x_ - self.lx[i], y_ - self.ly[i]) / 2.0
+                    if x_ != self.lx[i] or y_ != self.ly[i]:
+                        self.moved_at[i] = t  # statue guard (task 08 rule 14)
                     if sp > 6.9444:
                         self.srun[i] += 1
                         if self.srun[i] == 5:

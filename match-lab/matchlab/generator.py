@@ -516,8 +516,12 @@ class _MatchSim:
         if outcome == "goal":
             self._goal(team)
         elif outcome == "saved":
-            self._emit(opp, self._keeper(opp), "keeper_save", None, PITCH_L - 1.0, self._uniform(30, 38),
-                       PITCH_L - 3.0, self._uniform(25, 43), "success", 1.0)
+            # task 08 rule 4: u is metres from the EMITTING team's own goal --
+            # the save happens 1 m from the saving keeper's own line (the old
+            # PITCH_L - 1.0 put it at the other end of the pitch). Same rng
+            # draws, so every other event is unchanged.
+            self._emit(opp, self._keeper(opp), "keeper_save", None, 1.0, self._uniform(30, 38),
+                       3.0, self._uniform(25, 43), "success", 1.0)
             r = self.rng.random()
             if r < 0.30:
                 self.u, self.y = PITCH_L, 0.0 if self.rng.random() < 0.5 else PITCH_W

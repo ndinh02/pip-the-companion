@@ -25,7 +25,7 @@ import json
 import math
 import os
 import unittest
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from matchlab import generate_match
 from matchlab.tracking import track_match
@@ -64,6 +64,24 @@ def frame_index(tracking: Dict[str, Any], t_ms: int) -> int:
             i = int((t_ms - p["start_ms"]) // 200)
             return offs[k] + max(0, min(i, p["frames"] - 1))
     return 0
+
+
+def period_edges(tracking: Dict[str, Any]) -> Set[int]:
+    """Frame indices k whose successor opens a new period. The half-time
+    ends switch happens off-camera between the periods (task 08 rule 2),
+    so the step from k to k+1 is a placement, not a movement anybody ran."""
+    edges: Set[int] = set()
+    cur = 0
+    for p in tracking["periods"][:-1]:
+        cur += p["frames"]
+        edges.add(cur - 1)
+    return edges
+
+
+def in_goal_area(x: float, y: float) -> bool:
+    """Inside either goal area (5.5 m box) in dm -- the ball's 6-yd
+    restart zone. Not the 16.5 m penalty area."""
+    return (x <= 55.0 or x >= 995.0) and 248.4 <= y <= 431.6
 
 
 def per_player(tracked: Dict[str, Any], tracking: Dict[str, Any]) -> List[Dict[str, float]]:
@@ -165,7 +183,9 @@ class ActorsAndBall(unittest.TestCase):
 
     def test_ball_at_spot_98pct(self) -> None:
         """keeper_save events carry shooter-frame coordinates ~100 m from the
-        shot (generator quirk, see the task Result); they are counted separately."""
+        shot, and a goal kick whose generator start lies outside the goal
+        area is taken from the goal area instead (task 08 rule 11); both are
+        generator quirks, counted separately (see the task Result)."""
         xs, ys = series(self.tracking)
         ok = tot = quirk = 0
         for ev in self.tracked["events"]:
@@ -175,11 +195,15 @@ class ActorsAndBall(unittest.TestCase):
             if ev["type"] == "keeper_save" and d > 1.0:
                 quirk += 1
                 continue
+            if ev["type"] == "goal_kick" and d > 1.0 and \
+                    not in_goal_area(ev["start"]["x"] * DM, ev["start"]["y"] * DM):
+                quirk += 1
+                continue
             tot += 1
             if d <= 1.0:
                 ok += 1
         self.assertGreaterEqual(ok / tot, 0.98,
-                                "non-keeper_save ball misses; quirk events: %d" % quirk)
+                                "ball misses; quirk events: %d" % quirk)
 
     def test_keepers_take_goal_kicks_and_saves(self) -> None:
         for ev in self.tracked["events"]:
@@ -205,8 +229,11 @@ class Physics(unittest.TestCase):
         cls.tracked, cls.tracking = tracked_pair(1)
 
     def test_player_speeds(self) -> None:
-        """p99 per player within 5% of their own v_max; nobody above 38 km/h."""
+        """p99 per player within 5% of their own v_max; nobody above 38 km/h.
+        Steps that straddle a period edge are placements, not runs (task 08
+        rule 2: the ends switch off-camera during the break)."""
         xs, ys = series(self.tracking)
+        edges = period_edges(self.tracking)
         vmax = {p["player_id"]: p["attributes"]["v_max_kmh"] / 3.6
                 for p in self.tracked["players"]}
         n = len(xs["ball"])
@@ -214,6 +241,8 @@ class Physics(unittest.TestCase):
             X, Y = xs[pid], ys[pid]
             speeds = []
             for k in range(n - 1):
+                if k in edges:
+                    continue
                 a, b, c, d = X[k], X[k + 1], Y[k], Y[k + 1]
                 if a < 0 or b < 0:
                     continue
@@ -228,11 +257,15 @@ class Physics(unittest.TestCase):
 
     def test_acceleration_p99(self) -> None:
         xs, ys = series(self.tracking)
+        edges = period_edges(self.tracking)
         accels: List[float] = []
         for p in self.tracked["players"]:
             X, Y = xs[p["player_id"]], ys[p["player_id"]]
             prev = 0.0
             for k in range(len(X) - 1):
+                if k in edges:
+                    prev = 0.0
+                    continue
                 a, b, c, d = X[k], X[k + 1], Y[k], Y[k + 1]
                 if a < 0 or b < 0:
                     prev = 0.0
@@ -245,11 +278,13 @@ class Physics(unittest.TestCase):
 
     def test_ball_speed_cap(self) -> None:
         xs, ys = series(self.tracking)
+        edges = period_edges(self.tracking)
         X, Y = xs["ball"], ys["ball"]
-        # -1 frames are the off-pitch marker, not a position: skip them
+        # -1 frames are the off-pitch marker, not a position, and a period
+        # edge moves the ball to the centre spot off-camera: skip both
         worst = max(math.hypot(X[k + 1] - X[k], Y[k + 1] - Y[k]) / DM / 0.2
                     for k in range(len(X) - 1)
-                    if X[k] >= 0 and X[k + 1] >= 0)
+                    if k not in edges and X[k] >= 0 and X[k + 1] >= 0)
         self.assertLessEqual(worst, 40.0, "%.1f m/s" % worst)
 
 

@@ -33,6 +33,19 @@ jobs:
       - name: Added-time tests
         run: python3 scripts/test_added_time.py
 
+      - name: Full-match QA, seed 43 (the demo match files in data/)
+        run: python3 scripts/match_qa.py
+
+      - name: Full-match QA, seeds 1-5 (freshly generated tracking)
+        run: |
+          out="$RUNNER_TEMP/qa"
+          mkdir -p "$out"
+          for n in 1 2 3 4 5; do
+            echo "=== seed $n ==="
+            (cd match-lab && python3 -m matchlab.track --seed "$n" --out-match "$out/m$n.json" --out-tracking "$out/t$n.json")
+            python3 scripts/match_qa.py --events "$out/m$n.json" --tracking "$out/t$n.json"
+          done
+
       - uses: actions/setup-node@v4
         with:
           node-version: "22"

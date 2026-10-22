@@ -364,9 +364,16 @@ class MinutesTest(unittest.TestCase):
             self.assertTrue(on_frames, pid)
             first_t = match_sec(frame_t_ms(tracking, on_frames[0]))
             last_t = match_sec(frame_t_ms(tracking, on_frames[-1]))
-            on_sec = match_sec(sub_in_ms[pid]) if pid in sub_in_ms else 0.0
-            # on: within a second of the (sub) event (frames are 0.2 s apart)
-            self.assertLessEqual(abs(on_sec - first_t), 1.0 + 1e-6, pid)
+            if pid in sub_in_ms:
+                # on: the substitute steps on after the player going off has
+                # left (task 08 rule 12), so between the sub event and the end
+                # of its stoppage
+                on_sec = match_sec(sub_in_ms[pid])
+                self.assertGreaterEqual(first_t, on_sec - 1.0 - 1e-6, pid)
+                self.assertLessEqual(first_t, match_sec(sub_end_ms[sub_in_ms[pid]]) + 1e-6, pid)
+            else:
+                # starters: on from kick-off (frames are 0.2 s apart)
+                self.assertLessEqual(first_t, 1.0 + 1e-6, pid)
             off = entry["off_min"]
             if off is None:
                 # never left: on the pitch through the last frame
