@@ -5,7 +5,7 @@
 //   POST /api/rooms/:code/state   (TV)    TV publishes what is on screen (needs the token)
 //   GET  /api/rooms/:code/state?v=N       phones poll; 204 if nothing new since version N. Both carry x-tv-age
 //                                         (ms since the TV last checked in) so phones can say "the TV has gone quiet".
-//   POST /api/rooms/:code/msg             phones send hello / answer / follow (validated, no free text)
+//   POST /api/rooms/:code/msg             phones send hello / answer / follow / bye (validated, no free text)
 //   GET  /api/rooms/:code/inbox?after=N (TV)  TV collects phone messages (needs the token)
 import { randomBytes, timingSafeEqual } from "node:crypto";
 
@@ -45,10 +45,14 @@ function sameToken(a, b) {
   return timingSafeEqual(Buffer.from(a), Buffer.from(b));
 }
 
-/** Phone messages: only the three known shapes, only known-format ids. Anything else is dropped. */
+// The animals a phone may pick (same list as web/src/lib/avatar.ts). Anything else is dropped: no free text.
+const ANIMALS = new Set(["🦊", "🐼", "🐨", "🐯", "🐸", "🐵", "🐰", "🦁", "🐮", "🐷", "🐙", "🦉", "🐢", "🦄", "🐳", "🦔"]);
+
+/** Phone messages: only the known shapes, only known-format ids. Anything else is dropped. */
 export function validPhoneMsg(m) {
   if (!m || typeof m !== "object" || !DEVICE_RE.test(m.device ?? "")) return null;
-  if (m.t === "hello") return { t: "hello", device: m.device };
+  if (m.t === "hello") return ANIMALS.has(m.animal) ? { t: "hello", device: m.device, animal: m.animal } : { t: "hello", device: m.device };
+  if (m.t === "bye") return { t: "bye", device: m.device };
   if (m.t === "answer" && ID_RE.test(m.card_id ?? "") && ID_RE.test(m.option ?? ""))
     return { t: "answer", device: m.device, card_id: m.card_id, option: m.option };
   if (m.t === "follow" && (m.player_id === null || PLAYER_RE.test(m.player_id ?? "")))

@@ -20,7 +20,8 @@ const PHONE_POLL_MS = 1000; // how often a phone asks what is on screen
 
 let serverCheck: Promise<boolean> | null = null;
 /** True when the page is served by our Node server (it answers /healthz with "ok"; the Vite dev server does not). */
-function hasRoomServer(): Promise<boolean> {
+/** True when the room server runs (hosted app); false in the single-device demo (Vite dev, tabs of one browser). */
+export function hasRoomServer(): Promise<boolean> {
   serverCheck ??= fetch("/healthz", { cache: "no-store" })
     .then(async (r) => r.ok && (await r.text()).trim() === "ok")
     .catch(() => false);

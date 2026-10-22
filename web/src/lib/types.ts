@@ -100,7 +100,8 @@ export interface HalfSummary {
 }
 
 /** "locked": play has restarted, answers are closed, the outcome is coming. */
-export type Phase = "play" | "ask" | "locked" | "reveal" | "added" | "half" | "full";
+/** "lobby": the room is open but the host has not pressed Kick off yet. */
+export type Phase = "lobby" | "play" | "ask" | "locked" | "reveal" | "added" | "half" | "full";
 
 /** TV -> phones */
 export interface StateMsg {
@@ -118,6 +119,8 @@ export interface StateMsg {
   answered: number;
   /** The anonymous animals of the phones that have answered so far, in order (never what they picked). */
   answered_by?: string[];
+  /** The animals of every phone in the room, so phones and the TV corner show the same faces. */
+  people?: string[];
   /** Phones that joined the room (a count only). */
   joined?: number;
   /** The latest goal's scorer while it is fresh (a few match minutes), so phones can offer their profile. */
@@ -125,7 +128,10 @@ export interface StateMsg {
 }
 /** phones -> TV */
 export type PhoneMsg =
-  | { t: "hello"; device: string }
+  /** animal: the one this phone picked (from the fixed list in avatar.ts); the TV falls back to avatarOf(device). */
+  | { t: "hello"; device: string; animal?: string }
+  /** The viewer left the room on purpose. */
+  | { t: "bye"; device: string }
   | { t: "answer"; device: string; card_id: string; option: string }
   /** Which player this phone follows (null = nobody). The TV only shows an anonymous count per player. */
   | { t: "follow"; device: string; player_id: string | null };

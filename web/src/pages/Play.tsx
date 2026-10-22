@@ -1,54 +1,76 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { QRCodeSVG } from "qrcode.react";
 import AddedBreakdown from "../components/AddedBreakdown";
-import HalfTimeCard from "../components/HalfTimeCard";
 import WhosThat from "../components/WhosThat";
-import { FollowView, GhostRun } from "../components/FollowView";
+import { FollowView } from "../components/FollowView";
 import { loadTracking, type Tracking } from "../lib/tracking";
 import Mascot, { askPose } from "../components/Mascot";
 import { addedHeadline } from "../lib/addedTime";
 import { deviceId, useRoomChannel, type RoomStatus } from "../lib/channel";
 import { NAME } from "../lib/brand";
-import { HALF_MIN, shareText } from "../lib/halfTime";
-import { clampMinute, followLine, loadFollow, POSITION_LABEL, saveFollow, teamName } from "../lib/whoThat";
-import { deviceLang, nowKey, ui } from "../lib/i18n";
-import { factAt } from "../lib/didYouKnow";
-import { avatarOf } from "../lib/avatar";
+import { HALF_MIN, shareText, triggerLabel } from "../lib/halfTime";
+import { clampMinute, loadFollow, POSITION_LABEL, saveFollow, teamName } from "../lib/whoThat";
+import { deviceLang, fmt, ui } from "../lib/i18n";
+import { animalName, avatarOf, AVATARS, nextFreeAnimal } from "../lib/avatar";
 import { kitOf } from "../lib/kit";
-import { ANIMAL_LABEL, animalOf } from "../lib/animals";
 import Confetti from "../components/Confetti";
 import LiveStats from "../components/LiveStats";
 import { choiceStyle } from "../lib/choices";
 import { alertsWanted, buzz, disableAlerts, enableAlerts, keepAwake, resumeSound } from "../lib/buzz";
-import { answerLabel, fill, loadMatch, loadPlayers, ROOM_RE, t } from "../lib/match";
-import { LANGS, type HalfSummary, type Lang, type Match, type Msg, type PlayersFeed, type StateMsg } from "../lib/types";
+import { answerLabel, fill, loadMatch, loadPlayers, ROOM_RE, scoreAt, t } from "../lib/match";
+import { forgetPhoneRoom, inAppBrowser, loadPhoneRoom, savePhoneRoom, type PhoneRoom } from "../lib/phoneRoom";
+import { LANGS, type Card, type HalfSummary, type Lang, type Match, type Msg, type PlayersFeed, type StateMsg } from "../lib/types";
 
 const PlayerModel = lazy(() => import("../components/PlayerModel"));
+type Tab = "match" | "player" | "room";
+type Sheet = "invite" | "leave" | "animal" | null;
 
+/** The animals in a room, overlapping like the prototype's "people" row. */
+function People({ list, max = 4 }: { list: string[]; max?: number }) {
+  return (
+    <span className="q-people" aria-label={list.join(" ")}>
+      {list.slice(0, max).map((a, i) => <span key={i}>{a}</span>)}
+      {list.length > max && <span className="more">+{list.length - max}</span>}
+    </span>
+  );
+}
+
+/** The phone in a room (room prototype, 2026-10-23): pick an animal, then three tabs (Match, My player, Room).
+ *  When Pip asks, the question takes over the whole screen, wherever the viewer was. */
 export default function Play() {
   const room = (useParams().room ?? "").toUpperCase();
   const valid = ROOM_RE.test(room);
+  const nav = useNavigate();
   const [lang, setLang] = useState<Lang>(deviceLang);
   const [match, setMatch] = useState<Match | null>(null);
-  const [state, setState] = useState<StateMsg | null>(null);
-  const [picked, setPicked] = useState<Record<string, string>>({}); // card_id -> option
-  // One change of mind per question (owner decision 2026-10-23): card_id -> "changing now" / "already changed".
-  const [changing, setChanging] = useState<Record<string, boolean>>({});
-  const [changed, setChanged] = useState<Record<string, boolean>>({});
-  const [link, setLink] = useState<RoomStatus>("ok");
-  const [deep, setDeep] = useState(false);
-  const [half, setHalf] = useState<HalfSummary | null>(null); // kept after half-time so the card can be reopened and shared
-  const [showHalf, setShowHalf] = useState(false);
   const [players, setPlayers] = useState<PlayersFeed | null>(null);
+  const [state, setState] = useState<StateMsg | null>(null);
+  const [link, setLink] = useState<RoomStatus>("ok");
+  const device = useMemo(deviceId, []);
+  const [saved, setSaved] = useState<PhoneRoom | null>(() => (valid ? loadPhoneRoom(room) : null));
+  const [draft, setDraft] = useState(() => avatarOf(device)); // the animal offered before joining
+  const [inAppOk, setInAppOk] = useState(false);
+  const [tab, setTab] = useState<Tab>("match");
+  const [sheet, setSheet] = useState<Sheet>(null);
+  const [changing, setChanging] = useState<string | null>(null); // card id while the one change of mind is in use
+  const [seen, setSeen] = useState<Record<string, boolean>>({}); // reveals closed with "Got it"
+  const askSeen = useRef(new Set<string>()); // questions this phone saw while they were open
+  const [half, setHalf] = useState<HalfSummary | null>(null);
+  const [showHalf, setShowHalf] = useState(false);
   const [showWho, setShowWho] = useState(false);
   const [whoStart, setWhoStart] = useState<string | null>(null);
-  const [seen, setSeen] = useState<Record<string, boolean>>({}); // reveals the viewer closed with "Got it" // open "Who's that?" straight on this player
   const [showFollow, setShowFollow] = useState(false);
   const [tracking, setTracking] = useState<Tracking | null>(null);
   const [followId, setFollowId] = useState<string | null>(loadFollow);
-  const [copied, setCopied] = useState(false);
-  const device = useMemo(deviceId, []);
   const [alerts, setAlerts] = useState(alertsWanted);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef(0);
+  const say = (text: string) => {
+    setToast(text);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = window.setTimeout(() => setToast(null), 2600);
+  };
 
   useEffect(() => {
     loadMatch()
@@ -59,50 +81,63 @@ export default function Play() {
       .catch(() => undefined);
   }, []);
 
+  // Listen before joining too: the animal screen shows who is already in the room.
   const send = useRoomChannel(valid ? room : "INVALID", "phone", (m: Msg) => {
     if (m.t === "state") setState(m);
   }, setLink);
-  useEffect(() => {
-    if (valid) send({ t: "hello", device });
-  }, [valid, device, send]);
 
-  // Tell the TV which player this phone follows (the TV shows an anonymous count only). Re-sent when the TV appears.
-  // Positions are a big file: fetch them only once this phone follows someone.
+  const update = (f: (p: PhoneRoom) => PhoneRoom) =>
+    setSaved((p) => {
+      if (!p) return p;
+      const next = f(p);
+      savePhoneRoom(room, next);
+      return next;
+    });
+
+  // Say hello with our animal; again whenever the TV does not list it (the TV tab was reopened, or we changed animal).
+  const people = state?.people;
+  const myAnimal = saved?.animal;
+  const lastHello = useRef(0);
+  useEffect(() => {
+    if (!valid || !myAnimal) return;
+    if (lastHello.current && people?.includes(myAnimal)) return;
+    if (Date.now() - lastHello.current < 3000) return;
+    lastHello.current = Date.now();
+    send({ t: "hello", device, animal: myAnimal });
+  }, [valid, myAnimal, people, device, send]);
+
+  // Before joining, offer an animal nobody in the room has yet.
+  useEffect(() => {
+    if (!saved && people?.includes(draft)) setDraft(nextFreeAnimal(draft, people));
+  }, [saved, people, draft]);
+
   useEffect(() => {
     if (match && followId && !tracking) loadTracking(match).then(setTracking);
   }, [match, followId, tracking]);
-
   const tvSeen = !!state;
   useEffect(() => {
-    if (valid && tvSeen) send({ t: "follow", device, player_id: followId });
+    if (valid && saved && tvSeen) send({ t: "follow", device, player_id: followId });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [valid, tvSeen, followId, device]);
+  }, [valid, !!saved, tvSeen, followId, device]);
 
-  useEffect(() => {
-    if (state?.phase === "ask") {
-      setShowWho(false);
-      setShowFollow(false);
-    } // a question always takes over the screen
-  }, [state?.phase]);
-
-  useEffect(() => {
-    if (state?.half) setHalf(state.half);
-  }, [state?.half]);
-
-  useEffect(() => {
-    setDeep(false); // collapse "Go deeper" for each new card
-  }, [state?.card?.card_id, state?.board?.period]);
-
-  // Wake the viewer when Pip asks (buzz + chime, opt-in), and softly when the match answers.
   const askId = state?.phase === "ask" ? state.card?.card_id : undefined;
   useEffect(() => {
-    if (askId) buzz("ask");
+    if (!askId) return;
+    askSeen.current.add(askId);
+    setShowWho(false); // a question always takes over the screen
+    setShowFollow(false);
+    setSheet(null);
+    if (saved) buzz("ask");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [askId]);
   const revealId = state?.phase === "reveal" ? state.card?.card_id : undefined;
   useEffect(() => {
-    if (revealId) buzz("reveal");
+    if (revealId && saved) buzz("reveal");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [revealId]);
-  // Sound is locked again after every page load until the next tap; the screen lock drops when the tab is hidden.
+  useEffect(() => {
+    if (state?.half) setHalf(state.half);
+  }, [state?.half]);
   useEffect(() => {
     if (!alerts) return;
     const tap = () => void resumeSound();
@@ -116,311 +151,532 @@ export default function Play() {
     };
   }, [alerts]);
 
-  // "Did you know?" facts rotate while the ball is dead (phone's own clock since the question opened).
-  const [askAt, setAskAt] = useState(0);
-  useEffect(() => {
-    if (askId) setAskAt(Date.now());
-  }, [askId]);
-
-  // Bar drain: re-render ~10x/s only while a card is up.
-  const [now, setNow] = useState(() => Date.now());
-  const live = (state?.phase === "ask" && !!picked[state.card?.card_id ?? ""]) || state?.phase === "reveal" || state?.phase === "added" || state?.phase === "half";
-  useEffect(() => {
-    if (!live) return;
-    const id = setInterval(() => setNow(Date.now()), 100);
-    return () => clearInterval(id);
-  }, [live]);
-
   if (!valid)
     return (
-      <div className="phone center">
-        <Mascot pose="thinks" />
-        <p>{ui("badRoom", lang)}</p>
+      <div className="q-ph q-centered">
+        <Mascot pose="thinks" size={110} />
+        <h2>{ui("badRoom", lang)}</h2>
+        <button className="q-btn" onClick={() => nav("/join")}>{ui("anRetype", lang)}</button>
       </div>
     );
 
-  const card = state?.card ?? null;
-  const mine = card ? picked[card.card_id] : undefined;
-  const seenReveal = !!card && !!seen[card.card_id] && state?.phase === "reveal";
-  const remain = state ? Math.max(0, Math.min(1, (state.deadline - now) / (state.total_ms || 1))) : 0;
-  const dark = (!state || state.phase === "play" || state.phase === "locked" || seenReveal) && !showHalf && !showWho && !showFollow; // "Eyes up": nothing moves during open play
-
-  const share = async () => {
-    if (!match || !half) return;
-    const text = shareText(match, half, lang, {
-      title: `${ui("halfTime", lang)} · ${NAME}`, room: ui("halfRoom", lang), match: ui("halfMatch", lang),
-      split: ui("halfSplit", lang), word: ui("wordOfMatch", lang),
-    });
+  const host = location.host;
+  const joinUrl = `${location.origin}/play/${room}`;
+  const inRoom = people ?? (saved ? [saved.animal] : []);
+  const copyLink = async () => {
     try {
-      if (navigator.share) await navigator.share({ title: ui("halfCard", lang), text });
+      if (navigator.share) await navigator.share({ title: NAME, url: joinUrl });
       else {
-        await navigator.clipboard.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        await navigator.clipboard.writeText(joinUrl);
+        say(ui("linkCopied", lang));
       }
     } catch {
-      /* share sheet dismissed: nothing to do */
+      /* share sheet dismissed */
     }
   };
+
+  // ---------- before joining: your animal (with the wrong-room and in-app-browser checks) ----------
+  if (!saved) {
+    const others = people ?? [];
+    const join = () => {
+      const next: PhoneRoom = { animal: draft, joinedAt: state && state.phase !== "lobby" ? state.minute : 0, picks: {}, changed: {}, catchupSeen: false };
+      savePhoneRoom(room, next);
+      setSaved(next);
+      setTab("match");
+    };
+    if (inAppBrowser() && !inAppOk)
+      return (
+        <div className="q-ph">
+          <div className="q-top"><span className="q-mono">{host}/play/{room}</span></div>
+          <div className="q-catch"><b>{ui("inAppTitle", lang)}</b><span>{ui("inAppText", lang)}</span></div>
+          <div className="q-hero"><Mascot pose="thinks" size={96} /></div>
+          <h1>{fmt(ui("anJoin", lang), { code: room })}</h1>
+          <div className="q-fill" />
+          <button className="q-btn ghost" onClick={() => setInAppOk(true)}>{ui("inAppStay", lang)}</button>
+          <button className="q-btn" onClick={copyLink}>{ui("inAppCopy", lang)}</button>
+          {toast && <div className="q-toast" role="status">{toast}</div>}
+        </div>
+      );
+    return (
+      <div className="q-ph">
+        <div className="q-top"><button className="q-back" onClick={() => nav("/join")}>‹ {ui("back", lang)}</button><span className="q-mono">{fmt(ui("rmTitle", lang), { code: room })}</span></div>
+        {link === "no-room" && !state && (
+          <div className="q-err" role="alert"><b>?</b><span>{fmt(ui("anNotOpen", lang), { code: room })}</span></div>
+        )}
+        <div className="q-fill q-centered">
+          <div className="q-big-animal" aria-hidden="true">{draft}</div>
+          <h1>{fmt(ui("anYou", lang), { name: animalName(draft, lang) })}</h1>
+          <p className="q-muted q-narrow">{ui("anNoNames", lang)}</p>
+          {others.length > 0 && (
+            <>
+              <div className="q-small q-muted">{ui("anHere", lang)}: <People list={others} max={6} /></div>
+              <p className="q-small q-muted q-narrow">{ui("anCheck", lang)}</p>
+            </>
+          )}
+        </div>
+        <button className="q-btn ghost" onClick={() => setDraft(nextFreeAnimal(draft, others))}>{ui("anOther", lang)}</button>
+        <button className="q-btn" onClick={join}>{fmt(ui("anJoin", lang), { code: room })}</button>
+      </div>
+    );
+  }
+
+  // ---------- joined ----------
+  const card = state?.card ?? null;
+  const mine = card ? saved.picks[card.card_id] : undefined;
   const followed = players?.players.find((p) => p.player_id === followId) ?? null;
   const onFollow = (id: string | null) => {
     setFollowId(id);
     saveFollow(id);
   };
-  const alertsOptIn = !alerts && (
-    <button className="alert-optin" onClick={() => { void enableAlerts(); setAlerts(true); }}>
-      <strong>🔔 {ui("alertsOn", lang)}</strong>
-      <span className="dim">{ui("alertsHint", lang)}</span>
-    </button>
-  );
-  const nowLine = card ? nowKey(card.trigger) : null;
-  const whoButton = players && match && <button className="ghost" onClick={() => { setWhoStart(null); setShowWho(true); }}>{ui("whosThat", lang)}</button>;
-  const scorerButton = players && match && state?.scorer && players.players.some((p) => p.player_id === state.scorer) && (
-    <button className="scorer-btn" onClick={() => { setWhoStart(state.scorer ?? null); setShowWho(true); }}>⚽ {ui("seeScorer", lang)}</button>
-  );
-  const fact = card && state?.phase === "ask" ? factAt(card.trigger, now - askAt, lang, card.card_id) : null;
-  const halfView = match && half && (
-    <main>
-      <Mascot pose="wave" size={96} />
-      <div className="eyebrow">{ui("halfTime", lang)} · {match.teams[0].short_name} {half.score.HAR} – {half.score.COP} {match.teams[1].short_name}</div>
-      <h2>{ui("halfCalls", lang)}</h2>
-      <HalfTimeCard match={match} half={half} lang={lang} mine={picked}
-        followLine={followed && players ? followLine(match, followed, clampMinute(players, HALF_MIN), lang) : undefined} />
-      <button className="ghost" onClick={share}>{copied ? ui("copied", lang) : ui("share", lang)}</button>
-      {followed && tracking && <GhostRun match={match} tracking={tracking} p={followed} untilMs={tracking.periods[1].start_ms} lang={lang} />}
-      {whoButton}
-    </main>
-  );
+  const minute = state?.minute ?? 0;
+  const score = match && state && state.phase !== "lobby" ? scoreAt(match, minute) : { HAR: 0, COP: 0 };
+  const scoreLine = match ? `${match.teams[0].short_name} ${score.HAR}–${score.COP} ${match.teams[1].short_name}` : "";
+  const isDone = (c: Card) =>
+    state?.phase === "full" || (c.card_id === card?.card_id ? state?.phase === "reveal" || state?.phase === "play" : c.t_in_min < minute);
+  const done = match ? match.cards.filter(isDone) : [];
+  const before = (c: Card) => c.t_in_min < saved.joinedAt;
+  const myCall = (c: Card) => (before(c) ? undefined : saved.picks[c.card_id]);
+  const pick = (optionId: string) => {
+    if (!card) return;
+    if (mine && changing !== card.card_id) return; // locked: one change only, through the button (owner decision 2026-10-23)
+    update((p) => ({
+      ...p,
+      picks: { ...p.picks, [card.card_id]: optionId },
+      changed: changing === card.card_id ? { ...p.changed, [card.card_id]: true } : p.changed,
+    }));
+    setChanging(null);
+    send({ t: "answer", device, card_id: card.card_id, option: optionId });
+  };
+  const gotIt = () => {
+    if (card) setSeen((x) => ({ ...x, [card.card_id]: true }));
+    setTab("match");
+  };
+  const leave = () => {
+    send({ t: "bye", device });
+    forgetPhoneRoom(room);
+    nav("/");
+  };
 
-  return (
-    <div className={`phone ${dark ? "eyes-up" : ""}`}>
-      <header>
-        <span className="mono">{room}</span>
-        <span className="dim">{state ? state.clock ?? `${state.minute}'` : ""}</span>
-        {followed && match && (
-          <button className="follow-chip" aria-label={ui("yourPlayer", lang)} onClick={() => { setShowWho(false); setShowFollow(true); }}>★ #{followed.shirt_no}</button>
-        )}
-        {alerts && (
-          <button className="alert-chip" aria-label={ui("alertsOff", lang)} title={ui("alertsOff", lang)} onClick={() => { disableAlerts(); setAlerts(false); }}>🔔</button>
-        )}
-        <div className="langs">
-          {LANGS.map((l) => (
-            <button key={l} className={l === lang ? "on" : ""} onClick={() => setLang(l)} aria-pressed={l === lang}>{l.toUpperCase()}</button>
-          ))}
+  const topbar = (
+    <div className="q-top">
+      <span className="q-mono"><b>{room}</b> · {state && state.phase !== "lobby" ? state.clock : ui("mtPre", lang)}</span>
+      <People list={inRoom} />
+    </div>
+  );
+  const tabbar = (
+    <nav className="q-tabbar">
+      {([["match", "◉", "tabMatch"], ["player", "☆", "tabPlayer"], ["room", "◎", "tabRoom"]] as const).map(([k, icon, label]) => (
+        <button key={k} className={tab === k ? "on" : ""} aria-current={tab === k} onClick={() => { setTab(k); setSheet(null); setShowHalf(false); }}>
+          <i aria-hidden="true">{icon}</i>{ui(label, lang)}
+        </button>
+      ))}
+    </nav>
+  );
+  const pipSays = (pose: Parameters<typeof Mascot>[0]["pose"], body: ReactNode, big = false) => (
+    <div className="q-row">
+      <div className="q-av"><Mascot pose={pose} size={40} /></div>
+      <div className={`q-bub ${big ? "big" : ""}`}>{body}</div>
+    </div>
+  );
+  const callRows = (cards: Card[]) =>
+    cards.length ? cards.map((c) => {
+      const m = myCall(c);
+      const right = !c.reveal.void && m === c.reveal.answer;
+      return (
+        <div className="q-callrow" key={c.card_id}>
+          <span>{Math.floor(c.t_in_min)}' {triggerLabel(c.trigger, lang)}: <b>{c.reveal.void ? ui("noClear", lang) : answerLabel(c, c.reveal.answer, lang)}</b></span>
+          <span className={`q-small ${right ? "" : "q-muted"}`}>
+            {before(c) ? ui("hfBefore", lang) : !m ? ui("hfNoCall", lang) : right ? ui("hfYouRight", lang) : fmt(ui("hfYouSaid", lang), { x: answerLabel(c, m, lang) })}
+          </span>
         </div>
-      </header>
-      {link !== "ok" && (
-        // Something between this phone and the TV is broken: say what, in one line, instead of freezing on an old screen.
-        <div className={`link-bar ${link}`} role="status">{ui(link === "offline" ? "stOffline" : link === "no-room" ? "stNoRoom" : "stTvQuiet", lang)}</div>
-      )}
+      );
+    }) : <span className="q-small q-muted">{ui("hfNone", lang)}</span>;
 
-      {!state && (
-        <main className="center">
-          <Mascot pose="watching" />
-          <h2>{ui("waitingTv", lang)}</h2>
-          <p className="dim">{ui("waitingTvHint", lang)}</p>
-          {alertsOptIn}
-        </main>
-      )}
-
-      {state && dark && (state.phase !== "locked" || seenReveal) && !showWho && !showFollow && (
-        followed && match && players ? (
-          // Waiting with "your player": their character on a turntable and their numbers as of the TV clock.
-          <main className="wait-follow">
-            <div className="wf-card" style={{ background: `linear-gradient(180deg, ${kitOf(followed.player_id, match.teams).primary}55, transparent 75%)` }}>
-              <Suspense fallback={<div className="player-model" style={{ height: 230 }} />}>
-                <PlayerModel playerId={followed.player_id} teams={match.teams} height={230} />
-              </Suspense>
-              <div className="wf-id">
-                <span className="eyebrow">★ {ui("yourPlayer", lang)}</span>
-                <h2>{teamName(match, followed.team_id)} · #{followed.shirt_no}</h2>
-                <span className="dim">{ANIMAL_LABEL[animalOf(followed.player_id)].emoji} {ANIMAL_LABEL[animalOf(followed.player_id)][lang]} · {POSITION_LABEL[followed.position][lang]}</span>
-              </div>
-              <LiveStats p={followed} m={clampMinute(players, state.minute)} lang={lang} match={match} />
-              <div className="wf-actions">
-                <button className="ghost" onClick={() => { setWhoStart(followed.player_id); setShowWho(true); }}>{ui("profile", lang)}</button>
-                <button className="ghost" onClick={() => { setShowFollow(true); }}>{ui("wherePitch", lang)}</button>
-                <button className="ghost" onClick={() => { setWhoStart(null); setShowWho(true); }}>{ui("changePlayer", lang)}</button>
-              </div>
-            </div>
-            <p className="dim small center-text">{ui("eyesUp", lang)}</p>
-            {scorerButton}
-            {alertsOptIn}
-            {half && <button className="ghost" onClick={() => setShowHalf(true)}>{ui("halfCard", lang)}</button>}
-          </main>
-        ) : (
-          <main className="center">
-            <Mascot pose="perch" size={110} />
-            <p className="dim">{ui("eyesUp", lang)}</p>
-            {players && match && (
-              <button className="pick-follow" onClick={() => { setWhoStart(null); setShowWho(true); }}>
-                <strong>☆ {ui("pickFollow", lang)}</strong>
-                <span className="dim">{ui("pickFollowHint", lang)}</span>
+  // ---------- the screens ----------
+  let screen: ReactNode;
+  let withTabs = true;
+  const phase = state?.phase;
+  if (!state) {
+    screen = (
+      <div className="q-fill q-centered">
+        <Mascot pose="watching" size={110} />
+        <h2>{ui("waitingTv", lang)}</h2>
+        <p className="q-muted q-narrow">{link === "no-room" ? fmt(ui("anNotOpen", lang), { code: room }) : ui("waitingTvHint", lang)}</p>
+      </div>
+    );
+  } else if (card && phase === "ask" && (!mine || changing === card.card_id)) {
+    withTabs = false;
+    const n = card.question.options.length;
+    screen = (
+      <div className="q-screen q-wake" key={card.card_id}>
+        {topbar}
+        <div className="q-stamp q-mono">{Math.floor(card.t_in_min)}' · {triggerLabel(card.trigger, lang)}, {match ? teamName(match, card.team_id) : ""}</div>
+        {pipSays(askPose(card.trigger), t(card.question.text, lang), true)}
+        <div className={`q-picks ${n === 3 ? "n3" : ""} ${mine ? "picked" : ""}`}>
+          {card.question.options.map((o, i) => {
+            const st = choiceStyle(i);
+            return (
+              <button key={o.id} className={`q-tile ${mine === o.id ? "on" : ""}`} style={{ background: st.bg, color: st.fg }} onClick={() => pick(o.id)}>
+                {t(o.label, lang)}
               </button>
-            )}
-            {scorerButton}
-            {alertsOptIn}
-            {half && <button className="ghost" onClick={() => setShowHalf(true)}>{ui("halfCard", lang)}</button>}
-          </main>
-        )
-      )}
-
-      {showWho && !showFollow && players && match && state && state.phase !== "ask" && (
-        <WhosThat key={whoStart ?? "pick"} startId={whoStart} match={match} feed={players} minute={state.minute} lang={lang} followId={followId} onFollow={onFollow} onClose={() => setShowWho(false)} />
-      )}
-
-      {showFollow && followed && players && match && state && state.phase !== "ask" && (
-        <FollowView match={match} feed={players} tracking={tracking} p={followed} minute={state.minute} lang={lang} onClose={() => setShowFollow(false)} />
-      )}
-
-      {showHalf && !showWho && !showFollow && state?.phase === "play" && (
-        <>
-          {halfView}
-          <button className="ghost close" onClick={() => setShowHalf(false)}>{ui("hide", lang)}</button>
-        </>
-      )}
-
-      {state && state.phase === "half" && !showWho && !showFollow && halfView}
-
-      {state && card && state.phase === "ask" && (!mine || changing[card.card_id]) && (
-        <main className="kq wake" key={card.card_id}>
-          <div className="kq-head">
-            <Mascot pose={askPose(card.trigger)} size={56} />
-            <div>
-              <div className="eyebrow">{ui("callIt", lang)}</div>
-              <h2>{t(card.question.text, lang)}</h2>
+            );
+          })}
+        </div>
+        <div className="q-pick-hint">{changing === card.card_id ? ui("akFinal", lang) : ui("akHint", lang)}</div>
+      </div>
+    );
+  } else if (card && phase === "ask" && mine) {
+    withTabs = false;
+    const i = card.question.options.findIndex((o) => o.id === mine);
+    const st = choiceStyle(i);
+    const joined = Math.max(state.joined ?? 0, state.answered);
+    const allIn = joined > 0 && state.answered >= joined;
+    screen = (
+      <div className="q-screen q-lockedin" style={{ background: st.bg, color: st.fg }}>
+        {topbar}
+        <div className="q-lock">
+          <div className="q-mono q-small">✓ {ui("locked", lang)}</div>
+          <div className="q-pickname">{answerLabel(card, mine, lang)}</div>
+          <div className="q-small">{fmt(ui("liN", lang), { n: state.answered, m: joined })} · <People list={state.answered_by ?? []} max={6} /></div>
+          <div className={`pip-wait ${allIn ? "all-in" : ""}`}><Mascot pose={allIn ? "watching" : "thinks"} size={120} /></div>
+          <h2 className="q-narrow">{allIn ? ui("allIn", lang) : ui("waitOthers", lang)}</h2>
+        </div>
+        {saved.changed[card.card_id]
+          ? <div className="q-pick-hint">{ui("lockedFinal", lang)}</div>
+          : <button className="q-btn q-change" onClick={() => setChanging(card.card_id)}>{ui("changeOnce", lang)}</button>}
+        <div className="q-pick-hint">{ui("liLater", lang)}</div>
+      </div>
+    );
+  } else if (card && phase === "locked") {
+    withTabs = false;
+    const slept = !askSeen.current.has(card.card_id) && !before(card);
+    const i = mine ? card.question.options.findIndex((o) => o.id === mine) : -1;
+    screen = (
+      <div className="q-screen">
+        {topbar}
+        <div className="q-lock">
+          <Mascot pose="watching" size={110} />
+          {mine ? (
+            <>
+              <div className="q-mono q-small q-muted">{ui("lkYour", lang)}</div>
+              <div className="q-chip-big" style={{ background: choiceStyle(i).bg, color: choiceStyle(i).fg }}>{answerLabel(card, mine, lang)}</div>
+              <h2>{ui("lkWatch", lang)}</h2>
+            </>
+          ) : (
+            <>
+              <h2>{ui("lkNone", lang)}</h2>
+              <p className="q-muted q-narrow">{slept ? ui("lkSlept", lang) : ui("lkNoWorry", lang)}</p>
+            </>
+          )}
+          <div className="q-small q-muted">{fmt(ui("liN", lang), { n: state.answered, m: Math.max(state.joined ?? 0, state.answered) })} · <People list={state.answered_by ?? []} max={6} /></div>
+        </div>
+      </div>
+    );
+  } else if (card && match && phase === "reveal" && !seen[card.card_id]) {
+    withTabs = false;
+    const voided = !!card.reveal.void;
+    const right = !voided && !!mine && mine === card.reveal.answer;
+    const slept = !askSeen.current.has(card.card_id) && !before(card);
+    const pipCall = card.question.pippi_call;
+    const plain = fill(t(card.reveal.plain, lang), match.facts);
+    screen = voided ? (
+      <div className="q-screen">
+        {topbar}
+        <div className="q-banner learn">{ui("vdBanner", lang)}<small>{ui("vdSmall", lang)}</small></div>
+        <div className="q-thread">
+          {pipSays("thinks", <>{plain} {mine ? fmt(ui("vdYouSaid", lang), { x: answerLabel(card, mine, lang) }) : ""}</>)}
+          <div className="q-row"><div className="q-av hidden" /><div className="q-bub">{ui("vdAgain", lang)}</div></div>
+        </div>
+        <div className="q-fill" />
+        <button className="q-btn" onClick={gotIt}>{ui("gotIt", lang)}</button>
+      </div>
+    ) : (
+      <div className="q-screen">
+        {right && <Confetti />}
+        {topbar}
+        {right ? (
+          <div className="q-banner right">{ui("mtRight", lang)}<small>{fmt(ui("rvRightSmall", lang), { n: state.tally[card.reveal.answer] ?? 1, m: Math.max(state.joined ?? 0, state.answered) })}</small></div>
+        ) : mine ? (
+          <div className="q-banner learn">{ui("rvLearn", lang)}<small>{fmt(ui("rvYouSaid", lang), { x: answerLabel(card, mine, lang) })}</small></div>
+        ) : (
+          <div className="q-banner learn">{ui("rvMissed", lang)}<small>{slept ? ui("rvMissedSlept", lang) : ui("rvMissedPlain", lang)}</small></div>
+        )}
+        <div className="q-thread">
+          <div className="q-stamp q-mono">{ui("matchSays", lang)}</div>
+          {pipSays(card.reveal.pose, <><div className="q-answer"><span className="q-hl">{answerLabel(card, card.reveal.answer, lang)}</span></div><div className="q-plain">{plain}</div></>)}
+          <div className="q-row"><div className="q-av hidden" /><div className="q-bub">
+            {fmt(ui(pipCall === card.reveal.answer ? "rvPipToo" : "rvPipWent", lang), { x: answerLabel(card, pipCall, lang) })}
+          </div></div>
+        </div>
+        <details className="q-card q-deeper">
+          <summary>{ui("goDeeper", lang)}</summary>
+          <p className="q-small q-muted">{fill(t(card.reveal.expert, lang), match.facts)}</p>
+        </details>
+        <div className="q-fill" />
+        <button className="q-btn" onClick={gotIt}>{ui("gotIt", lang)}</button>
+      </div>
+    );
+  } else if (tab === "player") {
+    screen = (
+      <div className="q-screen">
+        {topbar}
+        {followed && match && players ? (
+          <>
+            <div className="q-card q-player" style={{ background: `linear-gradient(180deg, ${kitOf(followed.player_id, match.teams).primary}33, var(--q-card) 70%)` }}>
+              <Suspense fallback={<div style={{ height: 200 }} />}>
+                <PlayerModel playerId={followed.player_id} teams={match.teams} height={200} />
+              </Suspense>
+              <h2>{teamName(match, followed.team_id)} #{followed.shirt_no}</h2>
+              <div className="q-small q-muted">{POSITION_LABEL[followed.position][lang]} · {ui("mtFollowing", lang)}</div>
             </div>
+            <div className="q-dark"><LiveStats p={followed} m={clampMinute(players, minute)} lang={lang} match={match} /></div>
+            <p className="q-small q-muted">{ui("plNote", lang)}</p>
+            <div className="q-fill" />
+            <div className="q-two">
+              <button className="q-btn ghost" onClick={() => setShowFollow(true)}>{ui("wherePitch", lang)}</button>
+              <button className="q-btn ghost" onClick={() => { setWhoStart(null); setShowWho(true); }}>{ui("changePlayer", lang)}</button>
+            </div>
+          </>
+        ) : (
+          <>
+            <h2>{ui("plTitle", lang)}</h2>
+            <p className="q-small q-muted">{ui("plText", lang)}</p>
+            <div className="q-fill q-centered"><Mascot pose="perch" size={110} /></div>
+            <button className="q-btn" disabled={!players} onClick={() => { setWhoStart(null); setShowWho(true); }}>☆ {ui("plChoose", lang)}</button>
+          </>
+        )}
+        {tabbar}
+      </div>
+    );
+    withTabs = false;
+  } else if (tab === "room") {
+    screen = (
+      <div className="q-screen">
+        {topbar}
+        <div className="q-roomhead">
+          <h2>{fmt(ui("rmTitle", lang), { code: room })}</h2>
+          <button className="q-danger" onClick={() => setSheet("leave")}>{ui("rmLeave", lang)}</button>
+        </div>
+        <div className="q-card q-stack">
+          <div className="q-spread"><People list={inRoom} max={6} /><span className="q-small q-muted">{fmt(ui("rmHere", lang), { n: inRoom.length })}</span></div>
+          <span className="q-small q-muted">{fmt(ui("rmYou", lang), { name: animalName(saved.animal, lang) })}</span>
+        </div>
+        <div className="q-list q-push">
+          <button onClick={() => setLang(LANGS[(LANGS.indexOf(lang) + 1) % LANGS.length])}><span className="q-ic">文</span>{ui("rmLang", lang)}<span className="q-end">{lang.toUpperCase()}</span></button>
+          <button onClick={() => setSheet("animal")}><span className="q-ic">↺</span>{ui("rmAnimal", lang)}<span className="q-end">{saved.animal}</span></button>
+          <button role="switch" aria-checked={alerts} onClick={() => { if (alerts) { disableAlerts(); setAlerts(false); } else { void enableAlerts(); setAlerts(true); } }}>
+            <span className="q-ic">🔔</span>{ui("rmChime", lang)}<span className={`q-toggle ${alerts ? "on" : ""}`} />
+          </button>
+        </div>
+        <button className="q-btn" onClick={() => setSheet("invite")}>⇪ {ui("invite", lang)}</button>
+        {tabbar}
+      </div>
+    );
+    withTabs = false;
+  } else if (phase === "lobby") {
+    screen = (
+      <div className="q-fill q-centered">
+        <h1>{fmt(ui("lbIn", lang), { name: animalName(saved.animal, lang) })}</h1>
+        <div className="q-seats">{inRoom.map((a, k) => <span key={k} className={a === saved.animal ? "me" : ""}>{a}</span>)}</div>
+        <p className="q-muted q-narrow">{ui("lbText", lang)}</p>
+        <button className="q-btn" onClick={() => setSheet("invite")}>⇪ {ui("invite", lang)}</button>
+      </div>
+    );
+  } else if (match && (phase === "half" || phase === "full" || (showHalf && half))) {
+    const full = phase === "full";
+    const shown = full ? done : done.filter((c) => c.t_in_min <= HALF_MIN);
+    const share = async () => {
+      if (!half) return void copyLink();
+      const text = shareText(match, half, lang, { title: `${ui("halfTime", lang)} · ${NAME}`, room: ui("halfRoom", lang), match: ui("halfMatch", lang), split: ui("halfSplit", lang), word: ui("wordOfMatch", lang) });
+      try {
+        if (navigator.share) await navigator.share({ title: NAME, text });
+        else {
+          await navigator.clipboard.writeText(text);
+          say(ui("copied", lang));
+        }
+      } catch {
+        /* dismissed */
+      }
+    };
+    withTabs = !full;
+    screen = (
+      <>
+        <div className="q-hero"><Mascot pose={full ? "wave" : "perch"} size={110} /></div>
+        <div className="q-mono q-small q-muted q-center">{full ? ui("fullTime", lang) : ui("halfTime", lang)} · {scoreLine}</div>
+        <h2 className="q-center">{full ? ui("hfThanks", lang) : ui("hfDrink", lang)}</h2>
+        <div className="q-card q-stack">{callRows(shown)}</div>
+        <div className="q-fill" />
+        {full ? (
+          <>
+            <button className="q-btn ghost" onClick={share}>{ui("hfShare", lang)}</button>
+            <button className="q-btn" onClick={leave}>{ui("shLeaveGo", lang)}</button>
+          </>
+        ) : (
+          <>
+            {half && <button className="q-btn ghost" onClick={share}>{ui("share", lang)}</button>}
+            {showHalf && phase !== "half"
+              ? <button className="q-btn soft" onClick={() => setShowHalf(false)}>{ui("hide", lang)}</button>
+              : <button className="q-btn soft" onClick={() => setTab("player")}>☆ {ui("hfSeePlayer", lang)}</button>}
+          </>
+        )}
+      </>
+    );
+  } else if (phase === "added" && state.board) {
+    screen = (
+      <>
+        <div className="q-card q-stack">
+          <div className="q-spread"><span className="q-mono q-small q-muted">{ui("addedTime", lang)} · {state.board.at_min}'</span><Mascot pose="thinks" size={56} /></div>
+          <h2>{addedHeadline(state.board.announced_min, lang)}</h2>
+          <p className="q-small">{ui("addedWhy", lang)}</p>
+          <details className="q-deeper"><summary>{ui("goDeeper", lang)}</summary><div className="q-dark"><AddedBreakdown board={state.board} lang={lang} /></div></details>
+        </div>
+        <div className="q-fill" />
+      </>
+    );
+  } else {
+    // Match tab, open play: status, the call dots, the last call, and "your player" one tap away.
+    const last = done[done.length - 1];
+    const missed = match && saved.joinedAt > 1 && !saved.catchupSeen
+      ? [
+          ...match.score_timeline.filter((g) => g.player_id && g.from_min < saved.joinedAt).map((g) => ({
+            min: g.from_min, text: fmt(ui("cuGoal", lang), { x: `${teamName(match, g.team_id ?? "")} #${g.player_id!.split("-")[1]}` }),
+          })),
+          ...done.filter(before).map((c) => ({ min: Math.floor(c.t_in_min), text: `${triggerLabel(c.trigger, lang)}: ${c.reveal.void ? ui("noClear", lang) : answerLabel(c, c.reveal.answer, lang)}` })),
+        ].sort((a, b) => a.min - b.min)
+      : null;
+    screen = (
+      <>
+        {missed && (
+          <div className="q-catch">
+            <b>{fmt(ui("cuTitle", lang), { min: `${saved.joinedAt}'` })}</b>
+            {missed.length ? missed.map((e, k) => <span key={k}>· {e.min}' {e.text}</span>) : <span>· {ui("cuNone", lang)}</span>}
+            <button className="q-link" onClick={() => update((p) => ({ ...p, catchupSeen: true }))}>{ui("gotIt", lang)}</button>
           </div>
-          {nowLine && <p className="now-line">{ui(nowLine, lang)}</p>}
-          <div className={`tiles n${card.question.options.length}`}>
-            {card.question.options.map((o, i) => {
-              const st = choiceStyle(i);
-              return (
-                <button
-                  key={o.id}
-                  className="tile"
-                  style={{ background: st.bg, color: st.fg }}
-                  onClick={() => {
-                    if (changing[card.card_id]) {
-                      setChanging((c) => ({ ...c, [card.card_id]: false }));
-                      setChanged((c) => ({ ...c, [card.card_id]: true }));
-                    }
-                    setPicked((p) => ({ ...p, [card.card_id]: o.id }));
-                    send({ t: "answer", device, card_id: card.card_id, option: o.id });
-                  }}
-                >
-                  <span className="shape" aria-hidden="true">{st.shape}</span>
-                  <span>{t(o.label, lang)}</span>
-                </button>
-              );
+        )}
+        <div className="q-card q-status">
+          <div className="q-now q-mono"><i />{ui("mtLive", lang)} · {scoreLine}</div>
+          <b className="q-lead">{ui("mtEyes", lang)}</b>
+          <div className="q-dots" aria-hidden="true">
+            {(match?.cards ?? []).map((c) => {
+              if (!isDone(c)) return <i key={c.card_id} />;
+              const m = myCall(c);
+              return <i key={c.card_id} className={!m || c.reveal.void ? "m" : m === c.reveal.answer ? "r" : "w"} />;
             })}
           </div>
-          <p className="dim">{ui("openUntilRestart", lang)}</p>
-        </main>
-      )}
-
-      {state && card && state.phase === "ask" && mine && !changing[card.card_id] && (() => {
-        // Answered: the whole screen takes the colour of the pick, says it is in, and that the MATCH will decide.
-        const i = card.question.options.findIndex((o) => o.id === mine);
-        const st = choiceStyle(i);
-        const allIn = (state.joined ?? 0) > 0 && state.answered >= (state.joined ?? 0);
-        return (
-          <main className="kq-locked" key={`${card.card_id}-locked`} style={{ background: st.bg, color: st.fg }}>
-            <div className="big-shape" aria-hidden="true"><span>{st.shape}</span></div>
-            <div className="eyebrow">✓ {ui("locked", lang)}</div>
-            <h2>{answerLabel(card, mine, lang)}</h2>
-            <div className="room-meter" aria-label={`${state.answered} ${ui("answeredOf", lang)}`}>
-              <div className="rm-avatars">
-                {(state.answered_by ?? []).map((a, k) => <span key={k} style={{ animationDelay: `${k * 60}ms` }}>{a}</span>)}
-              </div>
-              <div className="rm-bar"><i style={{ width: `${state.joined ? Math.min(100, (state.answered / Math.max(1, state.joined)) * 100) : 100}%` }} /></div>
-              <p className="count">{state.joined ? `${state.answered} / ${Math.max(state.answered, state.joined)}` : state.answered} {ui("answeredOf", lang)}</p>
-            </div>
-            {/* Pip waits with the room; once everyone is in, Pip settles in to watch the play (owner decision 2026-10-23). */}
-            <div className={`pip-wait ${allIn ? "all-in" : ""}`}><Mascot pose="watching" size={72} /></div>
-            <p className="verdict">{allIn ? ui("allIn", lang) : ui("waitOthers", lang)}</p>
-            {changed[card.card_id]
-              ? <p className="me">{ui("lockedFinal", lang)}</p>
-              : <button className="change-once" onClick={() => setChanging((c) => ({ ...c, [card.card_id]: true }))}>{ui("changeOnce", lang)}</button>}
-            <p className="me">{ui("youAre", lang)} {avatarOf(device)}</p>
-            {fact && (
-              <section className="fact-card" key={fact}>
-                <div className="eyebrow">💡 {ui("didYouKnow", lang)}</div>
-                <p>{fact}</p>
-              </section>
-            )}
-          </main>
-        );
-      })()}
-
-      {state && card && state.phase === "locked" && !showWho && !showFollow && (
-        // Play has restarted: answers are closed and the phone goes quiet so eyes go back to the screen.
-        <main className="center">
-          <div className="pip-wait all-in"><Mascot pose="watching" size={84} /></div>
-          <p>{mine ? `✓ ${ui("locked", lang)}: ${answerLabel(card, mine, lang)}` : ui("tooQuick", lang)}</p>
-          <p className="dim">{ui("answersClosed", lang)}</p>
-        </main>
-      )}
-
-      {state && card && match && state.phase === "reveal" && !seenReveal && (() => {
-        const voided = !!card.reveal.void; // the match did not settle it: nobody is right or wrong
-        const right = !voided && !!mine && mine === card.reveal.answer;
-        const mood = !mine || voided ? "neutral" : right ? "right" : "learn";
-        return (
-          <main className={`reveal-screen ${mood}`} key={`${card.card_id}-reveal`}>
-            {right && <Confetti />}
-            <div className="rv-head">
-              <div className="rv-title">{voided ? ui("noClear", lang) : right ? `🎉 ${ui("calledIt", lang)}` : mine ? `💡 ${ui("learnTitle", lang)}` : ui("matchSays", lang)}</div>
-              {voided
-                ? <div className="rv-answer">{ui("noClearWhy", lang)}</div>
-                : <div className="rv-answer">{ui("matchSays", lang)}: <strong>{answerLabel(card, card.reveal.answer, lang)}</strong></div>}
-              {mine && !right && <div className="dim">{ui("youSaid", lang)}: {answerLabel(card, mine, lang)}</div>}
-            </div>
-            <Mascot pose={card.reveal.pose} size={84} />
-            <p className="plain">{fill(t(card.reveal.plain, lang), match.facts)}</p>
-            <details className="fold">
-              <summary>{ui("goDeeper", lang)}</summary>
-              <p className="expert">{fill(t(card.reveal.expert, lang), match.facts)}</p>
-            </details>
-            <section className="tally" aria-label={ui("roomSays", lang)}>
-              <div className="eyebrow">{ui("roomSays", lang)}</div>
-              {card.question.options.map((o, i) => {
-                const n = state.tally[o.id] ?? 0;
-                const pct = state.answered ? (n / state.answered) * 100 : 0;
-                const st = choiceStyle(i);
-                return (
-                  <div className={`row ${!voided && o.id === card.reveal.answer ? "is-answer" : ""}`} key={o.id}>
-                    <span><i className="opt-shape" style={{ background: st.bg, color: st.fg }}>{st.shape}</i> {t(o.label, lang)}{mine === o.id ? ` · ${ui("you", lang)}` : ""}{card.question.pippi_call === o.id ? " 🐧" : ""}</span>
-                    <span className="track"><i style={{ width: `${pct}%` }} /></span>
-                    <span className="n">{n}</span>
-                  </div>
-                );
-              })}
-            </section>
-            <button className="got-it" onClick={() => setSeen((x) => ({ ...x, [card.card_id]: true }))}>{ui("gotIt", lang)}</button>
-          </main>
-        );
-      })()}
-
-      {state && state.phase === "added" && state.board && (
-        <main>
-          <Mascot pose="thinks" size={96} />
-          <div className="eyebrow">{ui("addedTime", lang)} · {state.board.at_min}'</div>
-          <h2>{addedHeadline(state.board.announced_min, lang)}</h2>
-          <p className="plain">{ui("addedWhy", lang)}</p>
-          <button className="ghost" onClick={() => setDeep((d) => !d)} aria-expanded={deep}>
-            {deep ? ui("hide", lang) : ui("goDeeper", lang)}
+          <span className="q-small q-muted">{fmt(ui("mtCalls", lang), { n: done.length, m: match?.cards.length ?? 0 })}{alerts ? ` · ${ui("mtChime", lang)}` : ""}</span>
+        </div>
+        {last && pipSays("watching", (() => {
+          const m = myCall(last);
+          return <>{ui("mtLast", lang)} <b className="q-hl">{last.reveal.void ? ui("noClear", lang) : answerLabel(last, last.reveal.answer, lang)}</b>. {before(last) ? ui("mtBefore", lang) : !m ? ui("mtNone", lang) : !last.reveal.void && m === last.reveal.answer ? ui("mtRight", lang) : fmt(ui("mtSaid", lang), { x: answerLabel(last, m, lang) })}</>;
+        })())}
+        <div className="q-fill" />
+        {state.scorer && players?.players.some((p) => p.player_id === state.scorer) && (
+          <button className="q-btn soft" onClick={() => { setWhoStart(state.scorer ?? null); setShowWho(true); }}>⚽ {ui("mtScorer", lang)}</button>
+        )}
+        {half && <button className="q-btn soft" onClick={() => setShowHalf(true)}>{ui("mtHalfCard", lang)}</button>}
+        {followed && match ? (
+          <button className="q-card q-followcard" onClick={() => setTab("player")}>
+            <span className="q-shirt" style={{ background: kitOf(followed.player_id, match.teams).primary }}>{followed.shirt_no}</span>
+            <span><b>{teamName(match, followed.team_id)} #{followed.shirt_no}</b><span className="q-small q-muted"> · {ui("mtFollowing", lang)}</span></span>
+            <span className="q-muted">›</span>
           </button>
-          {deep && <AddedBreakdown board={state.board} lang={lang} />}
-          <div className="bar"><i style={{ width: `${remain * 100}%` }} /></div>
-        </main>
-      )}
+        ) : (
+          <button className="q-btn soft" onClick={() => setTab("player")}>☆ {ui("mtFollow", lang)}</button>
+        )}
+      </>
+    );
+  }
 
-      {state?.phase === "full" && (
-        <main className="center">
-          <Mascot pose="wave" />
-          <h2>{ui("fullTime", lang)}</h2>
-        </main>
+  // ---------- sheets and overlays ----------
+  const taken = (people ?? []).filter((a) => a !== saved.animal);
+  const sheetView = sheet && (
+    <>
+      <div className="q-scrim" onClick={() => setSheet(null)} />
+      <div className="q-sheet" role="dialog" aria-modal="true">
+        <div className="q-grab" />
+        {sheet === "invite" && (
+          <>
+            <h2>{fmt(ui("shInvite", lang), { code: room })}</h2>
+            <div className="q-invite">
+              <div className="q-qr"><QRCodeSVG value={joinUrl} size={118} bgColor="#FFFFFF" fgColor="#14202F" /></div>
+              <div className="q-stack-tight">
+                <span className="q-small q-muted">{fmt(ui("shOrType", lang), { host })}</span>
+                <b className="q-mono q-bigcode">{room}</b>
+                <span className="q-small q-muted">{ui("shAnyTime", lang)}</span>
+              </div>
+            </div>
+            <button className="q-btn ghost" onClick={copyLink}>{ui("shCopy", lang)}</button>
+            <button className="q-btn" onClick={() => setSheet(null)}>{ui("shDone", lang)}</button>
+          </>
+        )}
+        {sheet === "leave" && (
+          <>
+            <h2>{fmt(ui("shLeave", lang), { code: room })}</h2>
+            <p className="q-muted">{ui("shLeaveText", lang)}</p>
+            <button className="q-btn ghost q-danger-text" onClick={leave}>{ui("shLeaveGo", lang)}</button>
+            <button className="q-btn" onClick={() => setSheet(null)}>{ui("shStay", lang)}</button>
+          </>
+        )}
+        {sheet === "animal" && (
+          <>
+            <h2>{ui("shAnimal", lang)}</h2>
+            <div className="q-animals">
+              {AVATARS.map((a) => (
+                <button key={a} className={`${a === saved.animal ? "on" : ""} ${taken.includes(a) ? "taken" : ""}`} disabled={taken.includes(a)} aria-label={animalName(a, lang)}
+                  onClick={() => { lastHello.current = 0; update((p) => ({ ...p, animal: a })); setSheet(null); say(fmt(ui("rmYou", lang), { name: animalName(a, lang) })); }}>
+                  {a}
+                </button>
+              ))}
+            </div>
+            <button className="q-btn" onClick={() => setSheet(null)}>{ui("shDone", lang)}</button>
+          </>
+        )}
+      </div>
+    </>
+  );
+  // Something between this phone and the TV is broken: say what and how to fix it, never an error code.
+  const overlay =
+    link === "offline" ? (
+      <div className="q-offline" role="status"><span>●</span>{ui("stOffline", lang)}<span className="q-end">{ui("ovTvWorks", lang)}</span></div>
+    ) : link === "no-room" && state ? (
+      <div className="q-cover" role="status">
+        <Mascot pose="thinks" size={110} />
+        <h2>{fmt(ui("ovReconn", lang), { code: room })}</h2>
+        <p className="q-muted q-small q-narrow">{ui("ovReconnText", lang)}</p>
+      </div>
+    ) : link === "tv-quiet" ? (
+      <div className="q-cover" role="status">
+        <Mascot pose="watching" size={110} />
+        <h2>{ui("ovQuiet", lang)}</h2>
+        <p className="q-muted q-narrow">{fmt(ui("ovQuietText", lang), { code: room })}</p>
+        <div className="q-card q-small q-stack-tight q-left"><b>{ui("ovQuietFix", lang)}</b><span className="q-muted">{fmt(ui("ovQuietHow", lang), { host, code: room })}</span></div>
+      </div>
+    ) : null;
+
+  const takeover = showWho || showFollow;
+  return (
+    <div className="q-ph">
+      {screen && (withTabs ? (
+        <>
+          {topbar}
+          {screen}
+          {tabbar}
+        </>
+      ) : screen)}
+      {sheetView}
+      {overlay}
+      {toast && <div className="q-toast" role="status">{toast}</div>}
+      {takeover && players && match && state && (
+        // "Who's that?" and the pitch view keep their own (dark) look, full screen above the tabs.
+        <div className="q-takeover phone">
+          {showWho && !showFollow && (
+            <WhosThat key={whoStart ?? "pick"} startId={whoStart} match={match} feed={players} minute={state.minute} lang={lang} followId={followId}
+              onFollow={(id) => { onFollow(id); if (id) setTab("player"); }} onClose={() => setShowWho(false)} />
+          )}
+          {showFollow && followed && (
+            <FollowView match={match} feed={players} tracking={tracking} p={followed} minute={state.minute} lang={lang} onClose={() => setShowFollow(false)} />
+          )}
+        </div>
       )}
     </div>
   );

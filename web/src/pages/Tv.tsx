@@ -3,20 +3,19 @@ import { useSearchParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import Mascot, { askPose } from "../components/Mascot";
 import AddedBreakdown from "../components/AddedBreakdown";
-import HalfTimeCard from "../components/HalfTimeCard";
 import Pitch from "../components/Pitch";
 import ScorerSpotlight from "../components/ScorerSpotlight";
-import { factAt } from "../lib/didYouKnow";
 import { avatarOf } from "../lib/avatar";
 import { choiceStyle } from "../lib/choices";
 import { CAMERAS, type CameraId } from "../lib/cameras";
 import { addedHeadline } from "../lib/addedTime";
 import { lastTvRoom, type RoomStatus, useRoomChannel } from "../lib/channel";
-import { buildHalf, HALF_MIN } from "../lib/halfTime";
+import { buildHalf, HALF_MIN, triggerLabel } from "../lib/halfTime";
 import { advance, buildTimeline, hurrying, nextMoment, OPENING_MS, type MomentKind, clockLabel, clockMinute, skipAhead, startClock, viewAt, type Clock, type Mode } from "../lib/matchClock";
 import { deadShot, goalShot } from "../lib/deadTime";
 import { loadTracking, nearestToBall, positionsAt, type Tracking } from "../lib/tracking";
-import { nowKey, ui } from "../lib/i18n";
+import { deviceLang, fmt, ui } from "../lib/i18n";
+import { NAME } from "../lib/brand";
 import { answerLabel, fill, loadAddedTime, loadMatch, loadPlayers, randomRoom, ROOM_RE, scoreAt, t } from "../lib/match";
 import { LANGS, type AddedTime, type Lang, type Match, type Msg, type PlayersFeed, type StateMsg } from "../lib/types";
 
@@ -35,7 +34,50 @@ const SPOTLIGHT_FROM_MS = 3_000; // the scorer's quick profile, from this long a
 const SPOTLIGHT_TO_MS = 17_000; // ...until this long after it
 const SCORER_FRESH_MS = 5 * 60_000; // phones offer the scorer's profile this long after a goal
 
+/** /tv without a room code is the TV's front door: start a room, or resume the one this TV ran a moment ago. */
 export default function Tv() {
+  const [params, setParams] = useSearchParams();
+  const r = params.get("room")?.toUpperCase() ?? "";
+  if (!ROOM_RE.test(r)) return <TvHome fresh={!!params.get("fresh")} start={(room) => setParams({ room }, { replace: true })} />;
+  return <TvRoom key={r} room={r} />;
+}
+
+function TvHome({ fresh, start }: { fresh: boolean; start: (room: string) => void }) {
+  const [lang, setLang] = useState<Lang>(deviceLang);
+  const last = fresh ? null : lastTvRoom();
+  useEffect(() => {
+    if (fresh) start(randomRoom()); // another tab on this TV runs the last room: start a new one straight away
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fresh]);
+  return (
+    <div className="tvn-home">
+      <Mascot pose="wave" size={200} />
+      {last ? (
+        <>
+          <h2>{ui("tvBack", lang)}</h2>
+          <p>{fmt(ui("tvWasRunning", lang), { code: last })}</p>
+          <button onClick={() => start(last)}>{fmt(ui("tvResume", lang), { code: last })}</button>
+          <button className="tvn-textbtn" onClick={() => start(randomRoom())}>{ui("tvOrNew", lang)}</button>
+        </>
+      ) : (
+        <>
+          <h2>{NAME}</h2>
+          <p>{ui("tvTag", lang)}</p>
+          <button onClick={() => start(randomRoom())}>{ui("tvStart", lang)}</button>
+        </>
+      )}
+      <span className="tvn-url">{location.host}/tv</span>
+      <div className="tvn-home-langs">
+        {LANGS.map((l) => <button key={l} className={l === lang ? "on" : ""} onClick={() => setLang(l)}>{l.toUpperCase()}</button>)}
+      </div>
+    </div>
+  );
+}
+
+const CLOCK_KEEP_MS = 3 * 60 * 60 * 1000;
+type SavedClock = { tMs: number; halfDone: boolean; mode: Mode; speed: number; at: number };
+
+function TvRoom({ room }: { room: string }) {
   const [params, setParams] = useSearchParams();
   const [match, setMatch] = useState<Match | null>(null);
   const [added, setAdded] = useState<AddedTime | null>(null);
@@ -46,18 +88,41 @@ export default function Tv() {
   const [error, setError] = useState<string | null>(null);
   const [lang, setLang] = useState<Lang>("en");
   const [answerTick, setAnswerTick] = useState(0);
-  const [clk, setClk] = useState<Clock>(() => startClock(params.get("mode") === "full" ? "full" : "highlights"));
-  const [camera, setCamera] = useState<CameraId | "tactical">(() => (params.get("cam") as CameraId | "tactical") ?? "auto");
-
-  const room = useMemo(() => {
-    const r = params.get("room")?.toUpperCase() ?? "";
-    if (ROOM_RE.test(r)) return r;
-    // Opening /tv again on the same device resumes its room, so a closed tab does not strand the phones.
-    return (params.get("fresh") ? null : lastTvRoom()) ?? randomRoom();
-  }, [params]);
+  // The match clock is saved on this TV, so "Resume room" carries on where the match was instead of at 0'.
+  const clockKey = `pip:tv-clock:${room}`;
+  const restored = useMemo(() => {
+    try {
+      const v = JSON.parse(localStorage.getItem(clockKey) ?? "null") as SavedClock | null;
+      return v && Date.now() - v.at < CLOCK_KEEP_MS ? v : null;
+    } catch {
+      return null;
+    }
+  }, [clockKey]);
+  const [clk, setClk] = useState<Clock>(() =>
+    restored ? { ...startClock(restored.mode), tMs: restored.tMs, halfDone: restored.halfDone, speed: restored.speed } : startClock(params.get("mode") === "full" ? "full" : "highlights"),
+  );
+  // The room opens in the lobby; the host presses Kick off when everyone is in (room prototype).
+  const [kicked, setKicked] = useState(!!restored);
+  const clkRef = useRef(clk);
+  clkRef.current = clk;
   useEffect(() => {
-    if (params.get("room") !== room) setParams({ room }, { replace: true });
-  }, [room, params, setParams]);
+    if (!kicked) return;
+    const save = () => {
+      const c = clkRef.current;
+      try {
+        localStorage.setItem(clockKey, JSON.stringify({ tMs: c.tMs, halfDone: c.halfDone, mode: c.mode, speed: c.speed, at: Date.now() } satisfies SavedClock));
+      } catch {
+        /* private mode: the clock lives as long as this page */
+      }
+    };
+    const id = setInterval(save, 2000);
+    window.addEventListener("pagehide", save);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener("pagehide", save);
+    };
+  }, [kicked, clockKey]);
+  const [camera, setCamera] = useState<CameraId | "tactical">(() => (params.get("cam") as CameraId | "tactical") ?? "auto");
 
   useEffect(() => {
     loadMatch()
@@ -77,7 +142,7 @@ export default function Tv() {
 
   // The clock never stops for Pip; only half-time pauses (as football does) and the operator's Pause button.
   useEffect(() => {
-    if (!tl) return;
+    if (!tl || !kicked) return;
     let last = Date.now();
     const id = setInterval(() => {
       const now = Date.now();
@@ -86,10 +151,9 @@ export default function Tv() {
       setClk((c) => advance(tl, c, dt, now, allAnsweredRef.current));
     }, TICK_MS);
     return () => clearInterval(id);
-  }, [tl]);
+  }, [tl, kicked]);
 
   const allAnsweredRef = useRef(false);
-  const askSince = useRef<{ id: string | null; at: number }>({ id: null, at: 0 });
   const view = tl ? viewAt(tl, clk) : null;
   const phase = view?.phase ?? "play";
   const card = view?.card ?? null;
@@ -98,6 +162,8 @@ export default function Tv() {
 
   const answers = useRef(new Map<string, Map<string, string>>()); // card_id -> device -> option
   const devices = useRef(new Set<string>());
+  const animals = useRef(new Map<string, string>()); // device -> the animal that phone picked
+  const animalOf = (d: string) => animals.current.get(d) ?? avatarOf(d);
   const tally = useMemo(() => {
     const out: Record<string, number> = {};
     if (card) answers.current.get(card.card_id)?.forEach((opt) => (out[opt] = (out[opt] ?? 0) + 1));
@@ -114,6 +180,11 @@ export default function Tv() {
   const send = useRoomChannel(room, "tv", (m: Msg) => {
     if (m.t === "hello") {
       devices.current.add(m.device);
+      if (m.animal) animals.current.set(m.device, m.animal);
+    } else if (m.t === "bye") {
+      devices.current.delete(m.device);
+      animals.current.delete(m.device);
+      follows.current.delete(m.device);
     } else if (m.t === "follow") {
       // Only known player ids are accepted; the screen keeps a count per player, never who follows.
       if (m.player_id && tracking?.entities.includes(m.player_id)) follows.current.set(m.device, m.player_id);
@@ -140,6 +211,7 @@ export default function Tv() {
   // The latest goal stays "fresh" for phones (a profile button) for a few match minutes.
   const scorer = tl?.goals.filter((g) => clk.tMs >= g.t_ms && clk.tMs < g.t_ms + SCORER_FRESH_MS).pop()?.player_id ?? null;
   const minute = tl ? Math.floor(clockMinute(tl, clk.tMs)) : 0;
+  const people = [...devices.current].map(animalOf);
   const clock = tl ? clockLabel(tl, clk.tMs) : "0'";
 
   // Push state to phones whenever something that matters changes (and on a heartbeat for late joiners).
@@ -148,19 +220,21 @@ export default function Tv() {
   const broadcast = useCallback(() => {
     const now = Date.now();
     const msg: StateMsg = {
-      t: "state", phase, minute, clock, card, board, half,
+      t: "state", phase: kicked ? phase : "lobby", minute, clock, card: kicked ? card : null, board, half,
       // No countdown while a question is open: live, nobody knows when play restarts.
       deadline: phase === "reveal" ? now + revealLeft : 0,
       total_ms: phase === "reveal" ? 12_000 / clk.speed : 0,
       tally, answered, scorer, joined: devices.current.size,
-      answered_by: card ? [...(answers.current.get(card.card_id)?.keys() ?? [])].map(avatarOf) : [],
+      answered_by: card ? [...(answers.current.get(card.card_id)?.keys() ?? [])].map(animalOf) : [],
+      people,
     };
-    const key = JSON.stringify([msg.phase, msg.minute, msg.card?.card_id, msg.board?.period, msg.half?.rows.length, msg.tally, msg.scorer]);
+    const key = JSON.stringify([msg.phase, msg.minute, msg.card?.card_id, msg.board?.period, msg.half?.rows.length, msg.tally, msg.scorer, people]);
     if (key !== lastSent.current) {
       lastSent.current = key;
       send(msg);
     }
-  }, [phase, minute, clock, card, board, half, tally, answered, scorer, revealLeft, clk.speed, send]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, minute, clock, card, board, half, tally, answered, scorer, revealLeft, clk.speed, send, kicked, people.join("")]);
   useEffect(broadcast, [broadcast]);
   useEffect(() => {
     const id = setInterval(() => {
@@ -197,11 +271,9 @@ export default function Tv() {
   const now = Date.now();
   const goalNow = tl.goals.find((g) => clk.tMs >= g.t_ms && clk.tMs < g.t_ms + GOAL_POP_MS) ?? null;
   const goalTeam = goalNow ? match.teams.find((x) => x.team_id === goalNow.team_id) : undefined;
-  const nowLine = card ? nowKey(card.trigger) : null;
-  const compact = !!card && answered > 0 && (phase === "locked" || (phase === "ask" && allAnsweredRef.current));
   const nextKind = clk.skipped ? nextMoment(tl, clk.skipped.to, clk.halfDone) : null;
-  if (phase === "ask" && card && askSince.current.id !== card.card_id) askSince.current = { id: card.card_id, at: now };
-  const fact = phase === "ask" && card ? factAt(card.trigger, now - askSince.current.at, lang, card.card_id) : null;
+  const host = location.host;
+  const doneCards = match.cards.filter((c) => (phase === "full" ? true : c.t_in_min <= HALF_MIN && phase === "half"));
   const spotlight = tl.goals.find((g) => clk.tMs >= g.t_ms + SPOTLIGHT_FROM_MS && clk.tMs < g.t_ms + SPOTLIGHT_TO_MS) ?? null;
   const setMode = (mode: Mode) => setClk((c) => ({ ...c, mode }));
 
@@ -269,81 +341,80 @@ export default function Tv() {
         </div>
       )}
 
-      {clk.mode === "highlights" && clk.tMs < Math.min(OPENING_MS, 20_000) && (
+      {kicked && clk.mode === "highlights" && clk.tMs < Math.min(OPENING_MS, 20_000) && (
         <div className="hl-intro" role="status">
           <strong>{ui("hlTitle", lang)}</strong>
           <span>{ui("hlIntro", lang)}</span>
         </div>
       )}
 
-      <div className="join">
-        <QRCodeSVG value={joinUrl} size={96} bgColor="#F6F3EC" fgColor="#0E1A2B" />
-        <div>
-          <strong>{ui("scan", lang)}</strong>
-          <div className="mono">{room}</div>
-          <div className="dim">{devices.current.size} {ui("phonesJoined", lang)}</div>
+      {kicked ? (
+        // Late joiners always find the way in: QR, code and the room's animals in the corner (pulses when someone joins).
+        <div className="tvn-corner" key={people.length}>
+          <QRCodeSVG value={joinUrl} size={128} bgColor="#FFFFFF" fgColor="#14202F" />
+          <div>
+            <span className="tvn-mini">{ui("tvJoin", lang)} · {host}</span>
+            <b>{room}</b>
+            <span className="tvn-faces">{people.slice(0, 6).join("")}{people.length > 6 ? ` +${people.length - 6}` : ""}</span>
+          </div>
         </div>
-      </div>
-
-      {card && compact && (
-        // Everyone is in (or play is back on): shrink to one line so the match has the screen again.
-        <section className="answer-strip" aria-live="polite">
-          <span className="as-done">✓ {phase === "locked" ? ui("answersClosed", lang) : `${ui("allAnswered", lang)} (${answered})`}</span>
-          {card.question.options.map((o, i) => {
-            const st = choiceStyle(i);
-            return (
-              <span key={o.id} className="as-opt">
-                <i style={{ background: st.bg, color: st.fg }}>{st.shape}</i> {t(o.label, lang)} {tally[o.id] ?? 0}
-              </span>
-            );
-          })}
-          <span className="as-wait">⏳ {ui("waitVerdict", lang)}</span>
-        </section>
-      )}
-
-      {card && !compact && (phase === "ask" || phase === "locked" || phase === "reveal") && (
-        <section className={`lower-third ${phase === "locked" ? "ask locked" : phase}`} aria-live="polite">
-          <div className="lt-head">
-            <Mascot pose={phase === "reveal" ? card.reveal.pose : askPose(card.trigger)} size={88} />
-            <div>
-              <div className="eyebrow">{ui("callIt", lang)} · {team?.name}</div>
-              <h1>{t(card.question.text, lang)}</h1>
+      ) : (
+        <div className="tvn-lobby">
+          <div className="tvn-lobby-card">
+            <span className="tvn-lobby-pip"><Mascot pose="wave" size={160} /></span>
+            <div className="tvn-qr"><QRCodeSVG value={joinUrl} size={256} bgColor="#FFFFFF" fgColor="#14202F" /></div>
+            <div className="tvn-lobby-text">
+              <div className="tvn-lab">{ui("tvJoinPhone", lang)} · {host}</div>
+              <div className="tvn-code">{room}</div>
+              <div className="tvn-lab">{fmt(ui("tvScanType", lang), { host })}</div>
+              <div className="tvn-ppl">{people.length ? people.map((a, k) => <span key={k}>{a}</span>) : <span className="tvn-wait">…</span>}</div>
+              <div className="tvn-lab">{fmt(ui("tvHereKick", lang), { n: people.length })}</div>
+              <button className="tvn-kick" onClick={() => setKicked(true)}>{ui("tvKick", lang)} ▸</button>
             </div>
           </div>
+        </div>
+      )}
 
-          {(phase === "ask" || phase === "locked") && (
+      {kicked && card && (phase === "ask" || phase === "locked" || phase === "reveal") && (
+        // Pip's note (room prototype): a paper card in the lower-left safe area. Counts only until the reveal, never who.
+        <section className={`tvn-note ${phase}`} aria-live="polite">
+          <span className="tvn-pip">
+            <Mascot pose={phase === "reveal" ? (card.reveal.void ? "thinks" : card.reveal.pose) : phase === "locked" ? "watching" : askPose(card.trigger)} size={120} />
+          </span>
+          <div className="tvn-who"><b>{NAME}</b><span>{ui("callIt", lang)} · {triggerLabel(card.trigger, lang)} · {team?.name}</span></div>
+          {phase === "ask" && (
             <>
-              {phase === "ask" && nowLine && <p className="now-line">{ui(nowLine, lang)}</p>}
-              {fact && <p className="fact" key={fact}>💡 {ui("didYouKnow", lang)} {fact}</p>}
-              <ul className="opts">
-                {card.question.options.map((o, i) => {
-                  const st = choiceStyle(i);
-                  return (
-                    <li key={o.id}>
-                      <span><i className="opt-shape" style={{ background: st.bg, color: st.fg }}>{st.shape}</i> {t(o.label, lang)}</span>
-                      <span className="count" key={tally[o.id] ?? 0}>{tally[o.id] ?? 0}</span>
-                    </li>
-                  );
-                })}
+              <h2>{t(card.question.text, lang)}</h2>
+              <ul>
+                {card.question.options.map((o, i) => (
+                  <li key={o.id}><i className="tvn-sw" style={{ background: choiceStyle(i).bg }} />{t(o.label, lang)}<span className="tvn-n" key={tally[o.id] ?? 0}>{tally[o.id] ?? 0}</span></li>
+                ))}
               </ul>
-              <p className="window-note">
-                {answered > 0 && <>{answered}/{Math.max(answered, devices.current.size)} {ui("answeredOf", lang)} · </>}
-                {phase === "ask" ? ui("openUntilRestart", lang) : ui("answersClosed", lang)}
-              </p>
-              {phase === "ask" && <p className="window-note shout">{ui("shoutIt", lang)}</p>}
+              <div className="tvn-says">{ui("shoutIt", lang)}</div>
             </>
           )}
-
-          {phase === "reveal" && (
+          {phase === "locked" && <div className="tvn-strip">{fmt(ui("tvAnswersIn", lang), { n: answered })}</div>}
+          {phase === "reveal" && card.reveal.void && (
             <>
-              {card.reveal.void
-                ? <div className="eyebrow">{ui("noClear", lang)} · {ui("noClearWhy", lang)}</div>
-                : <div className="eyebrow turf">{ui("matchSays", lang)}: {answerLabel(card, card.reveal.answer, lang)}</div>}
-              <p className="plain">{fill(t(card.reveal.plain, lang), match.facts)}</p>
-              <p className="pippi-call">{ui("pippiCalled", lang)}: {answerLabel(card, card.question.pippi_call, lang)}</p>
-              <div className="bar"><i style={{ width: `${(1 - (view.progress ?? 0)) * 100}%` }} /></div>
+              <div className="tvn-lab">{ui("noClear", lang)}</div>
+              <p>{fill(t(card.reveal.plain, lang), match.facts)}</p>
+              <div className="tvn-says">{ui("tvAgain", lang)}</div>
             </>
           )}
+          {phase === "reveal" && !card.reveal.void && (
+            <>
+              <div className="tvn-lab">{ui("matchSays", lang)}</div>
+              <div className="tvn-answer"><span>{answerLabel(card, card.reveal.answer, lang)}</span></div>
+              <p>{fill(t(card.reveal.plain, lang), match.facts)}</p>
+              <ul>
+                {card.question.options.map((o, i) => (
+                  <li key={o.id} className={o.id === card.reveal.answer ? "ans" : ""}><i className="tvn-sw" style={{ background: choiceStyle(i).bg }} />{t(o.label, lang)}<span className="tvn-n">{tally[o.id] ?? 0}</span></li>
+                ))}
+              </ul>
+              <div className="tvn-says">{ui("pippiCalled", lang)} {answerLabel(card, card.question.pippi_call, lang)}.</div>
+            </>
+          )}
+          {phase === "reveal" && <div className="tvn-timer"><i style={{ width: `${(1 - (view.progress ?? 0)) * 100}%` }} /></div>}
         </section>
       )}
 
@@ -366,24 +437,23 @@ export default function Tv() {
         </section>
       )}
 
-      {phase === "half" && half && (
-        <section className="lower-third half" aria-live="polite">
-          <div className="lt-head">
-            <Mascot pose="wave" size={88} />
-            <div>
-              <div className="eyebrow">{ui("halfTime", lang)} · {home.short_name} {half.score.HAR} – {half.score.COP} {away.short_name}</div>
-              <h1>{ui("halfCalls", lang)}</h1>
+      {(phase === "half" || phase === "full") && (
+        <div className="tvn-big" aria-live="polite">
+          <div className="tvn-big-in">
+            <span className="tvn-bigpip"><Mascot pose={phase === "full" ? "wave" : "perch"} size={170} /></span>
+            <div className="tvn-lab">{phase === "full" ? ui("fullTime", lang) : ui("halfTime", lang)} · {home.short_name} {score.HAR} – {score.COP} {away.short_name}</div>
+            <h2>{phase === "full" ? ui("hfThanks", lang) : ui("tvRoomCalls", lang)}</h2>
+            <div className="tvn-rows">
+              {doneCards.length ? doneCards.map((c) => (
+                <div key={c.card_id}>
+                  <span>{Math.floor(c.t_in_min)}' {triggerLabel(c.trigger, lang)}</span>
+                  <b>{c.reveal.void ? ui("noClear", lang) : answerLabel(c, c.reveal.answer, lang)}</b>
+                </div>
+              )) : <div>{ui("hfNone", lang)}</div>}
             </div>
+            {phase === "half" && clk.halfUntil && <div className="tvn-timer"><i style={{ width: `${Math.max(0, (clk.halfUntil - now) / 30_000) * 100}%` }} /></div>}
           </div>
-          <HalfTimeCard match={match} half={half} lang={lang} />
-          {clk.halfUntil && <div className="bar"><i style={{ width: `${Math.max(0, (clk.halfUntil - now) / 30_000) * 100}%` }} /></div>}
-        </section>
-      )}
-
-      {phase === "full" && (
-        <section className="lower-third reveal">
-          <div className="lt-head"><Mascot pose="wave" size={88} /><h1>{ui("fullTime", lang)}</h1></div>
-        </section>
+        </div>
       )}
 
       <div className="controls" role="group" aria-label="Demo controls">

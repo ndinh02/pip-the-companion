@@ -51,6 +51,20 @@ test("no free text: unknown message shapes, extra text and bad ids are rejected"
   assert.equal((await post("/api/rooms/NONE/msg", { t: "hello", device: "abc123" })).status, 404);
 });
 
+test("animals come only from the fixed list; a phone can say bye", async () => {
+  _test.buckets.clear();
+  const { token } = await (await post("/api/rooms/ANML/open", {})).json();
+  await post("/api/rooms/ANML/msg", { t: "hello", device: "abc123", animal: "🦊" });
+  await post("/api/rooms/ANML/msg", { t: "hello", device: "def456", animal: "Bob the builder" });
+  await post("/api/rooms/ANML/msg", { t: "bye", device: "abc123" });
+  const { msgs } = await (await fetch(base + "/api/rooms/ANML/inbox?after=0", { headers: { "x-room-token": token } })).json();
+  assert.deepEqual(msgs, [
+    { t: "hello", device: "abc123", animal: "🦊" },
+    { t: "hello", device: "def456" }, // the made-up "animal" is dropped, the hello still counts
+    { t: "bye", device: "abc123" },
+  ]);
+});
+
 test("phones learn how long ago the TV checked in (to say 'the TV has gone quiet')", async () => {
   _test.buckets.clear();
   const { token } = await (await post("/api/rooms/TVAG/open", {})).json();
