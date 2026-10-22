@@ -51,6 +51,35 @@ test("no free text: unknown message shapes, extra text and bad ids are rejected"
   assert.equal((await post("/api/rooms/NONE/msg", { t: "hello", device: "abc123" })).status, 404);
 });
 
+test("phones learn how long ago the TV checked in (to say 'the TV has gone quiet')", async () => {
+  _test.buckets.clear();
+  const { token } = await (await post("/api/rooms/TVAG/open", {})).json();
+  await post("/api/rooms/TVAG/state", { t: "state", phase: "play" }, token);
+  const first = await fetch(base + "/api/rooms/TVAG/state");
+  assert.ok(Number(first.headers.get("x-tv-age")) < 5_000, "fresh TV");
+  const { v } = await first.json();
+  _test.rooms.get("TVAG").tvSeen -= 60_000; // the TV tab was closed a minute ago
+  const quiet = await fetch(`${base}/api/rooms/TVAG/state?v=${v}`);
+  assert.equal(quiet.status, 204);
+  assert.ok(Number(quiet.headers.get("x-tv-age")) >= 60_000, "204 also carries the age");
+});
+
+test("after a server restart the TV takes its code back and phone messages count from 1 again", async () => {
+  _test.buckets.clear();
+  const { token } = await (await post("/api/rooms/RSTR/open", {})).json();
+  await post("/api/rooms/RSTR/msg", { t: "hello", device: "abc123" });
+  await post("/api/rooms/RSTR/msg", { t: "hello", device: "def456" });
+  _test.rooms.clear(); // the restart: every room in memory is gone
+  assert.equal((await post("/api/rooms/RSTR/state", { t: "state" }, token)).status, 403, "the TV notices");
+  assert.equal((await fetch(base + "/api/rooms/RSTR/state")).status, 404, "phones see no room (they show 'Reconnecting')");
+  const again = await post("/api/rooms/RSTR/open", {}, token);
+  assert.equal(again.status, 200, "the same code is free again");
+  const next = (await again.json()).token;
+  await post("/api/rooms/RSTR/msg", { t: "answer", device: "abc123", card_id: "c1", option: "far" });
+  const inbox = await (await fetch(base + "/api/rooms/RSTR/inbox?after=0", { headers: { "x-room-token": next } })).json();
+  assert.equal(inbox.seq, 1, "numbering restarted: the TV must read from 0 (channel.ts resets `after`)");
+});
+
 test("rate limit: a flood from one address is slowed down", async () => {
   _test.buckets.clear();
   const codes = await Promise.all(Array.from({ length: 80 }, () => fetch(base + "/api/rooms/ZZZZ/state").then((r) => r.status)));

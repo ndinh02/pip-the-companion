@@ -5,9 +5,9 @@ import HalfTimeCard from "../components/HalfTimeCard";
 import WhosThat from "../components/WhosThat";
 import { FollowView, GhostRun } from "../components/FollowView";
 import { loadTracking, type Tracking } from "../lib/tracking";
-import Mascot from "../components/Mascot";
+import Mascot, { askPose } from "../components/Mascot";
 import { addedHeadline } from "../lib/addedTime";
-import { deviceId, useRoomChannel } from "../lib/channel";
+import { deviceId, useRoomChannel, type RoomStatus } from "../lib/channel";
 import { NAME } from "../lib/brand";
 import { HALF_MIN, shareText } from "../lib/halfTime";
 import { clampMinute, followLine, loadFollow, POSITION_LABEL, saveFollow, teamName } from "../lib/whoThat";
@@ -32,6 +32,10 @@ export default function Play() {
   const [match, setMatch] = useState<Match | null>(null);
   const [state, setState] = useState<StateMsg | null>(null);
   const [picked, setPicked] = useState<Record<string, string>>({}); // card_id -> option
+  // One change of mind per question (owner decision 2026-10-23): card_id -> "changing now" / "already changed".
+  const [changing, setChanging] = useState<Record<string, boolean>>({});
+  const [changed, setChanged] = useState<Record<string, boolean>>({});
+  const [link, setLink] = useState<RoomStatus>("ok");
   const [deep, setDeep] = useState(false);
   const [half, setHalf] = useState<HalfSummary | null>(null); // kept after half-time so the card can be reopened and shared
   const [showHalf, setShowHalf] = useState(false);
@@ -57,7 +61,7 @@ export default function Play() {
 
   const send = useRoomChannel(valid ? room : "INVALID", "phone", (m: Msg) => {
     if (m.t === "state") setState(m);
-  });
+  }, setLink);
   useEffect(() => {
     if (valid) send({ t: "hello", device });
   }, [valid, device, send]);
@@ -205,10 +209,14 @@ export default function Play() {
           ))}
         </div>
       </header>
+      {link !== "ok" && (
+        // Something between this phone and the TV is broken: say what, in one line, instead of freezing on an old screen.
+        <div className={`link-bar ${link}`} role="status">{ui(link === "offline" ? "stOffline" : link === "no-room" ? "stNoRoom" : "stTvQuiet", lang)}</div>
+      )}
 
       {!state && (
         <main className="center">
-          <Mascot pose="thinks" />
+          <Mascot pose="watching" />
           <h2>{ui("waitingTv", lang)}</h2>
           <p className="dim">{ui("waitingTvHint", lang)}</p>
           {alertsOptIn}
@@ -242,7 +250,7 @@ export default function Play() {
           </main>
         ) : (
           <main className="center">
-            <Mascot pose="wave" size={110} />
+            <Mascot pose="perch" size={110} />
             <p className="dim">{ui("eyesUp", lang)}</p>
             {players && match && (
               <button className="pick-follow" onClick={() => { setWhoStart(null); setShowWho(true); }}>
@@ -274,10 +282,10 @@ export default function Play() {
 
       {state && state.phase === "half" && !showWho && !showFollow && halfView}
 
-      {state && card && state.phase === "ask" && !mine && (
+      {state && card && state.phase === "ask" && (!mine || changing[card.card_id]) && (
         <main className="kq wake" key={card.card_id}>
           <div className="kq-head">
-            <Mascot pose="asks" size={56} />
+            <Mascot pose={askPose(card.trigger)} size={56} />
             <div>
               <div className="eyebrow">{ui("callIt", lang)}</div>
               <h2>{t(card.question.text, lang)}</h2>
@@ -293,6 +301,10 @@ export default function Play() {
                   className="tile"
                   style={{ background: st.bg, color: st.fg }}
                   onClick={() => {
+                    if (changing[card.card_id]) {
+                      setChanging((c) => ({ ...c, [card.card_id]: false }));
+                      setChanged((c) => ({ ...c, [card.card_id]: true }));
+                    }
                     setPicked((p) => ({ ...p, [card.card_id]: o.id }));
                     send({ t: "answer", device, card_id: card.card_id, option: o.id });
                   }}
@@ -307,10 +319,11 @@ export default function Play() {
         </main>
       )}
 
-      {state && card && state.phase === "ask" && mine && (() => {
+      {state && card && state.phase === "ask" && mine && !changing[card.card_id] && (() => {
         // Answered: the whole screen takes the colour of the pick, says it is in, and that the MATCH will decide.
         const i = card.question.options.findIndex((o) => o.id === mine);
         const st = choiceStyle(i);
+        const allIn = (state.joined ?? 0) > 0 && state.answered >= (state.joined ?? 0);
         return (
           <main className="kq-locked" key={`${card.card_id}-locked`} style={{ background: st.bg, color: st.fg }}>
             <div className="big-shape" aria-hidden="true"><span>{st.shape}</span></div>
@@ -323,7 +336,12 @@ export default function Play() {
               <div className="rm-bar"><i style={{ width: `${state.joined ? Math.min(100, (state.answered / Math.max(1, state.joined)) * 100) : 100}%` }} /></div>
               <p className="count">{state.joined ? `${state.answered} / ${Math.max(state.answered, state.joined)}` : state.answered} {ui("answeredOf", lang)}</p>
             </div>
-            <p className="verdict"><span className="hourglass" aria-hidden="true">⏳</span> {ui("waitVerdict", lang).replace(/…$/, "")}<span className="dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></p>
+            {/* Pip waits with the room; once everyone is in, Pip settles in to watch the play (owner decision 2026-10-23). */}
+            <div className={`pip-wait ${allIn ? "all-in" : ""}`}><Mascot pose="watching" size={72} /></div>
+            <p className="verdict">{allIn ? ui("allIn", lang) : ui("waitOthers", lang)}</p>
+            {changed[card.card_id]
+              ? <p className="me">{ui("lockedFinal", lang)}</p>
+              : <button className="change-once" onClick={() => setChanging((c) => ({ ...c, [card.card_id]: true }))}>{ui("changeOnce", lang)}</button>}
             <p className="me">{ui("youAre", lang)} {avatarOf(device)}</p>
             {fact && (
               <section className="fact-card" key={fact}>
@@ -338,21 +356,24 @@ export default function Play() {
       {state && card && state.phase === "locked" && !showWho && !showFollow && (
         // Play has restarted: answers are closed and the phone goes quiet so eyes go back to the screen.
         <main className="center">
-          <div className="sleep-dot" aria-hidden="true" />
+          <div className="pip-wait all-in"><Mascot pose="watching" size={84} /></div>
           <p>{mine ? `✓ ${ui("locked", lang)}: ${answerLabel(card, mine, lang)}` : ui("tooQuick", lang)}</p>
           <p className="dim">{ui("answersClosed", lang)}</p>
         </main>
       )}
 
       {state && card && match && state.phase === "reveal" && !seenReveal && (() => {
-        const right = !!mine && mine === card.reveal.answer;
-        const mood = !mine ? "neutral" : right ? "right" : "learn";
+        const voided = !!card.reveal.void; // the match did not settle it: nobody is right or wrong
+        const right = !voided && !!mine && mine === card.reveal.answer;
+        const mood = !mine || voided ? "neutral" : right ? "right" : "learn";
         return (
           <main className={`reveal-screen ${mood}`} key={`${card.card_id}-reveal`}>
             {right && <Confetti />}
             <div className="rv-head">
-              <div className="rv-title">{right ? `🎉 ${ui("calledIt", lang)}` : mine ? `💡 ${ui("learnTitle", lang)}` : ui("matchSays", lang)}</div>
-              <div className="rv-answer">{ui("matchSays", lang)}: <strong>{answerLabel(card, card.reveal.answer, lang)}</strong></div>
+              <div className="rv-title">{voided ? ui("noClear", lang) : right ? `🎉 ${ui("calledIt", lang)}` : mine ? `💡 ${ui("learnTitle", lang)}` : ui("matchSays", lang)}</div>
+              {voided
+                ? <div className="rv-answer">{ui("noClearWhy", lang)}</div>
+                : <div className="rv-answer">{ui("matchSays", lang)}: <strong>{answerLabel(card, card.reveal.answer, lang)}</strong></div>}
               {mine && !right && <div className="dim">{ui("youSaid", lang)}: {answerLabel(card, mine, lang)}</div>}
             </div>
             <Mascot pose={card.reveal.pose} size={84} />
@@ -368,8 +389,8 @@ export default function Play() {
                 const pct = state.answered ? (n / state.answered) * 100 : 0;
                 const st = choiceStyle(i);
                 return (
-                  <div className={`row ${o.id === card.reveal.answer ? "is-answer" : ""}`} key={o.id}>
-                    <span><i className="opt-shape" style={{ background: st.bg, color: st.fg }}>{st.shape}</i> {t(o.label, lang)}{mine === o.id ? ` · ${ui("you", lang)}` : ""}{card.question.pippi_call === o.id ? " 🐤" : ""}</span>
+                  <div className={`row ${!voided && o.id === card.reveal.answer ? "is-answer" : ""}`} key={o.id}>
+                    <span><i className="opt-shape" style={{ background: st.bg, color: st.fg }}>{st.shape}</i> {t(o.label, lang)}{mine === o.id ? ` · ${ui("you", lang)}` : ""}{card.question.pippi_call === o.id ? " 🐧" : ""}</span>
                     <span className="track"><i style={{ width: `${pct}%` }} /></span>
                     <span className="n">{n}</span>
                   </div>

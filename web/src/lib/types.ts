@@ -30,7 +30,8 @@ export interface Card {
   team_id: string;
   pitch: { x: number; y: number };
   question: { text: I18n; options: Option[]; pippi_call: string };
-  reveal: { answer: string; pose: Pose; plain: I18n; expert: I18n; fact_ids: string[] };
+  /** void: the match did not settle the question (cleared, retaken, data unsure). The call counts for nobody. */
+  reveal: { answer: string; pose: Pose; plain: I18n; expert: I18n; fact_ids: string[]; void?: boolean };
 }
 export interface Match {
   match_id: string;

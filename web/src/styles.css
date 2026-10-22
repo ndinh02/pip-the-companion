@@ -80,6 +80,7 @@ a { color: var(--sky); }
 .window-note { font-size: 0.75em; color: var(--dim); }
 .lower-third.locked .opts li { opacity: 0.6; }
 .lower-third.locked .window-note { color: var(--floodlight); }
+.window-note.shout { color: var(--chalk); font-weight: 700; }
 .lower-third.reveal { border-left-color: var(--turf); }
 .lt-head { display: flex; gap: 1vw; align-items: center; }
 .lt-head svg { flex: none; width: 5vw; min-width: 56px; height: auto; }
@@ -222,6 +223,8 @@ a { color: var(--sky); }
 .goal-pop { position: absolute; top: calc(5% + max(56px, 4.6vw)); left: 5%; z-index: 7; display: flex; align-items: center; gap: 0.8vw; background: rgba(14, 26, 43, 0.92); border: 2px solid var(--floodlight); border-radius: 14px; padding: 0.5vw 1.2vw 0.5vw 0.6vw; font-size: max(14px, 1.1vw); animation: goal-in 0.45s cubic-bezier(0.2, 1.6, 0.4, 1) both, goal-out 0.4s ease-in 7.6s both; }
 .goal-pop strong { font-size: 1.6em; font-weight: 900; color: var(--floodlight); letter-spacing: 0.04em; }
 .goal-pop .pippi { animation: goal-hop 0.6s ease-in-out infinite alternate; }
+.pippi-wing { transform-box: fill-box; transform-origin: 0% 100%; animation: pip-wave 0.5s ease-in-out 3 alternate; }
+@keyframes pip-wave { from { transform: rotate(-8deg); } to { transform: rotate(14deg); } }
 @keyframes goal-in { from { transform: scale(0.3) rotate(-8deg); opacity: 0; } }
 @keyframes goal-out { to { transform: translateY(-20px); opacity: 0; } }
 @keyframes goal-hop { from { transform: translateY(4px) rotate(-6deg); } to { transform: translateY(-10px) rotate(6deg); } }
@@ -240,7 +243,7 @@ a { color: var(--sky); }
 .phone header .alert-chip { min-width: 44px; min-height: 44px; background: none; border: 0; font-size: 18px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .goal-pop, .goal-pop .pippi, .opts .count, .phone main.wake { animation: none; }
+  .goal-pop, .goal-pop .pippi, .pippi-wing, .opts .count, .phone main.wake { animation: none; }
 }
 
 /* Goal scorer's quick profile on the TV (lower third, slides in after Pip's pop-up) */
@@ -384,3 +387,16 @@ a { color: var(--sky); }
 @media (prefers-reduced-motion: reduce) {
   .kq-locked .big-shape span, .rm-avatars span, .kq-locked .dots i, .kq-locked .hourglass, .live-stats .flash dd { animation: none; }
 }
+
+/* ---- 2026-10-23: phone link status, one change of answer, Pip waiting for the outcome ---- */
+.tv-alarm { position: fixed; top: 5%; left: 5%; right: 5%; z-index: 50; padding: 0.8vw 1.6vw; border-radius: 14px; background: #6e2b23; color: #fff; font-weight: 800; font-size: max(22px, 1.9vw); text-align: center; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4); }
+.link-bar { margin: 0 16px; padding: 10px 14px; border-radius: 12px; font-size: 14px; font-weight: 700; background: #6e2b23; color: #fff; }
+.link-bar.no-room { background: var(--navy-2); color: var(--chalk); border: 1px solid #2c4468; }
+.link-bar.tv-quiet { background: #4a3d12; color: #fff3c4; }
+.change-once { min-height: 48px; padding: 10px 18px; border-radius: 999px; border: 2px solid currentColor; background: transparent; color: inherit; font: inherit; font-weight: 800; }
+.pip-wait { display: grid; place-items: center; }
+.pip-wait .pippi { transform-origin: 50% 100%; animation: pip-wait 2.4s ease-in-out infinite; }
+.pip-wait.all-in .pippi { animation: pip-watch 1.4s ease-in-out infinite; }
+@keyframes pip-wait { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg) translateY(-2px); } }
+@keyframes pip-watch { 0%, 100% { transform: translateY(0) scale(1, 1); } 40% { transform: translateY(-4px) scale(.98, 1.02); } 60% { transform: translateY(0) scale(1.03, .97); } }
+@media (prefers-reduced-motion: reduce) { .pip-wait .pippi { animation: none; } }

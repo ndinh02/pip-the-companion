@@ -15,6 +15,10 @@
 | 11 | CLAUDE.md vs AGENTS.md | **DECIDED:** AGENTS.md shared, CLAUDE.md pointer. |
 | 12 | "Convince the room" mechanic | OPEN — not built in the mock. |
 | 13 | Sponsored moments | OPEN — keep out of all pitch material until decided. |
+| 14 | Remote rooms (relatives in another city, different stream delay) | **DECIDED 2026-10-23:** same-room only for the hackathon. Remote rooms (stream delay, spoiler guard) are the next feature after the hackathon. Analysis: `docs/design-options/what-can-go-wrong.html`. |
+| 15 | TV during a question: faces or counts | **DECIDED 2026-10-23:** the TV shows counts only until the reveal. On the phone, a player may change their answer **once**; after that the phone shows "locked in" and waits for the others, then Pip waits for the outcome with a waiting animation. |
+| 16 | Keep the room when the TV tab closes | **DECIDED 2026-10-23:** OK to store the TV's room key on the TV device (localStorage). No accounts, no tracking. |
+| 17 | What goes in before the 2026-10-24 freeze | **DECIDED 2026-10-23:** (a) keep the room when the TV tab closes, (b) survive a server restart, (c) the TV is the alarm (plus clear phone status when something breaks), (d) the "no clear answer" outcome. |
 
 ## Environment gaps found on day 1
 - Python 3.9.6 only → install 3.11+ (e.g. from python.org) before the agents work.

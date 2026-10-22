@@ -24,7 +24,7 @@ export default function HalfTimeCard({ match, half, lang, mine, followLine }: { 
                 {you ? <> · {ui("you", lang)}: <b>{answerLabel(card, you, lang)}</b></> : null}
               </span>
               <span>
-                {ui("halfMatch", lang)}: <b className="turf">{answerLabel(card, card.reveal.answer, lang)}</b> · {ui("pippiCalled", lang)}: <b>{answerLabel(card, card.question.pippi_call, lang)}</b>
+                {ui("halfMatch", lang)}: <b className="turf">{card.reveal.void ? ui("noClear", lang) : answerLabel(card, card.reveal.answer, lang)}</b> · {ui("pippiCalled", lang)}: <b>{answerLabel(card, card.question.pippi_call, lang)}</b>
               </span>
             </li>
           );

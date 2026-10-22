@@ -109,6 +109,18 @@ export const UI = {
   mFull: { en: "the final whistle", de: "der Abpfiff", vi: "tiếng còi mãn cuộc" },
   skippingTo: { en: "Skipping to", de: "Weiter zu", vi: "Tua đến" },
   you: { en: "You", de: "Du", vi: "Bạn" },
+  // NEW 2026-10-23 (freeze items + owner decision 15). DE/VI are drafts until the owner checks them.
+  shoutIt: { en: "Answer on your phone, or just shout it!", de: "Antworte am Handy oder ruf es einfach!", vi: "Trả lời trên điện thoại, hoặc cứ hô to lên!" },
+  noClear: { en: "No clear answer", de: "Keine klare Antwort", vi: "Không có đáp án rõ ràng" },
+  noClearWhy: { en: "The match didn't settle this one, so it doesn't count for anyone.", de: "Das Spiel hat das nicht klar entschieden, also zählt es für niemanden.", vi: "Trận đấu không phân định rõ, nên câu này không tính cho ai cả." },
+  changeOnce: { en: "Change my answer (once)", de: "Antwort ändern (einmal)", vi: "Đổi đáp án (một lần)" },
+  lockedFinal: { en: "Locked in. No more changes.", de: "Eingeloggt. Keine Änderung mehr.", vi: "Đã chốt. Không đổi được nữa." },
+  waitOthers: { en: "Waiting for the others…", de: "Warten auf die anderen …", vi: "Đang chờ mọi người…" },
+  allIn: { en: "Everyone's in. Pip is watching the play.", de: "Alle sind dabei. Pip schaut aufs Spiel.", vi: "Mọi người đã chọn. Pip đang theo dõi pha bóng." },
+  stOffline: { en: "No connection. Trying again…", de: "Keine Verbindung. Neuer Versuch …", vi: "Mất kết nối. Đang thử lại…" },
+  stNoRoom: { en: "Reconnecting to the room…", de: "Verbinde wieder mit dem Raum …", vi: "Đang kết nối lại phòng…" },
+  tvOffline: { en: "Connection lost. Phones can't reach this screen. Check the network.", de: "Verbindung verloren. Handys erreichen diesen Bildschirm nicht. Bitte das Netzwerk prüfen.", vi: "Mất kết nối. Điện thoại không tới được màn hình này. Hãy kiểm tra mạng." },
+  stTvQuiet: { en: "The TV has gone quiet. Open Pip on the TV again: your room is kept.", de: "Der Fernseher ist still. Öffne Pip dort erneut, der Raum bleibt erhalten.", vi: "TV đang im lặng. Hãy mở lại Pip trên TV, phòng vẫn được giữ." },
 } satisfies Record<string, Record<Lang, string>>;
 
 export function ui(key: keyof typeof UI, lang: Lang): string {

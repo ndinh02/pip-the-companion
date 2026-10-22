@@ -3,7 +3,8 @@
 //
 //   POST /api/rooms/:code/open            TV claims a room            -> { token }
 //   POST /api/rooms/:code/state   (TV)    TV publishes what is on screen (needs the token)
-//   GET  /api/rooms/:code/state?v=N       phones poll; 204 if nothing new since version N
+//   GET  /api/rooms/:code/state?v=N       phones poll; 204 if nothing new since version N. Both carry x-tv-age
+//                                         (ms since the TV last checked in) so phones can say "the TV has gone quiet".
 //   POST /api/rooms/:code/msg             phones send hello / answer / follow (validated, no free text)
 //   GET  /api/rooms/:code/inbox?after=N (TV)  TV collects phone messages (needs the token)
 import { randomBytes, timingSafeEqual } from "node:crypto";
@@ -79,7 +80,7 @@ const json = (res, status, body, headers) => {
 export async function handleRooms(req, res, url, headers) {
   const m = url.pathname.match(/^\/api\/rooms\/([^/]+)\/(open|state|msg|inbox)$/);
   if (!m) return false;
-  const send = (s, b) => json(res, s, b, headers);
+  const send = (s, b, extra) => json(res, s, b, extra ? { ...headers, ...extra } : headers);
   const ip = (req.headers["x-forwarded-for"]?.split(",")[0] ?? req.socket.remoteAddress ?? "?").trim();
   if (!allowed(ip)) return send(429, { error: "slow down" }), true;
   const [, code, action] = m;
@@ -110,8 +111,9 @@ export async function handleRooms(req, res, url, headers) {
     if (action === "state" && req.method === "GET") {
       if (!room || !room.state) return send(404, { error: "no screen in this room yet" }), true;
       const v = Number(url.searchParams.get("v") ?? -1);
-      if (v === room.version) return send(204), true;
-      return send(200, { v: room.version, state: room.state, age_ms: now - room.updated }), true;
+      const tvAge = { "x-tv-age": String(now - room.tvSeen) };
+      if (v === room.version) return send(204, undefined, tvAge), true;
+      return send(200, { v: room.version, state: room.state, age_ms: now - room.updated }, tvAge), true;
     }
     if (action === "msg" && req.method === "POST") {
       if (!room) return send(404, { error: "no screen in this room yet" }), true;

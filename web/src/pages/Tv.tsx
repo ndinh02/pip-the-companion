@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
-import Mascot from "../components/Mascot";
+import Mascot, { askPose } from "../components/Mascot";
 import AddedBreakdown from "../components/AddedBreakdown";
 import HalfTimeCard from "../components/HalfTimeCard";
 import Pitch from "../components/Pitch";
@@ -11,7 +11,7 @@ import { avatarOf } from "../lib/avatar";
 import { choiceStyle } from "../lib/choices";
 import { CAMERAS, type CameraId } from "../lib/cameras";
 import { addedHeadline } from "../lib/addedTime";
-import { useRoomChannel } from "../lib/channel";
+import { lastTvRoom, type RoomStatus, useRoomChannel } from "../lib/channel";
 import { buildHalf, HALF_MIN } from "../lib/halfTime";
 import { advance, buildTimeline, hurrying, nextMoment, OPENING_MS, type MomentKind, clockLabel, clockMinute, skipAhead, startClock, viewAt, type Clock, type Mode } from "../lib/matchClock";
 import { deadShot, goalShot } from "../lib/deadTime";
@@ -51,7 +51,9 @@ export default function Tv() {
 
   const room = useMemo(() => {
     const r = params.get("room")?.toUpperCase() ?? "";
-    return ROOM_RE.test(r) ? r : randomRoom();
+    if (ROOM_RE.test(r)) return r;
+    // Opening /tv again on the same device resumes its room, so a closed tab does not strand the phones.
+    return (params.get("fresh") ? null : lastTvRoom()) ?? randomRoom();
   }, [params]);
   useEffect(() => {
     if (params.get("room") !== room) setParams({ room }, { replace: true });
@@ -104,15 +106,11 @@ export default function Tv() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [card?.card_id, answerTick]);
   const answered = Object.values(tally).reduce((a, b) => a + b, 0);
-  // which phones (as their anonymous animals) picked each option
-  const pickers = useMemo(() => {
-    const out: Record<string, string[]> = {};
-    if (card) answers.current.get(card.card_id)?.forEach((opt, dev) => (out[opt] ??= []).push(avatarOf(dev)));
-    return out;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [card?.card_id, answerTick]);
+  // The TV shows counts only until the reveal, never who picked what (owner decision 2026-10-23): nobody is put on
+  // the spot in front of the room.
   allAnsweredRef.current = devices.current.size > 0 && answered >= devices.current.size;
 
+  const [link, setLink] = useState<RoomStatus>("ok"); // "offline" = this screen cannot reach the server (the alarm)
   const send = useRoomChannel(room, "tv", (m: Msg) => {
     if (m.t === "hello") {
       devices.current.add(m.device);
@@ -131,7 +129,7 @@ export default function Tv() {
       answers.current.set(m.card_id, per);
     } else return;
     setAnswerTick((n) => n + 1);
-  });
+  }, setLink);
 
   const half = useMemo(
     () => (match && phase === "half" ? buildHalf(match, answers.current, scoreAt(match, HALF_MIN)) : null),
@@ -209,6 +207,7 @@ export default function Tv() {
 
   return (
     <div className={`tv ${slow ? "replaying" : ""}`}>
+      {link === "offline" && <div className="tv-alarm" role="alert">{ui("tvOffline", lang)}</div>}
       {tracking && camera !== "tactical" ? (
         <Suspense fallback={<Pitch dots={dots} teams={match.teams} />}>
           <Stadium3D
@@ -292,10 +291,9 @@ export default function Tv() {
           <span className="as-done">✓ {phase === "locked" ? ui("answersClosed", lang) : `${ui("allAnswered", lang)} (${answered})`}</span>
           {card.question.options.map((o, i) => {
             const st = choiceStyle(i);
-            const who = pickers[o.id] ?? [];
             return (
               <span key={o.id} className="as-opt">
-                <i style={{ background: st.bg, color: st.fg }}>{st.shape}</i> {t(o.label, lang)} {who.length ? who.join("") : "–"}
+                <i style={{ background: st.bg, color: st.fg }}>{st.shape}</i> {t(o.label, lang)} {tally[o.id] ?? 0}
               </span>
             );
           })}
@@ -306,7 +304,7 @@ export default function Tv() {
       {card && !compact && (phase === "ask" || phase === "locked" || phase === "reveal") && (
         <section className={`lower-third ${phase === "locked" ? "ask locked" : phase}`} aria-live="polite">
           <div className="lt-head">
-            <Mascot pose={phase === "reveal" ? card.reveal.pose : "asks"} size={88} />
+            <Mascot pose={phase === "reveal" ? card.reveal.pose : askPose(card.trigger)} size={88} />
             <div>
               <div className="eyebrow">{ui("callIt", lang)} · {team?.name}</div>
               <h1>{t(card.question.text, lang)}</h1>
@@ -322,7 +320,7 @@ export default function Tv() {
                   const st = choiceStyle(i);
                   return (
                     <li key={o.id}>
-                      <span><i className="opt-shape" style={{ background: st.bg, color: st.fg }}>{st.shape}</i> {t(o.label, lang)} <span className="who">{(pickers[o.id] ?? []).join("")}</span></span>
+                      <span><i className="opt-shape" style={{ background: st.bg, color: st.fg }}>{st.shape}</i> {t(o.label, lang)}</span>
                       <span className="count" key={tally[o.id] ?? 0}>{tally[o.id] ?? 0}</span>
                     </li>
                   );
@@ -332,12 +330,15 @@ export default function Tv() {
                 {answered > 0 && <>{answered}/{Math.max(answered, devices.current.size)} {ui("answeredOf", lang)} · </>}
                 {phase === "ask" ? ui("openUntilRestart", lang) : ui("answersClosed", lang)}
               </p>
+              {phase === "ask" && <p className="window-note shout">{ui("shoutIt", lang)}</p>}
             </>
           )}
 
           {phase === "reveal" && (
             <>
-              <div className="eyebrow turf">{ui("matchSays", lang)}: {answerLabel(card, card.reveal.answer, lang)}</div>
+              {card.reveal.void
+                ? <div className="eyebrow">{ui("noClear", lang)} · {ui("noClearWhy", lang)}</div>
+                : <div className="eyebrow turf">{ui("matchSays", lang)}: {answerLabel(card, card.reveal.answer, lang)}</div>}
               <p className="plain">{fill(t(card.reveal.plain, lang), match.facts)}</p>
               <p className="pippi-call">{ui("pippiCalled", lang)}: {answerLabel(card, card.question.pippi_call, lang)}</p>
               <div className="bar"><i style={{ width: `${(1 - (view.progress ?? 0)) * 100}%` }} /></div>
@@ -397,6 +398,7 @@ export default function Tv() {
           {CAMERAS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
         </select>
         <button onClick={() => { answers.current.clear(); setClk((c) => ({ ...startClock(c.mode), speed: c.speed })); setAnswerTick((n) => n + 1); }}>Restart</button>
+        <button onClick={() => setParams({ room: randomRoom() })} title="Start a new room with a new code">New room</button>
         {LANGS.map((l) => (
           <button key={l} className={l === lang ? "on" : ""} onClick={() => setLang(l)}>{l.toUpperCase()}</button>
         ))}
