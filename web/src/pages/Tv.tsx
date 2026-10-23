@@ -11,7 +11,7 @@ import { CAMERAS, type CameraId } from "../lib/cameras";
 import { addedHeadline } from "../lib/addedTime";
 import { lastTvRoom, type RoomStatus, useRoomChannel } from "../lib/channel";
 import { buildHalf, HALF_MIN, triggerLabel } from "../lib/halfTime";
-import { advance, buildTimeline, hurrying, nextMoment, OPENING_MS, type MomentKind, clockLabel, clockMinute, skipAhead, startClock, viewAt, type Clock, type Mode } from "../lib/matchClock";
+import { advance, buildTimeline, hurrying, nextMoment, OPENING_MS, type MomentKind, clockBase, clockLabel, clockMinute, formatClock, skipAhead, startClock, viewAt, type Clock, type Mode } from "../lib/matchClock";
 import { deadShot, goalShot } from "../lib/deadTime";
 import { loadTracking, nearestToBall, positionsAt, type Tracking } from "../lib/tracking";
 import { deviceLang, fmt, ui } from "../lib/i18n";
@@ -212,7 +212,11 @@ function TvRoom({ room }: { room: string }) {
   const scorer = tl?.goals.filter((g) => clk.tMs >= g.t_ms && clk.tMs < g.t_ms + SCORER_FRESH_MS).pop()?.player_id ?? null;
   const minute = tl ? Math.floor(clockMinute(tl, clk.tMs)) : 0;
   const people = [...devices.current].map(animalOf);
-  const clock = tl ? clockLabel(tl, clk.tMs) : "0'";
+  const clockMin = tl ? clockMinute(tl, clk.tMs) : 0;
+  const base = tl ? clockBase(tl, clk.tMs) : 45;
+  const clock = formatClock(clockMin, base);
+  // How fast the match clock runs right now; 0 when it stands still (lobby, paused, half-time, full time).
+  const clockRate = kicked && clk.running && clk.halfUntil === null && phase !== "full" && phase !== "half" ? clk.speed : 0;
 
   // Push state to phones whenever something that matters changes (and on a heartbeat for late joiners).
   const lastSent = useRef("");
@@ -220,7 +224,7 @@ function TvRoom({ room }: { room: string }) {
   const broadcast = useCallback(() => {
     const now = Date.now();
     const msg: StateMsg = {
-      t: "state", phase: kicked ? phase : "lobby", minute, clock, card: kicked ? card : null, board, half,
+      t: "state", phase: kicked ? phase : "lobby", minute, clock, clock_min: clockMin, clock_base: base, clock_rate: clockRate, card: kicked ? card : null, board, half,
       // No countdown while a question is open: live, nobody knows when play restarts.
       deadline: phase === "reveal" ? now + revealLeft : 0,
       total_ms: phase === "reveal" ? 12_000 / clk.speed : 0,
@@ -228,21 +232,25 @@ function TvRoom({ room }: { room: string }) {
       answered_by: card ? [...(answers.current.get(card.card_id)?.keys() ?? [])].map(animalOf) : [],
       people,
     };
-    const key = JSON.stringify([msg.phase, msg.minute, msg.card?.card_id, msg.board?.period, msg.half?.rows.length, msg.tally, msg.scorer, people]);
+    const key = JSON.stringify([msg.phase, msg.minute, msg.card?.card_id, msg.board?.period, msg.half?.rows.length, msg.tally, msg.scorer, people, clockRate]);
     if (key !== lastSent.current) {
       lastSent.current = key;
       send(msg);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, minute, clock, card, board, half, tally, answered, scorer, revealLeft, clk.speed, send, kicked, people.join("")]);
+  }, [phase, minute, clock, clockMin, base, card, board, half, tally, answered, scorer, revealLeft, clk.speed, send, kicked, people.join(""), clockRate]);
   useEffect(broadcast, [broadcast]);
+  // Heartbeat: resend the latest state every 1.5 s (late joiners, and phones keep their clock in step). The timer is
+  // stable; it calls whatever broadcast is current, so the time it sends is never stale.
+  const broadcastRef = useRef(broadcast);
+  broadcastRef.current = broadcast;
   useEffect(() => {
     const id = setInterval(() => {
       lastSent.current = "";
-      broadcast();
+      broadcastRef.current();
     }, 1500);
     return () => clearInterval(id);
-  }, [broadcast]);
+  }, []);
 
   if (error) return <div className="center">Could not load the match: {error}</div>;
   if (!match || !tl || !view) return <div className="center">…</div>;
@@ -318,6 +326,7 @@ function TvRoom({ room }: { room: string }) {
         <span className="score">{score.HAR} – {score.COP}</span>
         <span className="team" style={{ borderColor: away.kit.primary }}>{away.short_name}</span>
         <span className="clock">{clock}</span>
+        {kicked && clockRate === 0 && phase !== "half" && phase !== "full" && <span className="clock-paused">{ui("lvPaused", lang).toUpperCase()}</span>}
       </div>
 
       {goalNow && (

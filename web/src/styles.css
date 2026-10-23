@@ -688,3 +688,50 @@ a { color: var(--sky); }
   .q-sheet { bottom: 24px; border-radius: 24px; }
   .q-scrim { border-radius: 0; }
 }
+
+/* ---------- My player tab (re-audited 2026-10-23): list → profile → follow, all inside the tab ---------- */
+.q-back-row { align-self: flex-start; padding: 2px 0; }
+.q-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: var(--q-paper-2); border-radius: 999px; }
+.q-seg button { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; border: 0; border-radius: 999px; background: transparent; font: inherit; font-weight: 700; font-size: 14px; color: var(--q-muted); }
+.q-seg button.on { background: var(--q-card); color: var(--q-ink); box-shadow: 0 1px 3px rgba(20, 32, 47, 0.12); }
+.q-seg i { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.q-players { display: grid; gap: 8px; }
+.q-prow { display: flex; align-items: center; gap: 12px; width: 100%; background: var(--q-card); border: 1px solid var(--q-line); border-radius: 14px; padding: 8px 12px 8px 8px; font: inherit; color: var(--q-ink); text-align: left; }
+.q-prow.idle { opacity: 0.6; }
+.q-face { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; overflow: hidden; flex: none; font-size: 22px; }
+.q-face img { width: 100%; height: 100%; object-fit: cover; }
+.q-prow .q-shirt { width: 32px; height: 32px; border-radius: 10px; font-size: 13px; }
+.q-prow-text { flex: 1; display: grid; gap: 2px; min-width: 0; }
+.q-shirt.big { width: 48px; height: 48px; border-radius: 14px; font-size: 18px; }
+.q-hero-card { display: grid; gap: 8px; padding: 10px 14px 14px; }
+.q-pid { display: flex; align-items: center; gap: 12px; }
+.q-pid > div { flex: 1; min-width: 0; }
+.q-badge { background: var(--q-ink); color: var(--q-paper); border-radius: 999px; padding: 6px 10px; font-size: 12px; font-weight: 800; white-space: nowrap; }
+.q-statgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.q-statgrid div { background: var(--q-card); border: 1px solid var(--q-line); border-radius: 12px; padding: 10px 8px; font-size: 11px; color: var(--q-muted); line-height: 1.25; }
+.q-statgrid b { display: block; font-size: 17px; color: var(--q-ink); letter-spacing: -0.01em; }
+.q-notes { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 6px; font-size: 13px; line-height: 1.4; }
+.q-notes li { display: grid; grid-template-columns: 34px 1fr; gap: 6px; }
+.q-allstats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; margin: 4px 0 8px; font-size: 13px; }
+.q-allstats div { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--q-line); padding: 4px 0; }
+.q-allstats dt { color: var(--q-muted); }
+.q-allstats dd { margin: 0; font-weight: 700; }
+.q-path { display: grid; gap: 8px; }
+.q-pitch { border-radius: 12px; overflow: hidden; background: #0F2E26; }
+.q-pitch svg { display: block; width: 100%; height: auto; }
+@media (max-width: 360px) { .q-statgrid { grid-template-columns: repeat(2, 1fr); } }
+
+/* Live indicator: is the room still updating? (green live, amber paused, grey not updating) */
+.q-status .q-now.paused i { background: #C9A13B; box-shadow: 0 0 0 4px rgba(201, 161, 59, 0.2); }
+.q-status .q-now.stale i { background: #8A8F98; box-shadow: none; }
+.q-status .q-now.live i { animation: q-live 1.6s ease-in-out infinite; }
+@keyframes q-live { 50% { box-shadow: 0 0 0 7px rgba(63, 122, 82, 0.05); } }
+.q-fresh { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--q-muted); }
+.q-fresh i { width: 8px; height: 8px; border-radius: 50%; background: var(--q-right); flex: none; }
+.q-fresh.paused i { background: #C9A13B; }
+.q-fresh.stale i, .q-fresh.ended i { background: #8A8F98; }
+.q-fresh.stale { color: #6E2B23; font-weight: 700; }
+.q-statgrid b { font-size: 15px; }
+.scoreboard .clock { font-variant-numeric: tabular-nums; min-width: 4.6ch; }
+.scoreboard .clock-paused { color: var(--dim); font-size: 0.75em; letter-spacing: 0.1em; }
+@media (prefers-reduced-motion: reduce) { .q-status .q-now.live i { animation: none; } }

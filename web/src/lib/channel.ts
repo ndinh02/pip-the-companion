@@ -279,6 +279,7 @@ export function useRoomChannel(room: string, role: Role, onMessage: (m: Msg) => 
             v = data.v;
             const { remaining_ms, ...state } = data.state;
             if (remaining_ms !== undefined) state.deadline = Date.now() + remaining_ms - data.age_ms;
+            state.clock_at = Date.now() - data.age_ms; // the clock was true this long ago (phone clocks need not agree)
             handler.current(state);
           } catch {
             report("offline"); // next poll tries again

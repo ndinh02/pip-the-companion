@@ -102,6 +102,16 @@ export function clockLabel(tl: Timeline, tMs: number): string {
   return m >= base ? `${base}+${Math.floor(m - base) + 1}'` : `${Math.floor(m)}'`;
 }
 
+/** Broadcast-style match time: "22:14", and in added time "45:00 +1:23" / "90:00 +3:05". `minute` is fractional. */
+export function formatClock(minute: number, base: 45 | 90): string {
+  const total = Math.max(0, Math.floor(minute * 60));
+  const mmss = (sec: number, pad = true) => `${pad ? String(Math.floor(sec / 60)).padStart(2, "0") : Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
+  return total >= base * 60 ? `${mmss(base * 60)} +${mmss(total - base * 60, false)}` : mmss(total);
+}
+
+/** The period's regulation end (45 or 90) for a match time. */
+export const clockBase = (tl: Timeline, tMs: number): 45 | 90 => (tMs < tl.periods[1].start_ms ? 45 : 90);
+
 export interface Clock {
   tMs: number;
   running: boolean;

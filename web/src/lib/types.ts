@@ -108,8 +108,15 @@ export interface StateMsg {
   t: "state";
   phase: Phase;
   minute: number;
-  /** "23'", "45+2'" */
+  /** "23:14", "45:00 +1:23" at the moment the TV sent it */
   clock: string;
+  /** Match time in minutes (fractional) when sent, its period end, and how fast it runs (0 = stopped: paused,
+   *  half-time, lobby, full time). Phones count the clock forward from these between updates. */
+  clock_min?: number;
+  clock_base?: 45 | 90;
+  clock_rate?: number;
+  /** Phone-side only: when this state was true on the TV, in the phone's own clock. */
+  clock_at?: number;
   card: Card | null;
   board: AddedBoard | null;
   half: HalfSummary | null;

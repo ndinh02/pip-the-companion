@@ -1,28 +1,26 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import AddedBreakdown from "../components/AddedBreakdown";
-import WhosThat from "../components/WhosThat";
-import { FollowView } from "../components/FollowView";
+import PlayerTab from "../components/PlayerTab";
 import { loadTracking, type Tracking } from "../lib/tracking";
+import { formatClock } from "../lib/matchClock";
 import Mascot, { askPose } from "../components/Mascot";
 import { addedHeadline } from "../lib/addedTime";
 import { deviceId, useRoomChannel, type RoomStatus } from "../lib/channel";
 import { NAME } from "../lib/brand";
 import { HALF_MIN, shareText, triggerLabel } from "../lib/halfTime";
-import { clampMinute, loadFollow, POSITION_LABEL, saveFollow, teamName } from "../lib/whoThat";
+import { loadFollow, saveFollow, teamName } from "../lib/whoThat";
 import { deviceLang, fmt, ui } from "../lib/i18n";
 import { animalName, avatarOf, AVATARS, nextFreeAnimal } from "../lib/avatar";
 import { kitOf } from "../lib/kit";
 import Confetti from "../components/Confetti";
-import LiveStats from "../components/LiveStats";
 import { choiceStyle } from "../lib/choices";
 import { alertsWanted, buzz, disableAlerts, enableAlerts, keepAwake, resumeSound } from "../lib/buzz";
 import { answerLabel, fill, loadMatch, loadPlayers, ROOM_RE, scoreAt, t } from "../lib/match";
 import { forgetPhoneRoom, inAppBrowser, loadPhoneRoom, savePhoneRoom, type PhoneRoom } from "../lib/phoneRoom";
 import { LANGS, type Card, type HalfSummary, type Lang, type Match, type Msg, type PlayersFeed, type StateMsg } from "../lib/types";
 
-const PlayerModel = lazy(() => import("../components/PlayerModel"));
 type Tab = "match" | "player" | "room";
 type Sheet = "invite" | "leave" | "animal" | null;
 
@@ -58,9 +56,7 @@ export default function Play() {
   const askSeen = useRef(new Set<string>()); // questions this phone saw while they were open
   const [half, setHalf] = useState<HalfSummary | null>(null);
   const [showHalf, setShowHalf] = useState(false);
-  const [showWho, setShowWho] = useState(false);
-  const [whoStart, setWhoStart] = useState<string | null>(null);
-  const [showFollow, setShowFollow] = useState(false);
+  const [viewId, setViewId] = useState<string | null>(null); // a player profile being looked at in "My player"
   const [tracking, setTracking] = useState<Tracking | null>(null);
   const [followId, setFollowId] = useState<string | null>(loadFollow);
   const [alerts, setAlerts] = useState(alertsWanted);
@@ -83,7 +79,7 @@ export default function Play() {
 
   // Listen before joining too: the animal screen shows who is already in the room.
   const send = useRoomChannel(valid ? room : "INVALID", "phone", (m: Msg) => {
-    if (m.t === "state") setState(m);
+    if (m.t === "state") setState({ ...m, clock_at: m.clock_at ?? Date.now() }); // same-browser demo: no network delay
   }, setLink);
 
   const update = (f: (p: PhoneRoom) => PhoneRoom) =>
@@ -112,8 +108,9 @@ export default function Play() {
   }, [saved, people, draft]);
 
   useEffect(() => {
-    if (match && followId && !tracking) loadTracking(match).then(setTracking);
-  }, [match, followId, tracking]);
+    // Positions are a big file: fetch them only once a profile (with its running path) is shown.
+    if (match && (followId || viewId) && !tracking) loadTracking(match).then(setTracking);
+  }, [match, followId, viewId, tracking]);
   const tvSeen = !!state;
   useEffect(() => {
     if (valid && saved && tvSeen) send({ t: "follow", device, player_id: followId });
@@ -124,8 +121,6 @@ export default function Play() {
   useEffect(() => {
     if (!askId) return;
     askSeen.current.add(askId);
-    setShowWho(false); // a question always takes over the screen
-    setShowFollow(false);
     setSheet(null);
     if (saved) buzz("ask");
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -150,6 +145,13 @@ export default function Play() {
       document.removeEventListener("visibilitychange", back);
     };
   }, [alerts]);
+
+  // The clock counts on the phone between the TV's updates (every 1.5 s), so it never looks frozen.
+  const [tick, setTick] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setTick(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   if (!valid)
     return (
@@ -229,6 +231,15 @@ export default function Play() {
     saveFollow(id);
   };
   const minute = state?.minute ?? 0;
+  // Is the room live? "live": updates arriving and the clock running; "paused": the TV clock stands still (pause,
+  // half-time); "stale": no update for a while or no connection, so numbers on this phone may be out of date.
+  const since = state?.clock_at ? tick - state.clock_at : Infinity;
+  const rate = state?.clock_rate ?? 0;
+  const fresh: "live" | "paused" | "stale" = link !== "ok" || since > 8000 ? "stale" : rate > 0 ? "live" : "paused";
+  const liveClock = state?.clock_min !== undefined && state.clock_base
+    ? formatClock(state.clock_min + (fresh === "stale" ? 0 : (Math.max(0, since) / 60_000) * rate), state.clock_base)
+    : state?.clock ?? "";
+  const freshWord = ui(fresh === "live" ? "mtLive" : fresh === "paused" ? "lvPaused" : "lvStale", lang);
   const score = match && state && state.phase !== "lobby" ? scoreAt(match, minute) : { HAR: 0, COP: 0 };
   const scoreLine = match ? `${match.teams[0].short_name} ${score.HAR}–${score.COP} ${match.teams[1].short_name}` : "";
   const isDone = (c: Card) =>
@@ -259,7 +270,7 @@ export default function Play() {
 
   const topbar = (
     <div className="q-top">
-      <span className="q-mono"><b>{room}</b> · {state && state.phase !== "lobby" ? state.clock : ui("mtPre", lang)}</span>
+      <span className="q-mono"><b>{room}</b> · {state && state.phase !== "lobby" ? liveClock : ui("mtPre", lang)}</span>
       <People list={inRoom} />
     </div>
   );
@@ -347,7 +358,7 @@ export default function Play() {
         <div className="q-pick-hint">{ui("liLater", lang)}</div>
       </div>
     );
-  } else if (card && phase === "locked") {
+  } else if (card && phase === "locked" && !before(card)) {
     withTabs = false;
     const slept = !askSeen.current.has(card.card_id) && !before(card);
     const i = mine ? card.question.options.findIndex((o) => o.id === mine) : -1;
@@ -372,7 +383,8 @@ export default function Play() {
         </div>
       </div>
     );
-  } else if (card && match && phase === "reveal" && !seen[card.card_id]) {
+  } else if (card && match && phase === "reveal" && !seen[card.card_id] && !before(card)) {
+    // A question from before this phone joined is in the catch-up card, not a "you missed it" screen.
     withTabs = false;
     const voided = !!card.reveal.void;
     const right = !voided && !!mine && mine === card.reveal.answer;
@@ -420,31 +432,12 @@ export default function Play() {
     screen = (
       <div className="q-screen">
         {topbar}
-        {followed && match && players ? (
-          <>
-            <div className="q-card q-player" style={{ background: `linear-gradient(180deg, ${kitOf(followed.player_id, match.teams).primary}33, var(--q-card) 70%)` }}>
-              <Suspense fallback={<div style={{ height: 200 }} />}>
-                <PlayerModel playerId={followed.player_id} teams={match.teams} height={200} />
-              </Suspense>
-              <h2>{teamName(match, followed.team_id)} #{followed.shirt_no}</h2>
-              <div className="q-small q-muted">{POSITION_LABEL[followed.position][lang]} · {ui("mtFollowing", lang)}</div>
-            </div>
-            <div className="q-dark"><LiveStats p={followed} m={clampMinute(players, minute)} lang={lang} match={match} /></div>
-            <p className="q-small q-muted">{ui("plNote", lang)}</p>
-            <div className="q-fill" />
-            <div className="q-two">
-              <button className="q-btn ghost" onClick={() => setShowFollow(true)}>{ui("wherePitch", lang)}</button>
-              <button className="q-btn ghost" onClick={() => { setWhoStart(null); setShowWho(true); }}>{ui("changePlayer", lang)}</button>
-            </div>
-          </>
+        {players && match ? (
+          <PlayerTab match={match} feed={players} tracking={tracking} minute={minute} lang={lang} followId={followId} onFollow={onFollow} viewId={viewId} onView={setViewId} fresh={fresh} />
         ) : (
-          <>
-            <h2>{ui("plTitle", lang)}</h2>
-            <p className="q-small q-muted">{ui("plText", lang)}</p>
-            <div className="q-fill q-centered"><Mascot pose="perch" size={110} /></div>
-            <button className="q-btn" disabled={!players} onClick={() => { setWhoStart(null); setShowWho(true); }}>☆ {ui("plChoose", lang)}</button>
-          </>
+          <div className="q-fill q-centered"><Mascot pose="perch" size={110} /><p className="q-muted">{ui("loadingTracking", lang)}</p></div>
         )}
+        <div className="q-fill" />
         {tabbar}
       </div>
     );
@@ -554,7 +547,7 @@ export default function Play() {
           </div>
         )}
         <div className="q-card q-status">
-          <div className="q-now q-mono"><i />{ui("mtLive", lang)} · {scoreLine}</div>
+          <div className={`q-now q-mono ${fresh}`}><i />{freshWord} · {liveClock} · {scoreLine}</div>
           <b className="q-lead">{ui("mtEyes", lang)}</b>
           <div className="q-dots" aria-hidden="true">
             {(match?.cards ?? []).map((c) => {
@@ -571,7 +564,7 @@ export default function Play() {
         })())}
         <div className="q-fill" />
         {state.scorer && players?.players.some((p) => p.player_id === state.scorer) && (
-          <button className="q-btn soft" onClick={() => { setWhoStart(state.scorer ?? null); setShowWho(true); }}>⚽ {ui("mtScorer", lang)}</button>
+          <button className="q-btn soft" onClick={() => { setViewId(state.scorer ?? null); setTab("player"); }}>⚽ {ui("mtScorer", lang)}</button>
         )}
         {half && <button className="q-btn soft" onClick={() => setShowHalf(true)}>{ui("mtHalfCard", lang)}</button>}
         {followed && match ? (
@@ -653,7 +646,6 @@ export default function Play() {
       </div>
     ) : null;
 
-  const takeover = showWho || showFollow;
   return (
     <div className="q-ph">
       {screen && (withTabs ? (
@@ -666,18 +658,6 @@ export default function Play() {
       {sheetView}
       {overlay}
       {toast && <div className="q-toast" role="status">{toast}</div>}
-      {takeover && players && match && state && (
-        // "Who's that?" and the pitch view keep their own (dark) look, full screen above the tabs.
-        <div className="q-takeover phone">
-          {showWho && !showFollow && (
-            <WhosThat key={whoStart ?? "pick"} startId={whoStart} match={match} feed={players} minute={state.minute} lang={lang} followId={followId}
-              onFollow={(id) => { onFollow(id); if (id) setTab("player"); }} onClose={() => setShowWho(false)} />
-          )}
-          {showFollow && followed && (
-            <FollowView match={match} feed={players} tracking={tracking} p={followed} minute={state.minute} lang={lang} onClose={() => setShowFollow(false)} />
-          )}
-        </div>
-      )}
     </div>
   );
 }
