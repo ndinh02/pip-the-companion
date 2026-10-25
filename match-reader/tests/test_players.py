@@ -430,14 +430,19 @@ class DeterminismTest(unittest.TestCase):
                          dumps(build_players(tracked, tracking)))
 
     def test_cli_seed_equals_files(self) -> None:
-        repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + "/.."
+        # --seed mode and --match/--tracking mode must agree. The files are written by match-lab's own CLI in this
+        # same run, not taken from data/: the committed files come from the owner's Mac, and the long simulation
+        # rounds a little differently on Linux (CI), so a fresh seed-43 run there is not byte-identical to them
+        # (CI 2026-10-25: COP-11 11.97 km vs 11.91 km). The committed data is checked by the seed-43 QA step.
+        from matchlab.track import main as track_main
         with tempfile.TemporaryDirectory() as tmp:
             a = os.path.join(tmp, "a.json")
             b = os.path.join(tmp, "b.json")
+            tracked_path = os.path.join(tmp, "tracked.json")
+            tracking_path = os.path.join(tmp, "tracking.json")
+            track_main(["--seed", "43", "--out-match", tracked_path, "--out-tracking", tracking_path])
             main(["--seed", "43", "--out", a])
-            main(["--match", os.path.join(repo, "data", "tracked-seed-43.json"),
-                  "--tracking", os.path.join(repo, "data", "tracking-seed-43.json"),
-                  "--out", b])
+            main(["--match", tracked_path, "--tracking", tracking_path, "--out", b])
             with open(a, encoding="utf-8") as fh:
                 from_a = fh.read()
             with open(b, encoding="utf-8") as fh:
