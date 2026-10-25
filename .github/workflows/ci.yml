@@ -1,4 +1,6 @@
 # Checks on every push and pull request; deploys the web app from main once the Azure token secret exists.
+# The deploy waits for the web checks only (owner decision 2026-10-25): the match simulation is not yet repeatable on
+# Linux runners, which keeps some Python byte-compare checks red; the `determinism` job reports where runs part.
 name: ci
 
 on:
@@ -9,7 +11,7 @@ permissions:
   contents: read
 
 jobs:
-  check:
+  python:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -46,6 +48,11 @@ jobs:
             python3 scripts/match_qa.py --events "$out/m$n.json" --tracking "$out/t$n.json"
           done
 
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -72,11 +79,23 @@ jobs:
         working-directory: web
         run: node --test server/server.test.mjs
 
+  determinism:
+    # Diagnostic, never blocks: is seed 43 the same match twice on Linux? Findings appear as warnings on the run page.
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+      - name: Run seed 43 several ways and report the first difference
+        run: python3 scripts/diag_determinism.py 43
+
   deploy:
     # Runs only on main, after the checks pass, and only once the publish profile secret and the app name are set.
     # Hosting: Azure App Service (Linux, Node 22, Free F1, France Central). Static Web Apps is not available in the
     # regions this Azure for Students subscription may use (docs/OPEN_QUESTIONS.md).
-    needs: check
+    needs: web
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     env:
