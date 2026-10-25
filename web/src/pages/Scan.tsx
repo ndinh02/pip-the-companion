@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { deviceLang, fmt, ui } from "../lib/i18n";
+import { fmt, ui } from "../lib/i18n";
+import { useLang } from "../lib/lang";
 import { ROOM_RE } from "../lib/match";
-import type { Lang } from "../lib/types";
 
 /** The room code inside a Pip link ("https://…/play/ABCD"), or null. Only the four-character code is kept: the rest of
  *  the text (from a QR or the clipboard) is never shown, stored or sent anywhere. */
@@ -46,7 +46,7 @@ const GIVE_UP_MS = 15_000; // no Pip code seen this long: offer the other ways i
  *  ("QR not found") to pasting an invite link a friend copied (Room → Invite → Copy invite link) or typing the code. */
 export default function Scan() {
   const nav = useNavigate();
-  const [lang] = useState<Lang>(deviceLang);
+  const [lang] = useLang();
   const video = useRef<HTMLVideoElement>(null);
   const [found, setFound] = useState<string | null>(null);
   const [notPip, setNotPip] = useState(false);

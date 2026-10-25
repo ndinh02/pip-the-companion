@@ -99,6 +99,13 @@ export interface HalfSummary {
   rows: HalfRow[];
 }
 
+export interface HistoryItem {
+  card_id: string;
+  tally: Record<string, number>;
+  /** option id -> animals that picked it */
+  by: Record<string, string[]>;
+}
+
 /** "locked": play has restarted, answers are closed, the outcome is coming. */
 /** "lobby": the room is open but the host has not pressed Kick off yet. */
 export type Phase = "lobby" | "play" | "ask" | "locked" | "reveal" | "added" | "half" | "full";
@@ -128,6 +135,13 @@ export interface StateMsg {
   answered_by?: string[];
   /** The animals of every phone in the room, so phones and the TV corner show the same faces. */
   people?: string[];
+  /** The score as the TV shows it (from the tracking), so phones never run ahead of or behind the screen. */
+  score?: { HAR: number; COP: number };
+  /** The room's name, picked by the host from a fixed list (no typing, AGENTS.md rule 5). */
+  room_name?: string;
+  /** Every question the match has answered so far: how many picked each option and which animals did (shown only
+   *  after the outcome, owner decision 15). Card text is looked up by card_id in the match file. */
+  history?: HistoryItem[];
   /** Phones that joined the room (a count only). */
   joined?: number;
   /** The latest goal's scorer while it is fresh (a few match minutes), so phones can offer their profile. */

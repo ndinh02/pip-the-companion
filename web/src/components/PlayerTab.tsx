@@ -9,6 +9,7 @@ import {
 } from "../lib/whoThat";
 import type { Lang, Match, PlayerRow, PlayersFeed } from "../lib/types";
 import Pitch from "./Pitch";
+import Crest from "./Crest";
 
 const PlayerModel = lazy(() => import("./PlayerModel"));
 
@@ -65,11 +66,10 @@ function PlayerList({ match, feed, m, lang, followId, onPick, onCancel }: {
     <>
       {onCancel && <button className="q-back q-back-row" onClick={onCancel}>‹ {ui("yourPlayer", lang)}</button>}
       <h2>{ui("plTitle", lang)}</h2>
-      <p className="q-small q-muted">{ui("plText", lang)}</p>
       <div className="q-seg" role="tablist" aria-label={ui("pickTeam", lang)}>
         {match.teams.map((t) => (
           <button key={t.team_id} role="tab" aria-selected={team === t.team_id} className={team === t.team_id ? "on" : ""} onClick={() => setTeam(t.team_id)}>
-            <i style={{ background: t.kit.primary }} />{t.name}
+            <Crest team={t} size={44} /><span>{t.name}</span>
           </button>
         ))}
       </div>

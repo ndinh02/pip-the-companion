@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Mascot from "../components/Mascot";
-import { deviceLang, fmt, ui } from "../lib/i18n";
+import { fmt, ui } from "../lib/i18n";
+import { useLang } from "../lib/lang";
 import { lastPhoneRoom } from "../lib/phoneRoom";
-import { LANGS, type Lang } from "../lib/types";
+import { LANGS } from "../lib/types";
 
 /** The phone's front door (room prototype "Start"): join a room, rejoin the last one, or learn how to start one on a TV.
  *  The main buttons sit low, in thumb reach. */
 export default function Home() {
   const nav = useNavigate();
-  const [lang, setLang] = useState<Lang>(deviceLang);
+  const [lang, setLang] = useLang();
   const [howTv, setHowTv] = useState(false);
   const last = lastPhoneRoom();
   const host = location.host;

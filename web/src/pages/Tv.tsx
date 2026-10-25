@@ -2,6 +2,8 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { useSearchParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import Mascot, { askPose } from "../components/Mascot";
+import Crest from "../components/Crest";
+import { nextRoomName, ROOM_NAMES } from "../lib/roomNames";
 import AddedBreakdown from "../components/AddedBreakdown";
 import Pitch from "../components/Pitch";
 import ScorerSpotlight from "../components/ScorerSpotlight";
@@ -10,14 +12,14 @@ import { choiceStyle } from "../lib/choices";
 import { CAMERAS, type CameraId } from "../lib/cameras";
 import { addedHeadline } from "../lib/addedTime";
 import { lastTvRoom, type RoomStatus, useRoomChannel } from "../lib/channel";
-import { buildHalf, HALF_MIN, triggerLabel } from "../lib/halfTime";
-import { advance, buildTimeline, hurrying, nextMoment, OPENING_MS, type MomentKind, clockBase, clockLabel, clockMinute, formatClock, skipAhead, startClock, viewAt, type Clock, type Mode } from "../lib/matchClock";
+import { buildHalf, HALF_MIN } from "../lib/halfTime";
+import { advance, buildTimeline, hurrying, nextMoment, type MomentKind, clockBase, clockLabel, clockMinute, formatClock, skipAhead, startClock, viewAt, type Clock, type Mode } from "../lib/matchClock";
 import { deadShot, goalShot } from "../lib/deadTime";
 import { loadTracking, nearestToBall, positionsAt, type Tracking } from "../lib/tracking";
 import { deviceLang, fmt, ui } from "../lib/i18n";
 import { NAME } from "../lib/brand";
 import { answerLabel, fill, loadAddedTime, loadMatch, loadPlayers, randomRoom, ROOM_RE, scoreAt, t } from "../lib/match";
-import { LANGS, type AddedTime, type Lang, type Match, type Msg, type PlayersFeed, type StateMsg } from "../lib/types";
+import { LANGS, type HistoryItem, type AddedTime, type Lang, type Match, type Msg, type PlayersFeed, type StateMsg } from "../lib/types";
 
 // The 3D view is a big library: load it only on the shared screen (phones never download it).
 const Stadium3D = lazy(() => import("../components/Stadium3D"));
@@ -218,6 +220,50 @@ function TvRoom({ room }: { room: string }) {
   // How fast the match clock runs right now; 0 when it stands still (lobby, paused, half-time, full time).
   const clockRate = kicked && clk.running && clk.halfUntil === null && phase !== "full" && phase !== "half" ? clk.speed : 0;
 
+  // The score changes when the ball is in the goal on screen (from the tracking), not at the minute in the event list.
+  // Phones get exactly this score, so the room never sees two different numbers.
+  const score = { HAR: 0, COP: 0 };
+  if (tl && match) {
+    for (const g of tl.goals) if (clk.tMs >= g.t_ms) score[g.team_id as "HAR" | "COP"] += 1;
+    if (!tl.goals.length) Object.assign(score, scoreAt(match, clockMinute(tl, clk.tMs)));
+  }
+  // Every question the match has answered so far, with the room's picks (phones show it as the chat history).
+  const doneKey = (match?.cards ?? [])
+    .filter((c) => (c.reveal_ms !== undefined ? clk.tMs >= c.reveal_ms : c.t_in_min < minute))
+    .map((c) => c.card_id).join(",");
+  const history = useMemo<HistoryItem[]>(
+    () => (doneKey ? doneKey.split(",") : []).map((id) => {
+      const tallyH: Record<string, number> = {};
+      const by: Record<string, string[]> = {};
+      answers.current.get(id)?.forEach((opt, dev) => {
+        tallyH[opt] = (tallyH[opt] ?? 0) + 1;
+        (by[opt] ??= []).push(animalOf(dev));
+      });
+      return { card_id: id, tally: tallyH, by };
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [doneKey, answerTick],
+  );
+  // The room's name: the host taps through a fixed list (no typing, AGENTS.md rule 5); kept on this TV.
+  const nameKey = `pip:tv-name:${room}`;
+  const [roomName, setRoomName] = useState<string>(() => {
+    try {
+      return localStorage.getItem(nameKey) ?? ROOM_NAMES[room.charCodeAt(0) % ROOM_NAMES.length];
+    } catch {
+      return ROOM_NAMES[0];
+    }
+  });
+  const renameRoom = () =>
+    setRoomName((n) => {
+      const v = nextRoomName(n);
+      try {
+        localStorage.setItem(nameKey, v);
+      } catch {
+        /* private mode */
+      }
+      return v;
+    });
+
   // Push state to phones whenever something that matters changes (and on a heartbeat for late joiners).
   const lastSent = useRef("");
   const revealLeft = view?.phase === "reveal" && view.progress !== null ? ((1 - view.progress) * 12_000) / clk.speed : 0;
@@ -230,15 +276,15 @@ function TvRoom({ room }: { room: string }) {
       total_ms: phase === "reveal" ? 12_000 / clk.speed : 0,
       tally, answered, scorer, joined: devices.current.size,
       answered_by: card ? [...(answers.current.get(card.card_id)?.keys() ?? [])].map(animalOf) : [],
-      people,
+      people, score, room_name: roomName, history,
     };
-    const key = JSON.stringify([msg.phase, msg.minute, msg.card?.card_id, msg.board?.period, msg.half?.rows.length, msg.tally, msg.scorer, people, clockRate]);
+    const key = JSON.stringify([msg.phase, msg.minute, msg.card?.card_id, msg.board?.period, msg.half?.rows.length, msg.tally, msg.scorer, people, clockRate, score, roomName, doneKey]);
     if (key !== lastSent.current) {
       lastSent.current = key;
       send(msg);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, minute, clock, clockMin, base, card, board, half, tally, answered, scorer, revealLeft, clk.speed, send, kicked, people.join(""), clockRate]);
+  }, [phase, minute, clock, clockMin, base, card, board, half, tally, answered, scorer, revealLeft, clk.speed, send, kicked, people.join(""), clockRate, score.HAR, score.COP, roomName, history]);
   useEffect(broadcast, [broadcast]);
   // Heartbeat: resend the latest state every 1.5 s (late joiners, and phones keep their clock in step). The timer is
   // stable; it calls whatever broadcast is current, so the time it sends is never stale.
@@ -252,17 +298,36 @@ function TvRoom({ room }: { room: string }) {
     return () => clearInterval(id);
   }, []);
 
+  // On-screen furniture the host can put away: the corner QR, the lobby card, the half/full-time chip, help, "More".
+  const [cornerOpen, setCornerOpen] = useState(false);
+  const [lobbyHidden, setLobbyHidden] = useState(false);
+  const [chip, setChip] = useState<{ phase: string; at: number; closed: boolean }>({ phase: "", at: 0, closed: false });
+  useEffect(() => {
+    if (phase === "half" || phase === "full") setChip({ phase, at: Date.now(), closed: false });
+  }, [phase]);
+  const [help, setHelp] = useState(() => {
+    try {
+      return !localStorage.getItem("pip:tv-help-seen"); // first time on this TV: show how it works
+    } catch {
+      return false;
+    }
+  });
+  const closeHelp = () => {
+    setHelp(false);
+    try {
+      localStorage.setItem("pip:tv-help-seen", "1");
+    } catch {
+      /* private mode */
+    }
+  };
+  const [more, setMore] = useState(false);
+
   if (error) return <div className="center">Could not load the match: {error}</div>;
   if (!match || !tl || !view) return <div className="center">…</div>;
 
-  // The score changes when the ball is in the goal on screen (from the tracking), not at the minute in the event list.
-  const score = { HAR: 0, COP: 0 };
-  for (const g of tl.goals) if (clk.tMs >= g.t_ms) score[g.team_id as "HAR" | "COP"] += 1;
-  if (!tl.goals.length) Object.assign(score, scoreAt(match, clockMinute(tl, clk.tMs)));
   const home = match.teams[0];
   const away = match.teams[1];
   const joinUrl = `${location.origin}/play/${room}`;
-  const team = card ? match.teams.find((x) => x.team_id === card.team_id) : undefined;
   // At the reveal, show the moment again like TV does: from just before the kick to just after the outcome.
   const replayLen = card ? card.reveal_ms + REPLAY_POST_MS - (card.restart_ms - REPLAY_PRE_MS) : 0;
   const intoReveal = card && phase === "reveal" ? clk.tMs - card.reveal_ms : -1;
@@ -281,7 +346,12 @@ function TvRoom({ room }: { room: string }) {
   const goalTeam = goalNow ? match.teams.find((x) => x.team_id === goalNow.team_id) : undefined;
   const nextKind = clk.skipped ? nextMoment(tl, clk.skipped.to, clk.halfDone) : null;
   const host = location.host;
-  const doneCards = match.cards.filter((c) => (phase === "full" ? true : c.t_in_min <= HALF_MIN && phase === "half"));
+  const joined = Math.max(devices.current.size, answered);
+  // Pip's note: full while the room is answering, a one-line strip once everyone is in (or play restarted), full
+  // again for the outcome (correct answer filled in), then one line again for the rest of the reveal.
+  const revealOpen = phase === "reveal" && (view.progress ?? 0) < 0.6;
+  const noteCompact = (phase === "ask" && allAnsweredRef.current) || phase === "locked" || (phase === "reveal" && !revealOpen);
+  const chipShown = (phase === "half" || phase === "full") && chip.phase === phase && !chip.closed && (phase === "full" || now - chip.at < 15_000);
   const spotlight = tl.goals.find((g) => clk.tMs >= g.t_ms + SPOTLIGHT_FROM_MS && clk.tMs < g.t_ms + SPOTLIGHT_TO_MS) ?? null;
   const setMode = (mode: Mode) => setClk((c) => ({ ...c, mode }));
 
@@ -322,9 +392,11 @@ function TvRoom({ room }: { room: string }) {
 
       {/* Scoreboard stays clear of the card (top-left, inside the 5% safe area). */}
       <div className="scoreboard" aria-label="Scoreboard">
-        <span className="team" style={{ borderColor: home.kit.primary }}>{home.short_name}</span>
+        <Crest team={home} size={30} />
+        <span className="team">{home.short_name}</span>
         <span className="score">{score.HAR} – {score.COP}</span>
-        <span className="team" style={{ borderColor: away.kit.primary }}>{away.short_name}</span>
+        <span className="team">{away.short_name}</span>
+        <Crest team={away} size={30} />
         <span className="clock">{clock}</span>
         {kicked && clockRate === 0 && phase !== "half" && phase !== "full" && <span className="clock-paused">{ui("lvPaused", lang).toUpperCase()}</span>}
       </div>
@@ -350,30 +422,33 @@ function TvRoom({ room }: { room: string }) {
         </div>
       )}
 
-      {kicked && clk.mode === "highlights" && clk.tMs < Math.min(OPENING_MS, 20_000) && (
-        <div className="hl-intro" role="status">
-          <strong>{ui("hlTitle", lang)}</strong>
-          <span>{ui("hlIntro", lang)}</span>
-        </div>
-      )}
-
-      {kicked ? (
-        // Late joiners always find the way in: QR, code and the room's animals in the corner (pulses when someone joins).
-        <div className="tvn-corner" key={people.length}>
+      {(kicked || lobbyHidden) && (cornerOpen ? (
+        // The full join card, only when someone asks for it; × puts it away again.
+        <div className="tvn-corner open">
           <QRCodeSVG value={joinUrl} size={128} bgColor="#FFFFFF" fgColor="#14202F" />
           <div>
-            <span className="tvn-mini">{ui("tvJoin", lang)} · {host}</span>
+            <span className="tvn-mini">{host}</span>
             <b>{room}</b>
             <span className="tvn-faces">{people.slice(0, 6).join("")}{people.length > 6 ? ` +${people.length - 6}` : ""}</span>
           </div>
+          <button className="tvn-x" onClick={() => setCornerOpen(false)} aria-label={ui("tvClose", lang)}>×</button>
         </div>
       ) : (
+        // Out of the way during play: the code and the room's animals; tap for the QR. Pulses when someone joins.
+        <button className="tvn-pill" key={people.length} onClick={() => setCornerOpen(true)} aria-label={ui("tvShowQr", lang)}>
+          <span className="tvn-pill-qr" aria-hidden="true">▦</span>
+          <b>{room}</b>
+          {people.length > 0 && <span className="tvn-faces">{people.slice(0, 5).join("")}{people.length > 5 ? ` +${people.length - 5}` : ""}</span>}
+        </button>
+      ))}
+      {!kicked && !lobbyHidden && (
         <div className="tvn-lobby">
           <div className="tvn-lobby-card">
             <span className="tvn-lobby-pip"><Mascot pose="wave" size={160} /></span>
+            <button className="tvn-x" onClick={() => setLobbyHidden(true)} aria-label={ui("tvHide", lang)}>×</button>
             <div className="tvn-qr"><QRCodeSVG value={joinUrl} size={256} bgColor="#FFFFFF" fgColor="#14202F" /></div>
             <div className="tvn-lobby-text">
-              <div className="tvn-lab">{ui("tvJoinPhone", lang)} · {host}</div>
+              <button className="tvn-name" onClick={renameRoom} title={ui("tvRename", lang)}>{roomName} <span aria-hidden="true">↻</span></button>
               <div className="tvn-code">{room}</div>
               <div className="tvn-lab">{fmt(ui("tvScanType", lang), { host })}</div>
               <div className="tvn-ppl">{people.length ? people.map((a, k) => <span key={k}>{a}</span>) : <span className="tvn-wait">…</span>}</div>
@@ -384,13 +459,24 @@ function TvRoom({ room }: { room: string }) {
         </div>
       )}
 
-      {kicked && card && (phase === "ask" || phase === "locked" || phase === "reveal") && (
+      {kicked && card && (phase === "ask" || phase === "locked" || phase === "reveal") && (noteCompact ? (
+        // One line: the room is in (or play is back on), or the outcome has been shown.
+        <section className={`tvn-note compact ${phase}`} aria-live="polite">
+          <Mascot pose={phase === "reveal" ? (card.reveal.void ? "thinks" : card.reveal.pose) : "watching"} size={56} />
+          {phase === "reveal" ? (
+            card.reveal.void
+              ? <b>{ui("noClear", lang)}</b>
+              : <b><span className="tvn-tick">✓</span> {answerLabel(card, card.reveal.answer, lang)} · {fmt(ui("tvCalledIt", lang), { n: tally[card.reveal.answer] ?? 0, m: joined })}</b>
+          ) : (
+            <b>✓ {joined ? fmt(ui("tvAllIn", lang), { n: answered, m: joined }) : fmt(ui("tvAnswersIn", lang), { n: answered })}</b>
+          )}
+        </section>
+      ) : (
         // Pip's note (room prototype): a paper card in the lower-left safe area. Counts only until the reveal, never who.
         <section className={`tvn-note ${phase}`} aria-live="polite">
           <span className="tvn-pip">
-            <Mascot pose={phase === "reveal" ? (card.reveal.void ? "thinks" : card.reveal.pose) : phase === "locked" ? "watching" : askPose(card.trigger)} size={120} />
+            <Mascot pose={phase === "reveal" ? (card.reveal.void ? "thinks" : card.reveal.pose) : askPose(card.trigger)} size={120} />
           </span>
-          <div className="tvn-who"><b>{NAME}</b><span>{ui("callIt", lang)} · {triggerLabel(card.trigger, lang)} · {team?.name}</span></div>
           {phase === "ask" && (
             <>
               <h2>{t(card.question.text, lang)}</h2>
@@ -402,30 +488,31 @@ function TvRoom({ room }: { room: string }) {
               <div className="tvn-says">{ui("shoutIt", lang)}</div>
             </>
           )}
-          {phase === "locked" && <div className="tvn-strip">{fmt(ui("tvAnswersIn", lang), { n: answered })}</div>}
           {phase === "reveal" && card.reveal.void && (
             <>
-              <div className="tvn-lab">{ui("noClear", lang)}</div>
+              <h2>{ui("noClear", lang)}</h2>
               <p>{fill(t(card.reveal.plain, lang), match.facts)}</p>
-              <div className="tvn-says">{ui("tvAgain", lang)}</div>
             </>
           )}
           {phase === "reveal" && !card.reveal.void && (
             <>
-              <div className="tvn-lab">{ui("matchSays", lang)}</div>
-              <div className="tvn-answer"><span>{answerLabel(card, card.reveal.answer, lang)}</span></div>
-              <p>{fill(t(card.reveal.plain, lang), match.facts)}</p>
+              <h2>{t(card.question.text, lang)}</h2>
               <ul>
-                {card.question.options.map((o, i) => (
-                  <li key={o.id} className={o.id === card.reveal.answer ? "ans" : ""}><i className="tvn-sw" style={{ background: choiceStyle(i).bg }} />{t(o.label, lang)}<span className="tvn-n">{tally[o.id] ?? 0}</span></li>
-                ))}
+                {card.question.options.map((o, i) => {
+                  const right = o.id === card.reveal.answer;
+                  return (
+                    <li key={o.id} className={right ? "ans" : "not"}>
+                      {right ? <span className="tvn-tick">✓</span> : <i className="tvn-sw" style={{ background: choiceStyle(i).bg }} />}
+                      {t(o.label, lang)}<span className="tvn-n">{tally[o.id] ?? 0}</span>
+                    </li>
+                  );
+                })}
               </ul>
-              <div className="tvn-says">{ui("pippiCalled", lang)} {answerLabel(card, card.question.pippi_call, lang)}.</div>
+              <p>{fill(t(card.reveal.plain, lang), match.facts)}</p>
             </>
           )}
-          {phase === "reveal" && <div className="tvn-timer"><i style={{ width: `${(1 - (view.progress ?? 0)) * 100}%` }} /></div>}
         </section>
-      )}
+      ))}
 
       {spotlight && players && !card && (
         <ScorerSpotlight match={match} feed={players} playerId={spotlight.player_id} minute={clockMinute(tl, clk.tMs)} lang={lang} />
@@ -446,43 +533,67 @@ function TvRoom({ room }: { room: string }) {
         </section>
       )}
 
-      {(phase === "half" || phase === "full") && (
-        <div className="tvn-big" aria-live="polite">
-          <div className="tvn-big-in">
-            <span className="tvn-bigpip"><Mascot pose={phase === "full" ? "wave" : "perch"} size={170} /></span>
-            <div className="tvn-lab">{phase === "full" ? ui("fullTime", lang) : ui("halfTime", lang)} · {home.short_name} {score.HAR} – {score.COP} {away.short_name}</div>
-            <h2>{phase === "full" ? ui("hfThanks", lang) : ui("tvRoomCalls", lang)}</h2>
-            <div className="tvn-rows">
-              {doneCards.length ? doneCards.map((c) => (
-                <div key={c.card_id}>
-                  <span>{Math.floor(c.t_in_min)}' {triggerLabel(c.trigger, lang)}</span>
-                  <b>{c.reveal.void ? ui("noClear", lang) : answerLabel(c, c.reveal.answer, lang)}</b>
-                </div>
-              )) : <div>{ui("hfNone", lang)}</div>}
-            </div>
-            {phase === "half" && clk.halfUntil && <div className="tvn-timer"><i style={{ width: `${Math.max(0, (clk.halfUntil - now) / 30_000) * 100}%` }} /></div>}
+      {chipShown && (
+        // Half-time is ad time on real TV: a small chip that leaves by itself (or with ×). The recap is on the phones.
+        <div className="tvn-chip" role="status">
+          <Mascot pose={phase === "full" ? "wave" : "perch"} size={64} />
+          <div>
+            <b>{phase === "full" ? ui("fullTime", lang) : ui("halfTime", lang)} · {home.short_name} {score.HAR}–{score.COP} {away.short_name}</b>
+            <span>{ui("tvCallsOnPhones", lang)}</span>
           </div>
+          <button className="tvn-x" onClick={() => setChip((c) => ({ ...c, closed: true }))} aria-label={ui("tvClose", lang)}>×</button>
         </div>
       )}
 
-      <div className="controls" role="group" aria-label="Demo controls">
-        <span className="dim">Demo</span>
-        <button onClick={() => setClk((c) => ({ ...c, running: !c.running }))}>{clk.running ? "Pause" : "Play"}</button>
-        <button onClick={() => setClk((c) => skipAhead(tl, c, Date.now()))}>Next ▸</button>
-        <button onClick={() => setClk((c) => ({ ...c, speed: SPEEDS[(SPEEDS.indexOf(c.speed) + 1) % SPEEDS.length] }))} aria-label="Speed">×{clk.speed}</button>
-        <button className={clk.mode === "highlights" ? "on" : ""} onClick={() => setMode("highlights")} aria-pressed={clk.mode === "highlights"}>Highlights</button>
-        <button className={clk.mode === "full" ? "on" : ""} onClick={() => setMode("full")} aria-pressed={clk.mode === "full"}>Full match</button>
-        <label className="dim" htmlFor="cam">Camera</label>
-        <select id="cam" value={camera} onChange={(e) => setCamera(e.target.value as CameraId | "tactical")}>
-          {CAMERAS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
-        </select>
-        <button onClick={() => { answers.current.clear(); setClk((c) => ({ ...startClock(c.mode), speed: c.speed })); setAnswerTick((n) => n + 1); }}>Restart</button>
-        <button onClick={() => setParams({ room: randomRoom() })} title="Start a new room with a new code">New room</button>
-        {LANGS.map((l) => (
-          <button key={l} className={l === lang ? "on" : ""} onClick={() => setLang(l)}>{l.toUpperCase()}</button>
-        ))}
-        <a href={joinUrl} target="_blank" rel="noreferrer">Open phone ↗</a>
+      {/* Controls for a first-time host (or a judge): the two things you need, "?" for how it works, the rest in More. */}
+      <div className="tvc" role="group" aria-label={ui("tvControls", lang)}>
+        {!kicked ? (
+          <button className="tvc-main" onClick={() => setKicked(true)}>{ui("tvKick", lang)} ▸</button>
+        ) : (
+          <>
+            <button className="tvc-main" onClick={() => setClk((c) => ({ ...c, running: !c.running }))}>{clk.running ? `❚❚ ${ui("tvPause", lang)}` : `▶ ${ui("tvPlay", lang)}`}</button>
+            <button onClick={() => setClk((c) => skipAhead(tl, c, Date.now()))}>⏭ {ui("tvNext", lang)}</button>
+          </>
+        )}
+        <button className="tvc-round" onClick={() => setHelp(true)} aria-label={ui("tvHelpTitle", lang)}>?</button>
+        <button onClick={() => setMore((m) => !m)} aria-expanded={more}>⋯ {ui("tvMore", lang)}</button>
+        {more && (
+          <div className="tvc-more">
+            <div><span>{ui("tvSpeed", lang)}</span>{SPEEDS.map((v) => <button key={v} className={clk.speed === v ? "on" : ""} onClick={() => setClk((c) => ({ ...c, speed: v }))}>×{v}</button>)}</div>
+            <div><span>{ui("tvWatch", lang)}</span>
+              <button className={clk.mode === "highlights" ? "on" : ""} onClick={() => setMode("highlights")}>{ui("tvHighlights", lang)}</button>
+              <button className={clk.mode === "full" ? "on" : ""} onClick={() => setMode("full")}>{ui("tvFullMatch", lang)}</button>
+            </div>
+            <div><span>{ui("tvCamera", lang)}</span>
+              <select value={camera} onChange={(e) => setCamera(e.target.value as CameraId | "tactical")}>
+                {CAMERAS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+              </select>
+            </div>
+            <div><span>{ui("rmLang", lang)}</span>{LANGS.map((l) => <button key={l} className={l === lang ? "on" : ""} onClick={() => setLang(l)}>{l.toUpperCase()}</button>)}</div>
+            <div className="tvc-row">
+              <button onClick={() => { answers.current.clear(); setClk((c) => ({ ...startClock(c.mode), speed: c.speed })); setAnswerTick((n) => n + 1); setMore(false); }}>{ui("tvRestart", lang)}</button>
+              <button onClick={() => setParams({ room: randomRoom() })}>{ui("tvNewRoom", lang)}</button>
+              <a href={joinUrl} target="_blank" rel="noreferrer">{ui("tvOpenPhone", lang)} ↗</a>
+            </div>
+          </div>
+        )}
       </div>
+
+      {help && (
+        <div className="tvn-help" role="dialog" aria-modal="true" aria-label={ui("tvHelpTitle", lang)}>
+          <div className="tvn-help-in">
+            <span className="tvn-lobby-pip"><Mascot pose="wave" size={150} /></span>
+            <h2>{ui("tvHelpTitle", lang)}</h2>
+            <ol>
+              <li>{ui("tvHelp1", lang)}</li>
+              <li>{ui("tvHelp2", lang)}</li>
+              <li>{ui("tvHelp3", lang)}</li>
+              <li>{ui("tvHelp4", lang)}</li>
+            </ol>
+            <button className="tvn-kick" onClick={closeHelp}>{ui("gotIt", lang)}</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

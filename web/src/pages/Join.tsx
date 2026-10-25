@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { hasRoomServer } from "../lib/channel";
-import { deviceLang, fmt, ui } from "../lib/i18n";
-import type { Lang } from "../lib/types";
+import { fmt, ui } from "../lib/i18n";
+import { useLang } from "../lib/lang";
 
 // Room codes use these characters only (lib/match.ts randomRoom): no I, O, 0 or 1 to mix up.
 const CODE_CHAR = /[ABCDEFGHJKLMNPQRSTUVWXYZ2-9]/g;
@@ -12,7 +12,7 @@ const CODE_CHAR = /[ABCDEFGHJKLMNPQRSTUVWXYZ2-9]/g;
  *  A code with no open room gets a plain-words error and the QR as a second way in. */
 export default function Join() {
   const nav = useNavigate();
-  const [lang] = useState<Lang>(deviceLang);
+  const [lang] = useLang();
   const [code, setCode] = useState("");
   const [state, setState] = useState<"typing" | "looking" | "none">("typing");
 

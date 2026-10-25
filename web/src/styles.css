@@ -735,3 +735,102 @@ a { color: var(--sky); }
 .scoreboard .clock { font-variant-numeric: tabular-nums; min-width: 4.6ch; }
 .scoreboard .clock-paused { color: var(--dim); font-size: 0.75em; letter-spacing: 0.1em; }
 @media (prefers-reduced-motion: reduce) { .q-status .q-now.live i { animation: none; } }
+
+/* =====================================================================================================================
+   2026-10-25 owner feedback: fewer, bigger words. Phone: a live header (crests, score, clock) and the conversation with
+   Pip. TV: a corner pill instead of the QR box, a note that collapses, a clear correct answer, a half-time chip, simple
+   controls with a "?" guide.
+   ===================================================================================================================== */
+.crest { display: block; flex: none; }
+.q-ph { font-size: 16px; }
+.q-ph.q-joined { padding-top: 0; }
+.q-live { position: sticky; top: 0; z-index: 5; margin: 0 -18px; padding: max(10px, env(safe-area-inset-top)) 16px 10px; background: var(--q-ink); color: var(--q-paper); display: grid; gap: 6px; }
+.q-live-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
+.q-live-team { display: flex; align-items: center; gap: 8px; font-size: 17px; letter-spacing: 0.02em; }
+.q-live-team.right { justify-content: flex-end; }
+.q-live-mid { display: grid; justify-items: center; }
+.q-live-score { font-size: 34px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.q-live-score i { font-style: normal; margin: 0 6px; opacity: 0.6; }
+.q-live-clock { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; color: #9BE3BC; }
+.q-live-clock.paused { color: #F0D27A; }
+.q-live-clock.stale { color: #F2A99F; }
+.q-live-clock.pre { color: rgba(244, 241, 234, 0.75); }
+.q-live-sub { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; color: rgba(244, 241, 234, 0.8); }
+.q-body { flex: 1; display: flex; flex-direction: column; gap: 12px; padding-top: 14px; min-height: 0; }
+.q-joined .q-tabbar { margin-top: 0; }
+.q-joined .q-screen { padding-top: 14px; }
+.q-lockedin { position: static; inset: auto; flex: 1; margin: 0 -18px -20px; padding: 18px 18px 20px; z-index: auto; }
+.q-roomtag { font-weight: 700; color: var(--q-muted); }
+.q-big-emoji { font-size: 22px; }
+.q-roomhead .q-mono { font-size: 13px; }
+/* conversation */
+.q-chat { display: grid; gap: 14px; padding-bottom: 6px; }
+.q-sys { justify-self: center; text-align: center; background: var(--q-paper-2); color: var(--q-ink); border-radius: 999px; padding: 6px 14px; font-size: 14px; font-weight: 700; }
+.q-sys.goal { background: var(--q-ink); color: var(--q-paper); }
+.q-sys.added { border-radius: 16px; text-align: left; font-weight: 600; }
+.q-sys.added summary { cursor: pointer; font-weight: 700; }
+.q-thread { display: grid; gap: 8px; }
+.q-stamp { font-size: 13px; color: var(--q-muted); text-align: center; letter-spacing: 0; }
+.q-bub.me { justify-self: end; margin-left: auto; }
+.q-bub.me.none { background: var(--q-paper-2); color: var(--q-muted); font-weight: 600; }
+.q-result { font-size: 20px; font-weight: 800; margin-bottom: 2px; }
+.q-roomcalls { display: grid; gap: 4px; margin-top: 8px; }
+.q-roomcalls div { display: flex; justify-content: space-between; gap: 10px; padding: 4px 8px; border-radius: 8px; background: var(--q-paper); }
+.q-roomcalls div.ans { background: rgba(63, 122, 82, 0.14); font-weight: 700; }
+.q-animals-inline { letter-spacing: 0.08em; }
+.q-why { margin-top: 8px; }
+.q-why summary { cursor: pointer; font-weight: 700; color: var(--q-ink); }
+.q-why p { margin-top: 6px; }
+.q-seg button { min-height: 64px; flex-direction: column; gap: 4px; font-size: 14px; }
+.q-seg { border-radius: 18px; }
+.q-seg button { border-radius: 14px; }
+
+/* ---------- TV ---------- */
+.tv .controls, .hl-intro { display: none; }
+.scoreboard { gap: 0.7vw; }
+.scoreboard .team { border-bottom: 0; padding-bottom: 0; }
+.scoreboard .crest { width: max(22px, 1.7vw); height: auto; }
+.tvn-pill { position: absolute; right: 5%; top: 5%; z-index: 6; display: flex; align-items: center; gap: 0.7vw; border: 0; border-radius: 999px; padding: 0.5vw 1vw; background: rgba(244, 241, 234, 0.94); color: var(--q-ink); font: inherit; font-size: max(15px, 1.3vw); cursor: pointer; animation: tvn-pulse 1.2s ease-in-out 2; }
+.tvn-pill b { font-family: ui-monospace, Menlo, monospace; letter-spacing: 0.12em; }
+.tvn-pill-qr { font-size: 1.2em; line-height: 1; }
+.tvn-corner.open { padding-right: 2.6vw; }
+.tvn-x { position: absolute; top: 0.4vw; right: 0.5vw; width: max(30px, 2vw); height: max(30px, 2vw); border: 0; border-radius: 50%; background: var(--q-paper-2); color: var(--q-ink); font-size: max(18px, 1.2vw); line-height: 1; cursor: pointer; }
+.tvn-lobby-card .tvn-x { top: 1vw; right: 1vw; }
+.tvn-name { justify-self: start; border: 0; background: none; padding: 0; font: inherit; font-size: 1.15em; font-weight: 800; color: var(--q-ink); cursor: pointer; }
+.tvn-name span { color: var(--q-muted); font-weight: 600; }
+.tvn-note h2 { font-size: 1.25em; }
+.tvn-note li.ans { background: var(--q-right); color: #fff; border-color: var(--q-right); outline: none; font-size: 1.05em; }
+.tvn-note li.ans .tvn-n { color: #fff; }
+.tvn-note li.not { opacity: 0.6; }
+.tvn-tick { display: inline-grid; place-items: center; width: 1.3em; height: 1.3em; border-radius: 50%; background: #fff; color: var(--q-right); font-weight: 900; font-size: 0.85em; flex: none; }
+.tvn-note.compact { display: flex; align-items: center; gap: 0.8vw; width: auto; min-width: 0; max-width: 40%; padding: 0.5vw 1.2vw 0.5vw 0.6vw; border-radius: 999px; }
+.tvn-note.compact b { font-size: 1em; display: flex; align-items: center; gap: 0.5vw; }
+.tvn-note.compact .tvn-tick { background: var(--q-right); color: #fff; }
+.tvn-chip { position: absolute; left: 5%; bottom: 5%; z-index: 7; display: flex; align-items: center; gap: 1vw; background: var(--q-paper); color: var(--q-ink); border-radius: 1vw; padding: 0.8vw 3vw 0.8vw 1vw; font-size: max(16px, 1.4vw); box-shadow: 0 1vw 2.4vw -1vw rgba(0, 0, 0, 0.55); animation: tvn-rise 0.45s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+.tvn-chip > div { display: grid; gap: 0.2vw; }
+.tvn-chip span { color: var(--q-muted); font-size: 0.85em; }
+.tvc { position: absolute; right: 1.2%; bottom: 1.6%; z-index: 9; display: flex; align-items: center; gap: 8px; background: rgba(14, 26, 43, 0.86); padding: 8px; border-radius: 14px; font-size: 15px; }
+.tvc > button { border: 1px solid #2c4468; background: var(--navy-2); color: var(--chalk); border-radius: 10px; padding: 9px 14px; font-weight: 700; }
+.tvc .tvc-main { background: var(--floodlight); color: var(--navy); border-color: var(--floodlight); min-width: 7.5em; }
+.tvc .tvc-round { width: 40px; padding: 9px 0; border-radius: 50%; }
+.tvc-more { position: absolute; right: 0; bottom: calc(100% + 8px); display: grid; gap: 10px; min-width: 300px; background: rgba(14, 26, 43, 0.97); border: 1px solid #2c4468; border-radius: 14px; padding: 14px; }
+.tvc-more > div { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.tvc-more > div > span { width: 6.5em; color: var(--dim); }
+.tvc-more button, .tvc-more select, .tvc-more a { background: var(--navy-2); color: var(--chalk); border: 1px solid #2c4468; border-radius: 8px; padding: 6px 10px; font: inherit; text-decoration: none; }
+.tvc-more button.on { background: var(--floodlight); color: var(--navy); border-color: var(--floodlight); }
+.tvc-row { padding-top: 6px; border-top: 1px solid #2c4468; }
+.tvn-help { position: absolute; inset: 0; z-index: 20; background: rgba(10, 18, 30, 0.72); backdrop-filter: blur(5px); display: grid; place-content: center; padding: 16px; }
+.tvn-help-in { position: relative; width: min(92vw, max(520px, 42vw)); background: var(--q-paper); color: var(--q-ink); border-radius: 1.4vw; padding: 2vw 2.4vw; display: grid; gap: 1vw; font-size: max(17px, 1.45vw); }
+.tvn-help-in h2 { font-size: 1.5em; }
+.tvn-help-in ol { margin: 0; padding-left: 1.3em; display: grid; gap: 0.6vw; line-height: 1.35; }
+.tvn-help-in .tvn-kick { justify-self: start; }
+@media (max-width: 760px) {
+  .tvn-pill { right: 12px; top: 12px; padding: 6px 10px; font-size: 14px; }
+  .tvn-note.compact { left: 12px; right: auto; max-width: calc(100% - 24px); padding: 6px 12px 6px 6px; font-size: 14px; }
+  .tvn-chip { left: 12px; right: 12px; bottom: var(--tv-controls-h, 112px); padding: 10px 44px 10px 10px; font-size: 15px; }
+  .tvc { left: 8px; right: 8px; bottom: 8px; justify-content: center; flex-wrap: wrap; font-size: 14px; }
+  .tvc-more { left: 0; right: 0; min-width: 0; }
+  .tvn-help-in { padding: 20px; gap: 10px; font-size: 16px; border-radius: 18px; }
+  .tvn-x { width: 32px; height: 32px; font-size: 18px; }
+}
+@media (prefers-reduced-motion: reduce) { .tvn-pill, .tvn-chip { animation: none; } }

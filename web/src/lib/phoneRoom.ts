@@ -10,6 +10,8 @@ export interface PhoneRoom {
   /** card_id -> true once the one change of mind is used */
   changed: Record<string, boolean>;
   catchupSeen: boolean;
+  /** The player this phone follows in this room (null = nobody; a new room always starts with nobody). */
+  followId?: string | null;
 }
 
 const key = (room: string) => `pip:phone:${room}`;
