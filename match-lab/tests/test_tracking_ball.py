@@ -115,6 +115,12 @@ class BallRealism(unittest.TestCase):
         # Task 08 rule 16 allows the same 2 % slack as the actor-at-ball
         # rule: an event whose chosen actor is one of the rare late ones
         # launches at the event time with the player still metres short.
+        # Task 10 audit (28fd556 = before task 08): before 0.00 % on seeds
+        # 1-5; after task 08 0.18-1.00 %; with the task 10 join/swap work
+        # 0.15-0.43 %. The survivors are launches by late actors (a 0 ->
+        # cruise jump with the taker 1.8-3.8 m away) -- the same tail the
+        # 98 % actor-at-ball rule carries, so 0 % is not reachable within
+        # the task 04 speed caps and the 2 % ceiling stands.
         for seed in SEEDS:
             tracked, tr = _out(seed)
             bx = tr["x"]["ball"]
@@ -316,6 +322,14 @@ class BallRealism(unittest.TestCase):
                             "seed %d standing %.1f%%" % (seed, pct[0]))
             self.assertTrue(30.0 <= pct[1] <= 55.0,
                             "seed %d walking %.1f%%" % (seed, pct[1]))
+            # task 10 audit of the 55 % ceiling (28fd556 = before task 08):
+            # walking was 41.4-43.3 % then; task 08's holds (kick-off
+            # formation guard, net rest, goal-area goal kicks) replaced
+            # standing around with purposeful walking to booked spots --
+            # standing fell 18.9-22.4 % -> 13.6-16.4 % and walking rose to
+            # 49.8-51.0 %, where the task 10 join work leaves it. 50.0 %
+            # is already crossed on three seeds, so the old 50 % ceiling
+            # cannot come back; 55 % holds the line ~4 % above measured.
             self.assertTrue(12.0 <= pct[2] <= 25.0,
                             "seed %d jogging %.1f%%" % (seed, pct[2]))
             self.assertTrue(10.0 <= pct[3] <= 22.0,

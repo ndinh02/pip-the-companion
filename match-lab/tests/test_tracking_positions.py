@@ -402,8 +402,23 @@ class BlockedShots(unittest.TestCase):
                 # -- so the inbound floor is 2.5 m/s, above the rebound's
                 # dying wiggle (~1.8 m/s) but low enough for short hops.
                 bf, best_turn = f, -1.0
+                sx0 = ev["start"]["x"] * DM
+                sy0 = ev["start"]["y"] * DM
                 for k in range(f + 2, min(mt.n, f + 23)):
                     if not (mt.on("ball", k - 2) and mt.on("ball", k)):
+                        continue
+                    # task 10: a shot struck off a ball held at the boot
+                    # changes speed and direction as it leaves it (still ->
+                    # flight cruise): that launch handover is a >= 30 deg
+                    # turn with the ball a boot's length from the start,
+                    # stationary two frames earlier. It is the kick, not
+                    # the deflection -- the deflection happens away from
+                    # the shooter, off a ball already travelling (rule 8).
+                    if math.hypot(mt.x["ball"][k - 2] - sx0,
+                                  mt.y["ball"][k - 2] - sy0) < 0.6 * DM \
+                            and (k < 3 or mt.x["ball"][k - 3] < 0 or
+                                 math.hypot(mt.x["ball"][k - 2] - mt.x["ball"][k - 3],
+                                            mt.y["ball"][k - 2] - mt.y["ball"][k - 3]) < 1.0):
                         continue
                     v1 = (mt.x["ball"][k - 1] - mt.x["ball"][k - 2],
                           mt.y["ball"][k - 1] - mt.y["ball"][k - 2])
@@ -626,6 +641,108 @@ class Bodies(unittest.TestCase):
                 ok / max(tot, 1), 0.98,
                 "seed %d: actor at the ball for only %.1f %% of events"
                 % (seed, 100.0 * ok / max(tot, 1)))
+
+
+class AfterBlocks(unittest.TestCase):
+    """Task 10: what happens after a blocked shot.
+
+    The blocked shot is the shooting team's last scheduled touch before the
+    ball becomes loose: from the block up to the next restart or change of
+    possession, the ball must behave like a real loose ball. It rolls or
+    bounces on to the next event's start (never lying still while play
+    happens metres away), and every event in that window has its actor
+    within 2 m of the ball at the event frame -- the shooter's team playing
+    the rebound, not a parked ball with passes happening 20-60 m away.
+
+    The window runs from the blocked shot up to (not including) the first
+    following event that is a restart, an off-pitch break (substitution,
+    card) or is taken by the other team -- the change of possession. Events
+    by the other team are normal open-play events again, covered by the 98 %
+    actor-at-ball audit above.
+    """
+
+    RESTARTS = ("throw_in", "corner", "goal_kick", "free_kick", "kick_off",
+                "drop_ball", "penalty")
+
+    def windows(self, mt: MT) -> List[List[Dict[str, Any]]]:
+        evs, out_ = mt.m["events"], []
+        j = 0
+        while j < len(evs):
+            ev = evs[j]
+            if ev.get("type") == "shot" and ev.get("outcome") == "blocked":
+                k = j
+                while k + 1 < len(evs):
+                    nxt = evs[k + 1]
+                    if nxt["type"] in self.RESTARTS or \
+                            nxt["type"] in ("substitution", "card") or \
+                            nxt.get("team_id") != ev.get("team_id"):
+                        break
+                    k += 1
+                out_.append(evs[j:k + 1])
+                j = k + 1
+            else:
+                j += 1
+        return out_
+
+    def test_rebound_actors_at_the_ball(self) -> None:
+        for seed in SEEDS:
+            tracked, tracking = out(seed)
+            mt = MT(tracked, tracking)
+            worst = (0.0, None)
+            for win in self.windows(mt):
+                for ev in win:
+                    if ev["type"] in ("substitution", "card") or \
+                            ev["player_id"] not in mt.x:
+                        continue
+                    f = mt.frame(ev["t_ms"])
+                    near = min((mt.dist(ev["player_id"], "ball", k)
+                                for k in (f, f + 1)
+                                if mt.on(ev["player_id"], k)
+                                and mt.on("ball", k)),
+                               default=float("inf"))
+                    if near > worst[0]:
+                        worst = (near, ev)
+            self.assertLessEqual(
+                worst[0], 2.0,
+                "seed %d: after a blocked shot, %s at %.1f s has its actor "
+                "%.1f m from the ball -- the rebound was not joined to the "
+                "next possession" % (seed, worst[1]["type"],
+                                     worst[1]["t_ms"] / 1000.0, worst[0]))
+
+    def test_ball_never_parks_through_far_events(self) -> None:
+        """The ball never lies still for more than 2 s while an event other
+        than a foul or a restart wait happens 5+ m away from it (the parked
+        ball from the task report). Measured on the 5 Hz output: a violation
+        is an event whose start sits 5+ m from a ball that has not moved a
+        frame's worth of roll in the whole 2 s before the event."""
+        STILL_V = 0.6  # dm/frame: under this the ball reads as lying still
+        for seed in SEEDS:
+            tracked, tracking = out(seed)
+            mt = MT(tracked, tracking)
+            bx, by = mt.x["ball"], mt.y["ball"]
+            for ev in tracked["events"]:
+                if ev["type"] in self.RESTARTS or \
+                        ev["type"] in ("foul", "substitution", "card"):
+                    continue
+                f = mt.frame(ev["t_ms"])
+                sx = ev.get("start", {}).get("x", 0.0) * DM
+                sy = ev.get("start", {}).get("y", 0.0) * DM
+                if bx[f] < 0 or math.hypot(sx - bx[f], sy - by[f]) < 5.0 * DM:
+                    continue  # event happens at the ball: no park to catch
+                parked = True
+                for k in range(max(0, f - 2 * HZ), f + 1):
+                    if bx[k] < 0 or bx[k + 1] < 0:
+                        parked = False  # hidden/off pitch: a restart wait
+                        break
+                    if math.hypot(bx[k + 1] - bx[k], by[k + 1] - by[k]) \
+                            >= STILL_V:
+                        parked = False
+                        break
+                if parked:
+                    self.fail(
+                        "seed %d: %s at %.1f s starts 5+ m from a ball that "
+                        "has lain still for the whole 2 s before it"
+                        % (seed, ev["type"], ev["t_ms"] / 1000.0))
 
 
 if __name__ == "__main__":
