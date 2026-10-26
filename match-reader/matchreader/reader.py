@@ -24,10 +24,18 @@ READER_VERSION = "matchreader-0.1.0"
 # Copperfield attack -x; they swap for period 2.
 HOME = "HAR"
 AWAY = "COP"
+PITCH_L = 105.0  # pitch length in metres; goal lines at x = 0 and x = PITCH_L
+PITCH_W = 68.0   # pitch width in metres
 HALF_X = 52.5  # pitch midline in metres (105 x 68 pitch)
 
+# Six-yard box, for the void rule (task 11): 5.5 m deep from the goal line, 18.32 m wide.
+SIX_YARD_DEPTH_M = 5.5
+SIX_YARD_HALF_WIDTH_M = 9.16  # half the box width, either side of the goal centre (y = 34)
+
 # ---- Timing policy (brief section 5.2). Claude can tune these constants. ----
-MAX_PER_HALF = 4     # at most this many cards per half
+MAX_PER_HALF = 4     # at most this many cards per half...
+ADDED_TIME_EXTRA = 1  # ...plus this many in that half's added time (owner decision 2026-10-26, task 11: stoppage
+                      # time is the climax, and the demo's only "no clear answer" moment is a corner at 90+3)
 MIN_GAP_MIN = 8.0    # minutes that must separate two cards
 GOAL_QUIET_S = 60.0  # no card within this many seconds after a counted goal event,
                      # except the var card about that very goal
@@ -215,6 +223,62 @@ def _template_ok(templates: Dict[str, Any], trigger: str, reveal_key: str,
     return True
 
 
+def _next_event(match: Dict[str, Any], ev: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """The event right after `ev` in the feed: the first contact after a kick."""
+    for e in match["events"]:
+        if e["idx"] == ev["idx"] + 1:
+            return e
+    return None
+
+
+def _in_six_yard_box(match: Dict[str, Any], point: Dict[str, float], team_id: str, period: int) -> bool:
+    """Is `point` inside the six-yard box of the goal `team_id` attacks in `period`?"""
+    goal_x = PITCH_L if _attacks_plus_x(team_id, period) else 0.0
+    depth = abs(goal_x - point["x"])
+    return depth <= SIX_YARD_DEPTH_M and abs(point["y"] - PITCH_W / 2) <= SIX_YARD_HALF_WIDTH_M
+
+
+def _set_piece_void(match: Dict[str, Any], ev: Dict[str, Any]) -> bool:
+    """Task 11: did this corner or free kick settle its question? True = void.
+
+    Void means "the match did not settle this": the TV and phone say so and nobody is
+    right or wrong. Only the event feed and the stoppage list are used (no tracking).
+
+    Corner, void when either:
+      - it is retaken: the next event is another corner by the same team. The ball went
+        out off a defender and the corner is taken again, so the first kick never
+        reached a zone. (The generator's "cleared behind for another corner".)
+      - the first contact is a defender's clearance that starts inside the six-yard box.
+        Zones are where a delivery lands, in front of the box, so a clearance from inside
+        the box is never assigned to one.
+
+    Free kick, void when either:
+      - it is retaken: the next event is another free kick by the same team.
+      - play stops before the ball reaches an option: the next event is a foul or card,
+        or an injury or card stoppage starts before the next event.
+
+    Substitutions and VAR are never void: their outcome is always known.
+    """
+    nxt = _next_event(match, ev)
+    if ev["type"] == "corner":
+        if nxt is None:
+            return False
+        if nxt["type"] == "corner" and nxt["team_id"] == ev["team_id"]:
+            return True
+        return (nxt["type"] == "clearance" and nxt["team_id"] != ev["team_id"]
+                and _in_six_yard_box(match, nxt["start"], ev["team_id"], ev["period"]))
+    if ev["type"] == "free_kick":
+        if nxt is None:
+            return False
+        if nxt["type"] == "free_kick" and nxt["team_id"] == ev["team_id"]:
+            return True
+        if nxt["type"] in ("foul", "card"):
+            return True
+        return any(s["type"] in ("injury", "card") and ev["t_ms"] < s["t_start_ms"] <= nxt["t_ms"]
+                   for s in match["stoppages"])
+    return False
+
+
 def candidates(match: Dict[str, Any],
                templates: Dict[str, Any]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """Return (eligible candidates, held moments). One candidate per event/stoppage
@@ -258,10 +322,12 @@ def candidates(match: Dict[str, Any],
             pippi = "far"
         else:
             pippi = max(corner_pref, key=lambda z: (counts[z], -corner_pref.index(z)))
+        void = _set_piece_void(match, ev)
         eligible.append({"seq": seq, "trigger": "corner", "event": ev, "stoppage": None,
                          "t_ms": ev["t_ms"], "period": period, "t_in_min": t, "team_id": team,
                          "pitch": ev["start"], "answer": answer, "pippi_call": pippi,
-                         "reveal_key": answer, "goal_event_id": None})
+                         "reveal_key": "void" if void else answer, "void": void,
+                         "goal_event_id": None})
         seq += 1
 
     # --- free kicks ---
@@ -293,10 +359,12 @@ def candidates(match: Dict[str, Any],
             pippi = "cross"
         else:
             pippi = max(fk_pref, key=lambda z: (counts[z], -fk_pref.index(z)))
+        void = _set_piece_void(match, ev)
         eligible.append({"seq": seq, "trigger": "free_kick", "event": ev, "stoppage": None,
                          "t_ms": ev["t_ms"], "period": period, "t_in_min": t, "team_id": team,
                          "pitch": ev["start"], "answer": answer, "pippi_call": pippi,
-                         "reveal_key": answer, "goal_event_id": None})
+                         "reveal_key": "void" if void else answer, "void": void,
+                         "goal_event_id": None})
         seq += 1
 
     # --- substitutions: first event of each sub window (events sharing t_ms) ---
@@ -410,6 +478,11 @@ def moment_times(match: Dict[str, Any], cand: Dict[str, Any]) -> Dict[str, int]:
     return {"dead_ms": dead, "restart_ms": ev["t_ms"], "reveal_ms": reveal}
 
 
+def _in_added_time(cand: Dict[str, Any]) -> bool:
+    """Past the half's regulation end on the viewers' clock (45:00 in period 1, 90:00 in period 2)."""
+    return cand["t_in_min"] > (45.0 if cand["period"] == 1 else 90.0)
+
+
 def select_cards(match: Dict[str, Any], eligible: List[Dict[str, Any]],
                  held: List[Dict[str, Any]],
                  templates: Optional[Dict[str, Any]] = None
@@ -442,7 +515,9 @@ def select_cards(match: Dict[str, Any], eligible: List[Dict[str, Any]],
             reason = "break_usually_too_short"
         elif not fresh_line_left(cand):
             reason = "no_fresh_line"
-        elif sum(1 for a in accepted if a["period"] == cand["period"]) >= MAX_PER_HALF:
+        elif sum(1 for a in accepted if a["period"] == cand["period"] and not _in_added_time(a)) >= MAX_PER_HALF \
+                and (not _in_added_time(cand)
+                     or sum(1 for a in accepted if a["period"] == cand["period"] and _in_added_time(a)) >= ADDED_TIME_EXTRA):
             reason = "max_per_half"
         elif any(abs(cand["t_in_min"] - a["t_in_min"]) < MIN_GAP_MIN for a in accepted):
             reason = "too_close_to_previous_card"
@@ -530,7 +605,8 @@ def _build(match: Dict[str, Any],
             },
             "reveal": {
                 "answer": cand["answer"],
-                "pose": "wow" if cand["pippi_call"] == cand["answer"] else "oops",
+                "pose": ("thinks" if cand.get("void")
+                         else "wow" if cand["pippi_call"] == cand["answer"] else "oops"),
                 "plain": {lang: _scope_text(plain_text[lang], team["name"], prefix)
                           for lang in LANGS},
                 "expert": {lang: _scope_text(reveal_tpl["expert"][lang], team["name"], prefix)
@@ -538,6 +614,9 @@ def _build(match: Dict[str, Any],
                 "fact_ids": fact_ids,
             },
         })
+        if cand.get("void"):
+            # Only void cards carry the key: the schema reads its absence as "a real answer".
+            cards[-1]["reveal"]["void"] = True
 
     kickoff = {"from_min": 0}
     kickoff.update({t["team_id"]: 0 for t in match["teams"]})

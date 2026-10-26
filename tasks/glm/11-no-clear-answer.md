@@ -59,3 +59,13 @@ For comparison, 15 of seeds 1–60 already have an accepted void card.
 - scripts/test_added_time.py: `Ran 3 tests … OK`
 - scripts/match_qa.py: `All 14 checks pass.`
 - `npm run check:copy`: `✓ copy check passed: 8 cards × 3 languages, 801 UI and template strings, no betting language`
+
+**Step 3 done (Claude, 2026-10-26, owner: "Task 11 go").** Instead of dropping one of the four second-half cards (which
+would break the live, time-ordered selection: Pip cannot know a better moment is coming), the reader allows **one extra
+card in each half's added time** (`ADDED_TIME_EXTRA = 1` in `reader.py`, with `_in_added_time()`). Seed 43 now has 9
+cards; the ninth is `c9-corner` at 93.2 min with `reveal.void = true`, from both the generator and the tracked events.
+Policy tests (`test_policy.py`, `test_determinism.py`) now check 4 regular + at most 1 added-time card per half.
+`data/demo-match.json` and `web/public/data/match.json` were rebuilt from `data/tracked-seed-43.json` (the app file was
+stale: the second goal's scorer came from the old mock; it now names the player the tracking shows scoring).
+Runs (`/usr/bin/python3`): match-reader 63 tests OK (1 skipped); `scripts/match_qa.py` "All 14 checks pass";
+`npm run check:copy` passes (9 cards × 3 languages).

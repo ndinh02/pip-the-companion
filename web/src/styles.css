@@ -834,3 +834,10 @@ a { color: var(--sky); }
   .tvn-x { width: 32px; height: 32px; font-size: 18px; }
 }
 @media (prefers-reduced-motion: reduce) { .tvn-pill, .tvn-chip { animation: none; } }
+
+/* Half-time / full-time recap in the conversation (owner feedback 2026-10-26) */
+.q-recap { background: var(--q-card); border: 2px solid var(--q-ink); border-radius: 16px; padding: 12px 14px; display: grid; gap: 8px; }
+.q-recap summary { display: flex; justify-content: space-between; align-items: center; gap: 8px; cursor: pointer; font-size: 17px; font-weight: 800; list-style: none; }
+.q-recap summary::-webkit-details-marker { display: none; }
+.q-recap .q-callrow { font-size: 15px; padding-top: 8px; border-top: 1px solid var(--q-line); }
+.q-right { color: var(--q-right); font-weight: 800; }

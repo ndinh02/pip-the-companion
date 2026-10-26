@@ -549,7 +549,35 @@ function Conversation({ match, state, saved, lang, minute, half, inRoom, onInvit
       node: <div className="q-sys goal">⚽ {Math.floor(g.from_min)}' · {ui("goal", lang)} {team?.name} #{g.player_id!.split("-")[1]} · {g.HAR}–{g.COP}</div>,
     });
   }
-  if (minute >= HALF_MIN) items.push({ min: HALF_MIN + 0.01, key: "ht", node: <div className="q-sys">{ui("halfTime", lang)}</div> });
+  // Half-time and full-time recaps: the score and every question so far (owner feedback 2026-10-26: the TV keeps
+  // half-time free for ads, so the recap lives here). Open while it is happening, folded into the history after.
+  const recap = (upto: number, title: string, open: boolean, sc: { HAR: number; COP: number }) => {
+    const rows = history.filter(({ c }) => c.t_in_min <= upto);
+    return (
+      <details className="q-recap" open={open}>
+        <summary>
+          <span>{title}</span>
+          <b>{match.teams[0].short_name} {sc.HAR}–{sc.COP} {match.teams[1].short_name}</b>
+        </summary>
+        {rows.length ? rows.map(({ c }) => {
+          const m = c.t_in_min < saved.joinedAt ? undefined : saved.picks[c.card_id];
+          const right = !c.reveal.void && m === c.reveal.answer;
+          return (
+            <div className="q-callrow" key={c.card_id}>
+              <span>{Math.floor(c.t_in_min)}' {triggerLabel(c.trigger, lang)}: <b>{c.reveal.void ? ui("noClear", lang) : answerLabel(c, c.reveal.answer, lang)}</b></span>
+              <span className={right ? "q-right" : "q-muted"}>
+                {c.t_in_min < saved.joinedAt ? ui("hfBefore", lang) : !m ? ui("hfNoCall", lang) : right ? ui("hfYouRight", lang) : fmt(ui("hfYouSaid", lang), { x: answerLabel(c, m, lang) })}
+              </span>
+            </div>
+          );
+        }) : <p className="q-muted">{ui("hfNone", lang)}</p>}
+      </details>
+    );
+  };
+  if (minute >= HALF_MIN) {
+    const htScore = half?.score ?? scoreAt(match, HALF_MIN);
+    items.push({ min: HALF_MIN + 0.01, key: "ht", node: recap(HALF_MIN, ui("halfTime", lang), state.phase === "half", htScore) });
+  }
   for (const { h, c } of history) items.push({ min: c.t_in_min, key: c.card_id, node: <CallThread c={c} h={h} match={match} mine={c.t_in_min < saved.joinedAt ? undefined : saved.picks[c.card_id]} before={c.t_in_min < saved.joinedAt} lang={lang} /> });
   // The question that is open right now (its full screen was closed or is coming): a short line, it moves into
   // the history once the match has answered.
@@ -578,7 +606,7 @@ function Conversation({ match, state, saved, lang, minute, half, inRoom, onInvit
       ),
     });
   }
-  if (state.phase === "full") items.push({ min: 999, key: "ft", node: <div className="q-sys">{ui("fullTime", lang)} · {ui("hfThanks", lang)}</div> });
+  if (state.phase === "full") items.push({ min: 999, key: "ft", node: recap(999, `${ui("fullTime", lang)} · ${ui("hfThanks", lang)}`, true, state.score ?? scoreAt(match, minute)) });
   items.sort((a, b) => a.min - b.min);
 
   const share = async () => {

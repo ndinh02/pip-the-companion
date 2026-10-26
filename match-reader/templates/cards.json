@@ -169,6 +169,26 @@
      "corners_total",
      "league_short_share_pct"
     ]
+   },
+   "void": {
+    "plain": [
+     {
+      "en": "The defence headed it away before it reached anyone.",
+      "de": "Die Abwehr köpfte den Ball weg, bevor er jemanden erreichte.",
+      "vi": "Hàng thủ đánh đầu đẩy bóng đi trước khi nó tới được ai."
+     },
+     {
+      "en": "The ball touched a defender out of play, so the corner was taken again.",
+      "de": "Der Ball ging über einen Abwehrspieler ins Aus, und die Ecke wurde neu getreten.",
+      "vi": "Bóng chạm hậu vệ rồi ra ngoài, nên quả phạt góc được đá lại."
+     }
+    ],
+    "expert": {
+     "en": "No delivery reached a zone: a defender cleared it from inside the six-yard box, or the corner was taken again.",
+     "de": "Keine Hereingabe erreichte eine Zone: Ein Verteidiger klärte aus dem Torraum, oder die Ecke wurde neu getreten.",
+     "vi": "Không quả tạt nào tới được khu vực: hậu vệ phá bóng từ trong khu vòng cấm nhỏ, hoặc quả phạt góc được đá lại."
+    },
+    "fact_ids": []
    }
   }
  },
@@ -342,6 +362,26 @@
      "fk_cross",
      "fk_total"
     ]
+   },
+   "void": {
+    "plain": [
+     {
+      "en": "Play stopped before the ball reached anyone, so there was no result to check.",
+      "de": "Das Spiel wurde gestoppt, bevor der Ball jemanden erreichte, also gab es kein Ergebnis.",
+      "vi": "Trận đấu dừng lại trước khi bóng tới được ai, nên không có kết quả để kiểm tra."
+     },
+     {
+      "en": "The free kick was taken again, so the first kick does not count.",
+      "de": "Der Freistoß wurde neu ausgeführt, der erste Versuch zählt deshalb nicht.",
+      "vi": "Quả đá phạt được đá lại, nên lần đầu không được tính."
+     }
+    ],
+    "expert": {
+     "en": "The free kick never reached an option: it was taken again, or play stopped before the ball got anywhere.",
+     "de": "Der Freistoß erreichte keine Option: Er wurde neu ausgeführt, oder das Spiel wurde vorher gestoppt.",
+     "vi": "Quả đá phạt không tới được lựa chọn nào: được đá lại, hoặc trận đấu dừng trước khi bóng đi xa."
+    },
+    "fact_ids": []
    }
   }
  },

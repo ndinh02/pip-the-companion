@@ -78,9 +78,11 @@ class CliOutputTest(unittest.TestCase):
             self.assertEqual(validate_card(card), [], card["card_id"])
         times = [c["t_in_min"] for c in self.demo["cards"]]
         self.assertEqual(times, sorted(times))
-        per_half = Counter(1 if t <= 45.0 else 2 for t in times)
+        # 4 per half on the regular clock, plus at most 1 in added time (cards past 90:00 are second-half added time)
+        per_half = Counter(1 if t <= 45.0 else 2 for t in times if t <= 90.0)
         for half, n in per_half.items():
             self.assertLessEqual(n, 4)
+        self.assertLessEqual(sum(1 for t in times if t > 90.0), 1)
         for a, b in zip(self.demo["cards"], self.demo["cards"][1:]):
             self.assertGreaterEqual(b["t_in_min"] - a["t_in_min"], 8.0)
 

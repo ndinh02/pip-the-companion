@@ -1,4 +1,4 @@
-"""Test 5 — timing policy: per half <= 4 cards, consecutive cards >= 8 min apart,
+"""Test 5 — timing policy: per half <= 4 cards plus <= 1 in that half's added time, consecutive cards >= 8 min apart,
 no non-var card within 60 s after a counted goal, timeline ends at final_score,
 cards in time order, period-1 cards at or before minute 45."""
 from __future__ import annotations
@@ -29,10 +29,13 @@ class PolicyTest(unittest.TestCase):
                 if cand["period"] == 1:
                     self.assertLessEqual(card["t_in_min"], 45.0, (seed, card["card_id"]))
 
-            # at most 4 cards per half
-            per_half = Counter(cand["period"] for cand in accepted)
-            for period, n in per_half.items():
+            # at most 4 cards per half, plus at most 1 in that half's added time (task 11)
+            regular = Counter(c["period"] for c in accepted if c["t_in_min"] <= (45.0 if c["period"] == 1 else 90.0))
+            added = Counter(c["period"] for c in accepted if c["t_in_min"] > (45.0 if c["period"] == 1 else 90.0))
+            for period, n in regular.items():
                 self.assertLessEqual(n, 4, "seed %d period %d has %d cards" % (seed, period, n))
+            for period, n in added.items():
+                self.assertLessEqual(n, 1, "seed %d period %d has %d added-time cards" % (seed, period, n))
 
             # consecutive cards are at least 8 minutes apart
             for a, b in zip(cards, cards[1:]):

@@ -1,6 +1,6 @@
 # Checks on every push and pull request; deploys the web app from main once the Azure token secret exists.
-# The deploy waits for the web checks only (owner decision 2026-10-25): the match simulation is not yet repeatable on
-# Linux runners, which keeps some Python byte-compare checks red; the `determinism` job reports where runs part.
+# The deploy waits for the web and the Python checks (owner decision 2026-10-26). The `determinism` job (never blocks)
+# reports whether the simulation on Linux matches the files committed from the Mac (it drifts by ~1 dm late on).
 name: ci
 
 on:
@@ -95,7 +95,7 @@ jobs:
     # Runs only on main, after the checks pass, and only once the publish profile secret and the app name are set.
     # Hosting: Azure App Service (Linux, Node 22, Free F1, France Central). Static Web Apps is not available in the
     # regions this Azure for Students subscription may use (docs/OPEN_QUESTIONS.md).
-    needs: web
+    needs: [web, python]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     env:
