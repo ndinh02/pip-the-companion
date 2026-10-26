@@ -1,0 +1,3463 @@
+{
+ "agents": [
+  {
+   "id": "orchestrator",
+   "kind": "code",
+   "model": null,
+   "name": "Orchestrator",
+   "role": "walks each card through the pipeline and records every handoff"
+  },
+  {
+   "id": "writer",
+   "kind": "llm",
+   "model": "qwen2.5-7b-instruct-generic-gpu:4",
+   "name": "Writer",
+   "role": "drafts the plain + expert EN lines from facts it must fetch through the MCP tools"
+  },
+  {
+   "id": "checker",
+   "kind": "code",
+   "model": null,
+   "name": "Rule checker",
+   "role": "the authority: numbers equal the events, placeholders known, banned words, shape, VAR decision"
+  },
+  {
+   "id": "verifier",
+   "kind": "llm",
+   "model": "qwen2.5-7b-instruct-generic-gpu:4",
+   "name": "Fact verifier",
+   "role": "LLM second look: confirms the draft against the fetched facts; the code checker can overrule it"
+  },
+  {
+   "id": "editor",
+   "kind": "llm",
+   "model": "qwen2.5-7b-instruct-generic-gpu:4",
+   "name": "Editor",
+   "role": "tightens the approved lines while preserving every {placeholder} exactly"
+  },
+  {
+   "id": "translator",
+   "kind": "llm",
+   "model": "qwen2.5-7b-instruct-generic-gpu:4",
+   "name": "Translator",
+   "role": "DE and VI drafts of the approved lines (drafts until the owner checks them)"
+  }
+ ],
+ "cards": [
+  {
+   "approved_by": "template (fallback)",
+   "approved_expert_en": "Onside by {c1_var_margin_cm} cm, judged on the frame the pass was played.",
+   "approved_facts": {
+    "c1_var_margin_cm": 32
+   },
+   "approved_plain_en": "Offside check. The attacker was level with or behind the last defender, so the goal stands.",
+   "attempts": [
+    {
+     "attempt": 1,
+     "checker": "pass",
+     "errors": [],
+     "expert_en": "{c1_var_margin_cm} cm from being offside.",
+     "facts": {
+      "c1_var_margin_cm": 32
+     },
+     "note": "drafted by qwen2.5-7b-instruct-generic-gpu:4",
+     "plain_en": "The attacker wasn't offside, so the goal stands.",
+     "writer": "writer (qwen2.5-7b-instruct-generic-gpu:4)"
+    },
+    {
+     "attempt": 2,
+     "checker": "pass",
+     "errors": [],
+     "expert_en": "The VAR confirmed the goal with a {c1_var_margin_cm} cm margin.",
+     "facts": {
+      "c1_var_margin_cm": 32
+     },
+     "note": "drafted by qwen2.5-7b-instruct-generic-gpu:4",
+     "plain_en": "The attacker was NOT offside, standing {c1_var_margin_cm} cm onside.",
+     "writer": "writer (qwen2.5-7b-instruct-generic-gpu:4)"
+    },
+    {
+     "attempt": 3,
+     "checker": "fail",
+     "errors": [
+      "plain line does not state the VAR decision (the goal stands)"
+     ],
+     "expert_en": "VAR confirmed the goal stands with a {c1_var_margin_cm} cm margin.",
+     "facts": {
+      "c1_var_margin_cm": 32
+     },
+     "note": "drafted by qwen2.5-7b-instruct-generic-gpu:4",
+     "plain_en": "The attacker was NOT offside by {c1_var_margin_cm} cm.",
+     "writer": "writer (qwen2.5-7b-instruct-generic-gpu:4)"
+    },
+    {
+     "attempt": 4,
+     "checker": "pass",
+     "errors": [],
+     "expert_en": "Onside by {c1_var_margin_cm} cm, judged on the frame the pass was played.",
+     "facts": {
+      "c1_var_margin_cm": 32
+     },
+     "note": "retries used up",
+     "plain_en": "Offside check. The attacker was level with or behind the last defender, so the goal stands.",
+     "writer": "template (fallback)"
+    }
+   ],
+   "card_id": "c1-var",
+   "decision": "fire",
+   "facts_from_events": {
+    "c1_var_margin_cm": 32
+   },
+   "question_en": "VAR is checking. What are they looking at?",
+   "steps": [
+    {
+     "action": "moment picked",
+     "agent": "orchestrator",
+     "ms": null,
+     "n": 1,
+     "notes": [
+      "var at 2.5' for Harbour Lights",
+      "1 code-computed fact(s) served through the MCP server"
+     ],
+     "text": {},
+     "to": "writer",
+     "verdict": "info",
+     "via_mcp": false
+    },
+    {
+     "action": "draft via MCP tools",
+     "agent": "writer",
+     "ms": 10453,
+     "n": 2,
+     "notes": [
+      "2 tool call(s) through pip-facts-mcp (stdio, JSON-RPC 2.0)"
+     ],
+     "text": {
+      "expert_en": "{c1_var_margin_cm} cm from being offside.",
+      "plain_en": "The attacker wasn't offside, so the goal stands."
+     },
+     "to": "checker",
+     "verdict": "info",
+     "via_mcp": true
+    },
+    {
+     "action": "check draft",
+     "agent": "checker",
+     "ms": null,
+     "n": 3,
+     "notes": [
+      "numbers, placeholders, banned words, shape, decision: all clean"
+     ],
+     "text": {},
+     "to": "orchestrator",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "verify against fetched facts",
+     "agent": "verifier",
+     "ms": 2239,
+     "n": 4,
+     "notes": [
+      "The attacker wasn't offside, but was actually 32 cm onside according to the facts.",
+      "recorded; the rule-based checker (the authority) passed this draft"
+     ],
+     "text": {},
+     "to": "checker",
+     "verdict": "fail",
+     "via_mcp": true
+    },
+    {
+     "action": "draft via MCP tools",
+     "agent": "writer",
+     "ms": 11648,
+     "n": 5,
+     "notes": [
+      "4 tool call(s) through pip-facts-mcp (stdio, JSON-RPC 2.0)"
+     ],
+     "text": {
+      "expert_en": "The VAR confirmed the goal with a {c1_var_margin_cm} cm margin.",
+      "plain_en": "The attacker was NOT offside, standing {c1_var_margin_cm} cm onside."
+     },
+     "to": "checker",
+     "verdict": "info",
+     "via_mcp": true
+    },
+    {
+     "action": "check draft",
+     "agent": "checker",
+     "ms": null,
+     "n": 6,
+     "notes": [
+      "numbers, placeholders, banned words, shape, decision: all clean"
+     ],
+     "text": {},
+     "to": "orchestrator",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "verify against fetched facts",
+     "agent": "verifier",
+     "ms": 3112,
+     "n": 7,
+     "notes": [
+      "The draft states 'The attacker was NOT offside', but the fact shows the attacker was actually {c1_var_margin_cm} cm onside.",
+      "recorded; the rule-based checker (the authority) passed this draft"
+     ],
+     "text": {},
+     "to": "checker",
+     "verdict": "fail",
+     "via_mcp": true
+    },
+    {
+     "action": "draft via MCP tools",
+     "agent": "writer",
+     "ms": 22010,
+     "n": 8,
+     "notes": [
+      "7 tool call(s) through pip-facts-mcp (stdio, JSON-RPC 2.0)"
+     ],
+     "text": {
+      "expert_en": "VAR confirmed the goal stands with a {c1_var_margin_cm} cm margin.",
+      "plain_en": "The attacker was NOT offside by {c1_var_margin_cm} cm."
+     },
+     "to": "checker",
+     "verdict": "info",
+     "via_mcp": true
+    },
+    {
+     "action": "check draft",
+     "agent": "checker",
+     "ms": null,
+     "n": 9,
+     "notes": [
+      "plain line does not state the VAR decision (the goal stands)"
+     ],
+     "text": {},
+     "to": "orchestrator",
+     "verdict": "fail",
+     "via_mcp": false
+    },
+    {
+     "action": "fallback",
+     "agent": "orchestrator",
+     "ms": 0,
+     "n": 10,
+     "notes": [
+      "writer did not pass the checker in 2 retries: the fixed, owner-reviewed template takes over"
+     ],
+     "text": {},
+     "to": "checker",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "translate to de",
+     "agent": "translator",
+     "ms": null,
+     "n": 11,
+     "notes": [
+      "template card ships its owner-reviewed DE lines"
+     ],
+     "text": {},
+     "to": null,
+     "verdict": "info",
+     "via_mcp": false
+    },
+    {
+     "action": "translate to vi",
+     "agent": "translator",
+     "ms": null,
+     "n": 12,
+     "notes": [
+      "template card ships its owner-reviewed VI lines"
+     ],
+     "text": {},
+     "to": null,
+     "verdict": "info",
+     "via_mcp": false
+    },
+    {
+     "action": "card done",
+     "agent": "orchestrator",
+     "ms": null,
+     "n": 13,
+     "notes": [
+      "approved by template (fallback)",
+      "translations: de fallback, vi fallback"
+     ],
+     "text": {},
+     "to": null,
+     "verdict": "info",
+     "via_mcp": false
+    }
+   ],
+   "t_in_min": 2.5,
+   "team_id": "HAR",
+   "tool_calls": [
+    {
+     "arguments": {},
+     "ms": 0,
+     "result": [
+      {
+       "fact_id": "c1_var_margin_cm",
+       "meaning": "how many centimetres the attacker was offside or onside by"
+      }
+     ],
+     "tool": "list_facts"
+    },
+    {
+     "arguments": {
+      "fact_id": "c1_var_margin_cm"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c1_var_margin_cm",
+      "meaning": "how many centimetres the attacker was offside or onside by",
+      "note": "this value is filled into the text by code: write the placeholder {c1_var_margin_cm} in your lines, NEVER the number itself",
+      "value": 32
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {},
+     "ms": 1,
+     "result": [
+      {
+       "fact_id": "c1_var_margin_cm",
+       "meaning": "how many centimetres the attacker was offside or onside by"
+      }
+     ],
+     "tool": "list_facts"
+    },
+    {
+     "arguments": {
+      "fact_id": "c1_var_margin_cm"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c1_var_margin_cm",
+      "meaning": "how many centimetres the attacker was offside or onside by",
+      "note": "this value is filled into the text by code: write the placeholder {c1_var_margin_cm} in your lines, NEVER the number itself",
+      "value": 32
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {},
+     "ms": 1,
+     "result": [
+      {
+       "fact_id": "c1_var_margin_cm",
+       "meaning": "how many centimetres the attacker was offside or onside by"
+      }
+     ],
+     "tool": "list_facts"
+    },
+    {
+     "arguments": {
+      "fact_id": "c1_var_margin_cm"
+     },
+     "ms": 2,
+     "result": {
+      "fact_id": "c1_var_margin_cm",
+      "meaning": "how many centimetres the attacker was offside or onside by",
+      "note": "this value is filled into the text by code: write the placeholder {c1_var_margin_cm} in your lines, NEVER the number itself",
+      "value": 32
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c1_var_margin_cm"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c1_var_margin_cm",
+      "meaning": "how many centimetres the attacker was offside or onside by",
+      "note": "this value is filled into the text by code: write the placeholder {c1_var_margin_cm} in your lines, NEVER the number itself",
+      "value": 32
+     },
+     "tool": "get_fact"
+    }
+   ],
+   "translations": {
+    "de": {
+     "expert": "Kein Abseits, mit {c1_var_margin_cm} cm Luft, gemessen im Moment der Ballabgabe.",
+     "plain": "Abseits-Check. Der Angreifer stand auf gleicher Höhe mit dem letzten Verteidiger oder dahinter, das Tor zählt.",
+     "status": "fallback"
+    },
+    "vi": {
+     "expert": "Không việt vị, còn cách {c1_var_margin_cm} cm, xét theo khung hình lúc chuyền bóng.",
+     "plain": "Kiểm tra việt vị. Cầu thủ tấn công đứng ngang hoặc sau hậu vệ cuối cùng, nên bàn thắng được công nhận.",
+     "status": "fallback"
+    }
+   },
+   "trigger": "var"
+  },
+  {
+   "approved_by": "writer (qwen2.5-7b-instruct-generic-gpu:4), edited",
+   "approved_expert_en": "{c2_corners_total} corners so far.",
+   "approved_facts": {
+    "c2_corners_short": 0,
+    "c2_corners_total": 3,
+    "c2_league_short_share_pct": 16
+   },
+   "approved_plain_en": "It went to the far post!",
+   "attempts": [
+    {
+     "attempt": 1,
+     "checker": "pass",
+     "errors": [],
+     "expert_en": "{c2_corners_total} corners taken so far today.",
+     "facts": {
+      "c2_corners_short": 0,
+      "c2_corners_total": 3,
+      "c2_league_short_share_pct": 16
+     },
+     "note": "drafted by qwen2.5-7b-instruct-generic-gpu:4",
+     "plain_en": "It went to the far post!",
+     "writer": "writer (qwen2.5-7b-instruct-generic-gpu:4)"
+    },
+    {
+     "attempt": 2,
+     "checker": "pass",
+     "errors": [],
+     "expert_en": "{c2_corners_total} corners so far.",
+     "facts": {
+      "c2_corners_short": 0,
+      "c2_corners_total": 3,
+      "c2_league_short_share_pct": 16
+     },
+     "note": "editor pass 1",
+     "plain_en": "It went to the far post!",
+     "writer": "editor (qwen2.5-7b-instruct-generic-gpu:4)"
+    }
+   ],
+   "card_id": "c2-corner",
+   "decision": "fire",
+   "facts_from_events": {
+    "c2_corners_short": 0,
+    "c2_corners_total": 3,
+    "c2_league_short_share_pct": 16
+   },
+   "question_en": "Corner! Where's it going?",
+   "steps": [
+    {
+     "action": "moment picked",
+     "agent": "orchestrator",
+     "ms": null,
+     "n": 1,
+     "notes": [
+      "corner at 14.9' for Harbour Lights",
+      "3 code-computed fact(s) served through the MCP server"
+     ],
+     "text": {},
+     "to": "writer",
+     "verdict": "info",
+     "via_mcp": false
+    },
+    {
+     "action": "draft via MCP tools",
+     "agent": "writer",
+     "ms": 12583,
+     "n": 2,
+     "notes": [
+      "4 tool call(s) through pip-facts-mcp (stdio, JSON-RPC 2.0)"
+     ],
+     "text": {
+      "expert_en": "{c2_corners_total} corners taken so far today.",
+      "plain_en": "It went to the far post!"
+     },
+     "to": "checker",
+     "verdict": "info",
+     "via_mcp": true
+    },
+    {
+     "action": "check draft",
+     "agent": "checker",
+     "ms": null,
+     "n": 3,
+     "notes": [
+      "numbers, placeholders, banned words, shape, decision: all clean"
+     ],
+     "text": {},
+     "to": "orchestrator",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "verify against fetched facts",
+     "agent": "verifier",
+     "ms": 2410,
+     "n": 4,
+     "notes": [],
+     "text": {},
+     "to": "checker",
+     "verdict": "pass",
+     "via_mcp": true
+    },
+    {
+     "action": "tighten lines",
+     "agent": "editor",
+     "ms": 3255,
+     "n": 5,
+     "notes": [],
+     "text": {
+      "expert_en": "{c2_corners_total} corners so far.",
+      "plain_en": "It went to the far post!"
+     },
+     "to": "checker",
+     "verdict": "info",
+     "via_mcp": false
+    },
+    {
+     "action": "check edited lines",
+     "agent": "checker",
+     "ms": null,
+     "n": 6,
+     "notes": [
+      "placeholders preserved: c2_corners_total"
+     ],
+     "text": {},
+     "to": "orchestrator",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "translate to de",
+     "agent": "translator",
+     "ms": 3331,
+     "n": 7,
+     "notes": [
+      "placeholders preserved: c2_corners_total"
+     ],
+     "text": {
+      "expert_de": "{c2_corners_total} Ecken bis jetzt.",
+      "plain_de": "Es ging zum entfernten Pfosten!"
+     },
+     "to": "checker",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "translate to vi",
+     "agent": "translator",
+     "ms": 3324,
+     "n": 8,
+     "notes": [
+      "placeholders preserved: c2_corners_total"
+     ],
+     "text": {
+      "expert_vi": "{c2_corners_total} corners so far.",
+      "plain_vi": "It went to the far post!"
+     },
+     "to": "checker",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "card done",
+     "agent": "orchestrator",
+     "ms": null,
+     "n": 9,
+     "notes": [
+      "approved by writer (qwen2.5-7b-instruct-generic-gpu:4), edited",
+      "translations: de approved, vi approved"
+     ],
+     "text": {},
+     "to": null,
+     "verdict": "info",
+     "via_mcp": false
+    }
+   ],
+   "t_in_min": 14.9,
+   "team_id": "HAR",
+   "tool_calls": [
+    {
+     "arguments": {},
+     "ms": 0,
+     "result": [
+      {
+       "fact_id": "c2_corners_short",
+       "meaning": "corners this team has played short so far today"
+      },
+      {
+       "fact_id": "c2_corners_total",
+       "meaning": "corners this team has taken so far today"
+      },
+      {
+       "fact_id": "c2_league_short_share_pct",
+       "meaning": "league average share of corners played short, in percent"
+      }
+     ],
+     "tool": "list_facts"
+    },
+    {
+     "arguments": {
+      "fact_id": "c2_corners_short"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c2_corners_short",
+      "meaning": "corners this team has played short so far today",
+      "note": "this value is filled into the text by code: write the placeholder {c2_corners_short} in your lines, NEVER the number itself",
+      "value": 0
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c2_corners_total"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c2_corners_total",
+      "meaning": "corners this team has taken so far today",
+      "note": "this value is filled into the text by code: write the placeholder {c2_corners_total} in your lines, NEVER the number itself",
+      "value": 3
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c2_league_short_share_pct"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c2_league_short_share_pct",
+      "meaning": "league average share of corners played short, in percent",
+      "note": "this value is filled into the text by code: write the placeholder {c2_league_short_share_pct} in your lines, NEVER the number itself",
+      "value": 16
+     },
+     "tool": "get_fact"
+    }
+   ],
+   "translations": {
+    "de": {
+     "expert": "{c2_corners_total} Ecken bis jetzt.",
+     "plain": "Es ging zum entfernten Pfosten!",
+     "status": "approved"
+    },
+    "vi": {
+     "expert": "{c2_corners_total} corners so far.",
+     "plain": "It went to the far post!",
+     "status": "approved"
+    }
+   },
+   "trigger": "corner"
+  },
+  {
+   "approved_by": "writer (qwen2.5-7b-instruct-generic-gpu:4), edited",
+   "approved_expert_en": "{c3_fk_cross} of {c3_fk_total} free kicks were crosses.",
+   "approved_facts": {
+    "c3_fk_cross": 2,
+    "c3_fk_total": 2
+   },
+   "approved_plain_en": "Cross into the box.",
+   "attempts": [
+    {
+     "attempt": 1,
+     "checker": "pass",
+     "errors": [],
+     "expert_en": "{c3_fk_cross} of {c3_fk_total} free kicks have been crosses so far.",
+     "facts": {
+      "c3_fk_cross": 2,
+      "c3_fk_total": 2
+     },
+     "note": "drafted by qwen2.5-7b-instruct-generic-gpu:4",
+     "plain_en": "It was a cross into the box.",
+     "writer": "writer (qwen2.5-7b-instruct-generic-gpu:4)"
+    },
+    {
+     "attempt": 2,
+     "checker": "pass",
+     "errors": [],
+     "expert_en": "{c3_fk_cross} of {c3_fk_total} free kicks were crosses.",
+     "facts": {
+      "c3_fk_cross": 2,
+      "c3_fk_total": 2
+     },
+     "note": "editor pass 1",
+     "plain_en": "Cross into the box.",
+     "writer": "editor (qwen2.5-7b-instruct-generic-gpu:4)"
+    }
+   ],
+   "card_id": "c3-freekick",
+   "decision": "fire",
+   "facts_from_events": {
+    "c3_fk_cross": 2,
+    "c3_fk_total": 2
+   },
+   "question_en": "Free kick! Shoot or cross?",
+   "steps": [
+    {
+     "action": "moment picked",
+     "agent": "orchestrator",
+     "ms": null,
+     "n": 1,
+     "notes": [
+      "free kick at 23.3' for Copperfield",
+      "2 code-computed fact(s) served through the MCP server"
+     ],
+     "text": {},
+     "to": "writer",
+     "verdict": "info",
+     "via_mcp": false
+    },
+    {
+     "action": "draft via MCP tools",
+     "agent": "writer",
+     "ms": 18485,
+     "n": 2,
+     "notes": [
+      "3 tool call(s) through pip-facts-mcp (stdio, JSON-RPC 2.0)"
+     ],
+     "text": {
+      "expert_en": "{c3_fk_cross} of {c3_fk_total} free kicks have been crosses so far.",
+      "plain_en": "It was a cross into the box."
+     },
+     "to": "checker",
+     "verdict": "info",
+     "via_mcp": true
+    },
+    {
+     "action": "check draft",
+     "agent": "checker",
+     "ms": null,
+     "n": 3,
+     "notes": [
+      "numbers, placeholders, banned words, shape, decision: all clean"
+     ],
+     "text": {},
+     "to": "orchestrator",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "verify against fetched facts",
+     "agent": "verifier",
+     "ms": 3180,
+     "n": 4,
+     "notes": [],
+     "text": {},
+     "to": "checker",
+     "verdict": "pass",
+     "via_mcp": true
+    },
+    {
+     "action": "tighten lines",
+     "agent": "editor",
+     "ms": 5721,
+     "n": 5,
+     "notes": [],
+     "text": {
+      "expert_en": "{c3_fk_cross} of {c3_fk_total} free kicks were crosses.",
+      "plain_en": "Cross into the box."
+     },
+     "to": "checker",
+     "verdict": "info",
+     "via_mcp": false
+    },
+    {
+     "action": "check edited lines",
+     "agent": "checker",
+     "ms": null,
+     "n": 6,
+     "notes": [
+      "placeholders preserved: c3_fk_cross, c3_fk_total"
+     ],
+     "text": {},
+     "to": "orchestrator",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "translate to de",
+     "agent": "translator",
+     "ms": 6115,
+     "n": 7,
+     "notes": [
+      "placeholders preserved: c3_fk_cross, c3_fk_total"
+     ],
+     "text": {
+      "expert_de": "{c3_fk_cross} von {c3_fk_total} Freikicks waren Crosses.",
+      "plain_de": "Cross ins Gebiet."
+     },
+     "to": "checker",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "translate to vi",
+     "agent": "translator",
+     "ms": 5899,
+     "n": 8,
+     "notes": [
+      "placeholders preserved: c3_fk_cross, c3_fk_total"
+     ],
+     "text": {
+      "expert_vi": "{c3_fk_cross} của {c3_fk_total} quả đá phạt góc.",
+      "plain_vi": "Hòa quân vào khu cấm địa."
+     },
+     "to": "checker",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "card done",
+     "agent": "orchestrator",
+     "ms": null,
+     "n": 9,
+     "notes": [
+      "approved by writer (qwen2.5-7b-instruct-generic-gpu:4), edited",
+      "translations: de approved, vi approved"
+     ],
+     "text": {},
+     "to": null,
+     "verdict": "info",
+     "via_mcp": false
+    }
+   ],
+   "t_in_min": 23.3,
+   "team_id": "COP",
+   "tool_calls": [
+    {
+     "arguments": {},
+     "ms": 1,
+     "result": [
+      {
+       "fact_id": "c3_fk_cross",
+       "meaning": "free kicks in the opponent's half this team has crossed so far today"
+      },
+      {
+       "fact_id": "c3_fk_total",
+       "meaning": "free kicks in the opponent's half this team has taken so far today"
+      }
+     ],
+     "tool": "list_facts"
+    },
+    {
+     "arguments": {
+      "fact_id": "c3_fk_cross"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c3_fk_cross",
+      "meaning": "free kicks in the opponent's half this team has crossed so far today",
+      "note": "this value is filled into the text by code: write the placeholder {c3_fk_cross} in your lines, NEVER the number itself",
+      "value": 2
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c3_fk_total"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c3_fk_total",
+      "meaning": "free kicks in the opponent's half this team has taken so far today",
+      "note": "this value is filled into the text by code: write the placeholder {c3_fk_total} in your lines, NEVER the number itself",
+      "value": 2
+     },
+     "tool": "get_fact"
+    }
+   ],
+   "translations": {
+    "de": {
+     "expert": "{c3_fk_cross} von {c3_fk_total} Freikicks waren Crosses.",
+     "plain": "Cross ins Gebiet.",
+     "status": "approved"
+    },
+    "vi": {
+     "expert": "{c3_fk_cross} của {c3_fk_total} quả đá phạt góc.",
+     "plain": "Hòa quân vào khu cấm địa.",
+     "status": "approved"
+    }
+   },
+   "trigger": "free_kick"
+  },
+  {
+   "approved_by": "writer (qwen2.5-7b-instruct-generic-gpu:4), edited",
+   "approved_expert_en": "{c4_fk_cross}/{c4_fk_total} free kicks were crosses to Harbour Lights.",
+   "approved_facts": {
+    "c4_fk_cross": 1,
+    "c4_fk_total": 3
+   },
+   "approved_plain_en": "Free kick cross to Harbour Lights.",
+   "attempts": [
+    {
+     "attempt": 1,
+     "checker": "pass",
+     "errors": [],
+     "expert_en": "{c4_fk_cross} out of {c4_fk_total} free kicks have been crosses for Harbour Lights so far today.",
+     "facts": {
+      "c4_fk_cross": 1,
+      "c4_fk_total": 3
+     },
+     "note": "drafted by qwen2.5-7b-instruct-generic-gpu:4",
+     "plain_en": "A cross was made from the free kick. {c4_fk_cross} is up for Harbour Lights now.",
+     "writer": "writer (qwen2.5-7b-instruct-generic-gpu:4)"
+    },
+    {
+     "attempt": 2,
+     "checker": "pass",
+     "errors": [],
+     "expert_en": "{c4_fk_cross}/{c4_fk_total} free kicks were crosses to Harbour Lights.",
+     "facts": {
+      "c4_fk_cross": 1,
+      "c4_fk_total": 3
+     },
+     "note": "editor pass 1",
+     "plain_en": "Free kick cross to Harbour Lights.",
+     "writer": "editor (qwen2.5-7b-instruct-generic-gpu:4)"
+    }
+   ],
+   "card_id": "c4-freekick",
+   "decision": "fire",
+   "facts_from_events": {
+    "c4_fk_cross": 1,
+    "c4_fk_total": 3
+   },
+   "question_en": "Free kick for Harbour Lights. What will they try?",
+   "steps": [
+    {
+     "action": "moment picked",
+     "agent": "orchestrator",
+     "ms": null,
+     "n": 1,
+     "notes": [
+      "free kick at 32.3' for Harbour Lights",
+      "2 code-computed fact(s) served through the MCP server"
+     ],
+     "text": {},
+     "to": "writer",
+     "verdict": "info",
+     "via_mcp": false
+    },
+    {
+     "action": "draft via MCP tools",
+     "agent": "writer",
+     "ms": 24663,
+     "n": 2,
+     "notes": [
+      "3 tool call(s) through pip-facts-mcp (stdio, JSON-RPC 2.0)"
+     ],
+     "text": {
+      "expert_en": "{c4_fk_cross} out of {c4_fk_total} free kicks have been crosses for Harbour Lights so far today.",
+      "plain_en": "A cross was made from the free kick. {c4_fk_cross} is up for Harbour Lights now."
+     },
+     "to": "checker",
+     "verdict": "info",
+     "via_mcp": true
+    },
+    {
+     "action": "check draft",
+     "agent": "checker",
+     "ms": null,
+     "n": 3,
+     "notes": [
+      "numbers, placeholders, banned words, shape, decision: all clean"
+     ],
+     "text": {},
+     "to": "orchestrator",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "verify against fetched facts",
+     "agent": "verifier",
+     "ms": 3418,
+     "n": 4,
+     "notes": [],
+     "text": {},
+     "to": "checker",
+     "verdict": "pass",
+     "via_mcp": true
+    },
+    {
+     "action": "tighten lines",
+     "agent": "editor",
+     "ms": 4676,
+     "n": 5,
+     "notes": [],
+     "text": {
+      "expert_en": "{c4_fk_cross}/{c4_fk_total} free kicks were crosses to Harbour Lights.",
+      "plain_en": "Free kick cross to Harbour Lights."
+     },
+     "to": "checker",
+     "verdict": "info",
+     "via_mcp": false
+    },
+    {
+     "action": "check edited lines",
+     "agent": "checker",
+     "ms": null,
+     "n": 6,
+     "notes": [
+      "placeholders preserved: c4_fk_cross, c4_fk_total"
+     ],
+     "text": {},
+     "to": "orchestrator",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "translate to de",
+     "agent": "translator",
+     "ms": 6465,
+     "n": 7,
+     "notes": [
+      "placeholders preserved: c4_fk_cross, c4_fk_total"
+     ],
+     "text": {
+      "expert_de": "{c4_fk_cross}/{c4_fk_total} Frei-Kicks waren Schüsse ins Tor für Harbour Lights.",
+      "plain_de": "Freier Kickschuss in die Luft gegangen bei Harbour Lights."
+     },
+     "to": "checker",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "translate to vi",
+     "agent": "translator",
+     "ms": 5290,
+     "n": 8,
+     "notes": [
+      "placeholders preserved: c4_fk_cross, c4_fk_total"
+     ],
+     "text": {
+      "expert_vi": "{c4_fk_cross}/{c4_fk_total} quả đá phạt miễn phí là những quả chuyền phạt cho Harbour Lights.",
+      "plain_vi": "Miễn phí quả đá phạt cho Harbour Lights."
+     },
+     "to": "checker",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "card done",
+     "agent": "orchestrator",
+     "ms": null,
+     "n": 9,
+     "notes": [
+      "approved by writer (qwen2.5-7b-instruct-generic-gpu:4), edited",
+      "translations: de approved, vi approved"
+     ],
+     "text": {},
+     "to": null,
+     "verdict": "info",
+     "via_mcp": false
+    }
+   ],
+   "t_in_min": 32.3,
+   "team_id": "HAR",
+   "tool_calls": [
+    {
+     "arguments": {},
+     "ms": 1,
+     "result": [
+      {
+       "fact_id": "c4_fk_cross",
+       "meaning": "free kicks in the opponent's half this team has crossed so far today"
+      },
+      {
+       "fact_id": "c4_fk_total",
+       "meaning": "free kicks in the opponent's half this team has taken so far today"
+      }
+     ],
+     "tool": "list_facts"
+    },
+    {
+     "arguments": {
+      "fact_id": "c4_fk_cross"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c4_fk_cross",
+      "meaning": "free kicks in the opponent's half this team has crossed so far today",
+      "note": "this value is filled into the text by code: write the placeholder {c4_fk_cross} in your lines, NEVER the number itself",
+      "value": 1
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c4_fk_total"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c4_fk_total",
+      "meaning": "free kicks in the opponent's half this team has taken so far today",
+      "note": "this value is filled into the text by code: write the placeholder {c4_fk_total} in your lines, NEVER the number itself",
+      "value": 3
+     },
+     "tool": "get_fact"
+    }
+   ],
+   "translations": {
+    "de": {
+     "expert": "{c4_fk_cross}/{c4_fk_total} Frei-Kicks waren Schüsse ins Tor für Harbour Lights.",
+     "plain": "Freier Kickschuss in die Luft gegangen bei Harbour Lights.",
+     "status": "approved"
+    },
+    "vi": {
+     "expert": "{c4_fk_cross}/{c4_fk_total} quả đá phạt miễn phí là những quả chuyền phạt cho Harbour Lights.",
+     "plain": "Miễn phí quả đá phạt cho Harbour Lights.",
+     "status": "approved"
+    }
+   },
+   "trigger": "free_kick"
+  },
+  {
+   "approved_by": "writer (qwen2.5-7b-instruct-generic-gpu:4), edited",
+   "approved_expert_en": "With {c5_fk_cross} crosses out of {c5_fk_total}, Copperfield played it safe.",
+   "approved_facts": {
+    "c5_fk_cross": 3,
+    "c5_fk_total": 5
+   },
+   "approved_plain_en": "Copperfield passed short to keep possession.",
+   "attempts": [
+    {
+     "attempt": 1,
+     "checker": "pass",
+     "errors": [],
+     "expert_en": "{c5_fk_cross} is still low compared to their usual free kick distribution.",
+     "facts": {
+      "c5_fk_cross": 3,
+      "c5_fk_total": 5
+     },
+     "note": "drafted by qwen2.5-7b-instruct-generic-gpu:4",
+     "plain_en": "The ball was passed short to a teammate.",
+     "writer": "writer (qwen2.5-7b-instruct-generic-gpu:4)"
+    },
+    {
+     "attempt": 2,
+     "checker": "pass",
+     "errors": [],
+     "expert_en": "Passing short ({c5_fk_cross} crosses out of {c5_fk_total} free kicks) keeps pressure on the defense.",
+     "facts": {
+      "c5_fk_cross": 3,
+      "c5_fk_total": 5
+     },
+     "note": "drafted by qwen2.5-7b-instruct-generic-gpu:4",
+     "plain_en": "They passed short to keep possession.",
+     "writer": "writer (qwen2.5-7b-instruct-generic-gpu:4)"
+    },
+    {
+     "attempt": 3,
+     "checker": "pass",
+     "errors": [],
+     "expert_en": "With {c5_fk_cross} crosses out of {c5_fk_total} free kicks in the opponent's half, Copperfield chose to play it safe.",
+     "facts": {
+      "c5_fk_cross": 3,
+      "c5_fk_total": 5
+     },
+     "note": "drafted by qwen2.5-7b-instruct-generic-gpu:4",
+     "plain_en": "Copperfield passed short to keep possession.",
+     "writer": "writer (qwen2.5-7b-instruct-generic-gpu:4)"
+    },
+    {
+     "attempt": 4,
+     "checker": "fail",
+     "errors": [
+      "editor changed the placeholders (had ['c5_fk_cross', 'c5_fk_total'], now none)"
+     ],
+     "expert_en": "Copperfield kept possession with a short pass.",
+     "facts": {
+      "c5_fk_cross": 3,
+      "c5_fk_total": 5
+     },
+     "note": "editor pass 1",
+     "plain_en": "Copperfield passed short.",
+     "writer": "editor (qwen2.5-7b-instruct-generic-gpu:4)"
+    },
+    {
+     "attempt": 5,
+     "checker": "pass",
+     "errors": [],
+     "expert_en": "With {c5_fk_cross} crosses out of {c5_fk_total}, Copperfield played it safe.",
+     "facts": {
+      "c5_fk_cross": 3,
+      "c5_fk_total": 5
+     },
+     "note": "editor pass 2",
+     "plain_en": "Copperfield passed short to keep possession.",
+     "writer": "editor (qwen2.5-7b-instruct-generic-gpu:4)"
+    }
+   ],
+   "card_id": "c5-freekick",
+   "decision": "fire",
+   "facts_from_events": {
+    "c5_fk_cross": 3,
+    "c5_fk_total": 5
+   },
+   "question_en": "Dead ball, Copperfield in a good spot. How do they play it?",
+   "steps": [
+    {
+     "action": "moment picked",
+     "agent": "orchestrator",
+     "ms": null,
+     "n": 1,
+     "notes": [
+      "free kick at 46.5' for Copperfield",
+      "2 code-computed fact(s) served through the MCP server"
+     ],
+     "text": {},
+     "to": "writer",
+     "verdict": "info",
+     "via_mcp": false
+    },
+    {
+     "action": "draft via MCP tools",
+     "agent": "writer",
+     "ms": 19286,
+     "n": 2,
+     "notes": [
+      "3 tool call(s) through pip-facts-mcp (stdio, JSON-RPC 2.0)"
+     ],
+     "text": {
+      "expert_en": "{c5_fk_cross} is still low compared to their usual free kick distribution.",
+      "plain_en": "The ball was passed short to a teammate."
+     },
+     "to": "checker",
+     "verdict": "info",
+     "via_mcp": true
+    },
+    {
+     "action": "check draft",
+     "agent": "checker",
+     "ms": null,
+     "n": 3,
+     "notes": [
+      "numbers, placeholders, banned words, shape, decision: all clean"
+     ],
+     "text": {},
+     "to": "orchestrator",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "verify against fetched facts",
+     "agent": "verifier",
+     "ms": 5637,
+     "n": 4,
+     "notes": [
+      "The draft mentions a pass which contradicts the fact that c5_fk_cross indicates free kicks crossed in the opponent's half, not passes.",
+      "recorded; the rule-based checker (the authority) passed this draft"
+     ],
+     "text": {},
+     "to": "checker",
+     "verdict": "fail",
+     "via_mcp": true
+    },
+    {
+     "action": "draft via MCP tools",
+     "agent": "writer",
+     "ms": 42458,
+     "n": 5,
+     "notes": [
+      "8 tool call(s) through pip-facts-mcp (stdio, JSON-RPC 2.0)"
+     ],
+     "text": {
+      "expert_en": "Passing short ({c5_fk_cross} crosses out of {c5_fk_total} free kicks) keeps pressure on the defense.",
+      "plain_en": "They passed short to keep possession."
+     },
+     "to": "checker",
+     "verdict": "info",
+     "via_mcp": true
+    },
+    {
+     "action": "check draft",
+     "agent": "checker",
+     "ms": null,
+     "n": 6,
+     "notes": [
+      "numbers, placeholders, banned words, shape, decision: all clean"
+     ],
+     "text": {},
+     "to": "orchestrator",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "verify against fetched facts",
+     "agent": "verifier",
+     "ms": 6338,
+     "n": 7,
+     "notes": [
+      "The draft mentions passing short to keep possession, but the facts provided are about free kicks in the opponent's half. There is no contradiction in the facts themselves, but the draft introduces an ",
+      "recorded; the rule-based checker (the authority) passed this draft"
+     ],
+     "text": {},
+     "to": "checker",
+     "verdict": "fail",
+     "via_mcp": true
+    },
+    {
+     "action": "draft via MCP tools",
+     "agent": "writer",
+     "ms": 37479,
+     "n": 8,
+     "notes": [
+      "13 tool call(s) through pip-facts-mcp (stdio, JSON-RPC 2.0)"
+     ],
+     "text": {
+      "expert_en": "With {c5_fk_cross} crosses out of {c5_fk_total} free kicks in the opponent's half, Copperfield chose to play it safe.",
+      "plain_en": "Copperfield passed short to keep possession."
+     },
+     "to": "checker",
+     "verdict": "info",
+     "via_mcp": true
+    },
+    {
+     "action": "check draft",
+     "agent": "checker",
+     "ms": null,
+     "n": 9,
+     "notes": [
+      "numbers, placeholders, banned words, shape, decision: all clean"
+     ],
+     "text": {},
+     "to": "orchestrator",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "verify against fetched facts",
+     "agent": "verifier",
+     "ms": 7902,
+     "n": 10,
+     "notes": [
+      "The draft mentions 'Copperfield passed short to keep possession' which introduces new information not supported by the facts provided. The facts only provide information about free kicks in the oppone",
+      "recorded; the rule-based checker (the authority) passed this draft"
+     ],
+     "text": {},
+     "to": "checker",
+     "verdict": "fail",
+     "via_mcp": true
+    },
+    {
+     "action": "tighten lines",
+     "agent": "editor",
+     "ms": 5257,
+     "n": 11,
+     "notes": [],
+     "text": {
+      "expert_en": "Copperfield kept possession with a short pass.",
+      "plain_en": "Copperfield passed short."
+     },
+     "to": "checker",
+     "verdict": "info",
+     "via_mcp": false
+    },
+    {
+     "action": "check edited lines",
+     "agent": "checker",
+     "ms": null,
+     "n": 12,
+     "notes": [
+      "editor changed the placeholders (had ['c5_fk_cross', 'c5_fk_total'], now none)"
+     ],
+     "text": {},
+     "to": "orchestrator",
+     "verdict": "fail",
+     "via_mcp": false
+    },
+    {
+     "action": "tighten lines",
+     "agent": "editor",
+     "ms": 6603,
+     "n": 13,
+     "notes": [],
+     "text": {
+      "expert_en": "With {c5_fk_cross} crosses out of {c5_fk_total}, Copperfield played it safe.",
+      "plain_en": "Copperfield passed short to keep possession."
+     },
+     "to": "checker",
+     "verdict": "info",
+     "via_mcp": false
+    },
+    {
+     "action": "check edited lines",
+     "agent": "checker",
+     "ms": null,
+     "n": 14,
+     "notes": [
+      "placeholders preserved: c5_fk_cross, c5_fk_total"
+     ],
+     "text": {},
+     "to": "orchestrator",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "translate to de",
+     "agent": "translator",
+     "ms": 6261,
+     "n": 15,
+     "notes": [
+      "placeholders preserved: c5_fk_cross, c5_fk_total"
+     ],
+     "text": {
+      "expert_de": "Mit {c5_fk_cross} von {c5_fk_total} Fehlkicks, spielte Copperfield vorsichtig.",
+      "plain_de": "Copperfield gab eine kurze Passe ab, um die Besitzung zu erhalten."
+     },
+     "to": "checker",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "translate to vi",
+     "agent": "translator",
+     "ms": 6159,
+     "n": 16,
+     "notes": [
+      "vi: placeholders changed (had ['c5_fk_cross', 'c5_fk_total'], now ['c5_fk_cross'])"
+     ],
+     "text": {
+      "expert_vi": "在{c5_fk_cross}次传中尝试后，Copperfield选择稳妥地控制球权。",
+      "plain_vi": "Copperfield传短球以保持控球权。"
+     },
+     "to": "checker",
+     "verdict": "fail",
+     "via_mcp": false
+    },
+    {
+     "action": "translate to vi",
+     "agent": "translator",
+     "ms": 5637,
+     "n": 17,
+     "notes": [
+      "vi: placeholders changed (had ['c5_fk_cross', 'c5_fk_total'], now ['c5_fk_cross'])"
+     ],
+     "text": {
+      "expert_vi": "在{c5_fk_cross}次传中之外，Copperfield选择稳妥。",
+      "plain_vi": "Copperfield传短球以保持控球权。"
+     },
+     "to": "checker",
+     "verdict": "fail",
+     "via_mcp": false
+    },
+    {
+     "action": "fallback vi",
+     "agent": "translator",
+     "ms": null,
+     "n": 18,
+     "notes": [
+      "translation failed: the owner-reviewed template VI lines are used"
+     ],
+     "text": {},
+     "to": null,
+     "verdict": "fail",
+     "via_mcp": false
+    },
+    {
+     "action": "card done",
+     "agent": "orchestrator",
+     "ms": null,
+     "n": 19,
+     "notes": [
+      "approved by writer (qwen2.5-7b-instruct-generic-gpu:4), edited",
+      "translations: de approved, vi fallback"
+     ],
+     "text": {},
+     "to": null,
+     "verdict": "info",
+     "via_mcp": false
+    }
+   ],
+   "t_in_min": 46.5,
+   "team_id": "COP",
+   "tool_calls": [
+    {
+     "arguments": {},
+     "ms": 1,
+     "result": [
+      {
+       "fact_id": "c5_fk_cross",
+       "meaning": "free kicks in the opponent's half this team has crossed so far today"
+      },
+      {
+       "fact_id": "c5_fk_total",
+       "meaning": "free kicks in the opponent's half this team has taken so far today"
+      }
+     ],
+     "tool": "list_facts"
+    },
+    {
+     "arguments": {
+      "fact_id": "c5_fk_cross"
+     },
+     "ms": 3,
+     "result": {
+      "fact_id": "c5_fk_cross",
+      "meaning": "free kicks in the opponent's half this team has crossed so far today",
+      "note": "this value is filled into the text by code: write the placeholder {c5_fk_cross} in your lines, NEVER the number itself",
+      "value": 3
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c5_fk_total"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c5_fk_total",
+      "meaning": "free kicks in the opponent's half this team has taken so far today",
+      "note": "this value is filled into the text by code: write the placeholder {c5_fk_total} in your lines, NEVER the number itself",
+      "value": 5
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {},
+     "ms": 0,
+     "result": [
+      {
+       "fact_id": "c5_fk_cross",
+       "meaning": "free kicks in the opponent's half this team has crossed so far today"
+      },
+      {
+       "fact_id": "c5_fk_total",
+       "meaning": "free kicks in the opponent's half this team has taken so far today"
+      }
+     ],
+     "tool": "list_facts"
+    },
+    {
+     "arguments": {
+      "fact_id": "c5_fk_cross"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c5_fk_cross",
+      "meaning": "free kicks in the opponent's half this team has crossed so far today",
+      "note": "this value is filled into the text by code: write the placeholder {c5_fk_cross} in your lines, NEVER the number itself",
+      "value": 3
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c5_fk_total"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c5_fk_total",
+      "meaning": "free kicks in the opponent's half this team has taken so far today",
+      "note": "this value is filled into the text by code: write the placeholder {c5_fk_total} in your lines, NEVER the number itself",
+      "value": 5
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c5_fk_cross"
+     },
+     "ms": 1,
+     "result": {
+      "fact_id": "c5_fk_cross",
+      "meaning": "free kicks in the opponent's half this team has crossed so far today",
+      "note": "this value is filled into the text by code: write the placeholder {c5_fk_cross} in your lines, NEVER the number itself",
+      "value": 3
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c5_fk_total"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c5_fk_total",
+      "meaning": "free kicks in the opponent's half this team has taken so far today",
+      "note": "this value is filled into the text by code: write the placeholder {c5_fk_total} in your lines, NEVER the number itself",
+      "value": 5
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {},
+     "ms": 0,
+     "result": [
+      {
+       "fact_id": "c5_fk_cross",
+       "meaning": "free kicks in the opponent's half this team has crossed so far today"
+      },
+      {
+       "fact_id": "c5_fk_total",
+       "meaning": "free kicks in the opponent's half this team has taken so far today"
+      }
+     ],
+     "tool": "list_facts"
+    },
+    {
+     "arguments": {
+      "fact_id": "c5_fk_cross"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c5_fk_cross",
+      "meaning": "free kicks in the opponent's half this team has crossed so far today",
+      "note": "this value is filled into the text by code: write the placeholder {c5_fk_cross} in your lines, NEVER the number itself",
+      "value": 3
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c5_fk_total"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c5_fk_total",
+      "meaning": "free kicks in the opponent's half this team has taken so far today",
+      "note": "this value is filled into the text by code: write the placeholder {c5_fk_total} in your lines, NEVER the number itself",
+      "value": 5
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c5_fk_cross"
+     },
+     "ms": 3,
+     "result": {
+      "fact_id": "c5_fk_cross",
+      "meaning": "free kicks in the opponent's half this team has crossed so far today",
+      "note": "this value is filled into the text by code: write the placeholder {c5_fk_cross} in your lines, NEVER the number itself",
+      "value": 3
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c5_fk_total"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c5_fk_total",
+      "meaning": "free kicks in the opponent's half this team has taken so far today",
+      "note": "this value is filled into the text by code: write the placeholder {c5_fk_total} in your lines, NEVER the number itself",
+      "value": 5
+     },
+     "tool": "get_fact"
+    }
+   ],
+   "translations": {
+    "de": {
+     "expert": "Mit {c5_fk_cross} von {c5_fk_total} Fehlkicks, spielte Copperfield vorsichtig.",
+     "plain": "Copperfield gab eine kurze Passe ab, um die Besitzung zu erhalten.",
+     "status": "approved"
+    },
+    "vi": {
+     "expert": "Hôm nay Copperfield đã tạt bóng {c5_fk_cross}/{c5_fk_total} quả đá phạt ở nửa sân đối phương.",
+     "plain": "Chuyền ngắn! Copperfield chuyền quả đá phạt cho đồng đội ở gần.",
+     "status": "fallback"
+    }
+   },
+   "trigger": "free_kick"
+  },
+  {
+   "approved_by": "template (fallback)",
+   "approved_expert_en": "Midfielders on the pitch: {c6_midfielders_before} → {c6_midfielders_after}. Substitutions used: {c6_subs_used} of {c6_subs_max}.",
+   "approved_facts": {
+    "c6_midfielders_after": 3,
+    "c6_midfielders_before": 3,
+    "c6_subs_max": 3,
+    "c6_subs_used": 1
+   },
+   "approved_plain_en": "Fresh legs! A midfielder comes on to keep the energy up.",
+   "attempts": [
+    {
+     "attempt": 1,
+     "checker": "fail",
+     "errors": [
+      "c6-substitution.reveal.expert.en: hard-coded number in \"{c6_midfielders_after} midfielders are now on the pitch, replacing the {c6_midfielders_before}. With {c6_subs_used} substitutions made, they have {c6_subs_max - c6_subs_used} left.\""
+     ],
+     "expert_en": "{c6_midfielders_after} midfielders are now on the pitch, replacing the {c6_midfielders_before}. With {c6_subs_used} substitutions made, they have {c6_subs_max - c6_subs_used} left.",
+     "facts": {
+      "c6_midfielders_after": 3,
+      "c6_midfielders_before": 3,
+      "c6_subs_max": 3,
+      "c6_subs_used": 1
+     },
+     "note": "drafted by qwen2.5-7b-instruct-generic-gpu:4",
+     "plain_en": "A midfielder came off the bench.",
+     "writer": "writer (qwen2.5-7b-instruct-generic-gpu:4)"
+    },
+    {
+     "attempt": 2,
+     "checker": "fail",
+     "errors": [
+      "c6-substitution.reveal.expert.en: hard-coded number in \"With {c6_midfielders_after} midfielders now on the pitch, replacing {c6_midfielders_before}, and {c6_subs_max - c6_subs_used} substitutions remaining.\""
+     ],
+     "expert_en": "With {c6_midfielders_after} midfielders now on the pitch, replacing {c6_midfielders_before}, and {c6_subs_max - c6_subs_used} substitutions remaining.",
+     "facts": {
+      "c6_midfielders_after": 3,
+      "c6_midfielders_before": 3,
+      "c6_subs_max": 3,
+      "c6_subs_used": 1
+     },
+     "note": "drafted by qwen2.5-7b-instruct-generic-gpu:4",
+     "plain_en": "The team brought on some fresh legs, replacing {c6_midfielders_before} with {c6_midfielders_after}. They've used {c6_subs_used} substitutions so far.",
+     "writer": "writer (qwen2.5-7b-instruct-generic-gpu:4)"
+    },
+    {
+     "attempt": 3,
+     "checker": "fail",
+     "errors": [
+      "c6-substitution.reveal.expert.en: hard-coded number in \"With {c6_midfielders_after} midfielders now on the pitch, replacing {c6_midfielders_before}, and {c6_subs_max - c6_subs_used} substitutions remaining.\""
+     ],
+     "expert_en": "With {c6_midfielders_after} midfielders now on the pitch, replacing {c6_midfielders_before}, and {c6_subs_max - c6_subs_used} substitutions remaining.",
+     "facts": {
+      "c6_midfielders_after": 3,
+      "c6_midfielders_before": 3,
+      "c6_subs_max": 3,
+      "c6_subs_used": 1
+     },
+     "note": "drafted by qwen2.5-7b-instruct-generic-gpu:4",
+     "plain_en": "Pip sees the team bring on a fresh player to boost energy.",
+     "writer": "writer (qwen2.5-7b-instruct-generic-gpu:4)"
+    },
+    {
+     "attempt": 4,
+     "checker": "pass",
+     "errors": [],
+     "expert_en": "Midfielders on the pitch: {c6_midfielders_before} → {c6_midfielders_after}. Substitutions used: {c6_subs_used} of {c6_subs_max}.",
+     "facts": {
+      "c6_midfielders_after": 3,
+      "c6_midfielders_before": 3,
+      "c6_subs_max": 3,
+      "c6_subs_used": 1
+     },
+     "note": "retries used up",
+     "plain_en": "Fresh legs! A midfielder comes on to keep the energy up.",
+     "writer": "template (fallback)"
+    }
+   ],
+   "card_id": "c6-substitution",
+   "decision": "fire",
+   "facts_from_events": {
+    "c6_midfielders_after": 3,
+    "c6_midfielders_before": 3,
+    "c6_subs_max": 3,
+    "c6_subs_used": 1
+   },
+   "question_en": "Harbour Lights make a change. What's the plan?",
+   "steps": [
+    {
+     "action": "moment picked",
+     "agent": "orchestrator",
+     "ms": null,
+     "n": 1,
+     "notes": [
+      "substitution at 56.0' for Harbour Lights",
+      "4 code-computed fact(s) served through the MCP server"
+     ],
+     "text": {},
+     "to": "writer",
+     "verdict": "info",
+     "via_mcp": false
+    },
+    {
+     "action": "draft via MCP tools",
+     "agent": "writer",
+     "ms": 19689,
+     "n": 2,
+     "notes": [
+      "5 tool call(s) through pip-facts-mcp (stdio, JSON-RPC 2.0)"
+     ],
+     "text": {
+      "expert_en": "{c6_midfielders_after} midfielders are now on the pitch, replacing the {c6_midfielders_before}. With {c6_subs_used} substitutions made, they have {c6_subs_max - c6_subs_used} left.",
+      "plain_en": "A midfielder came off the bench."
+     },
+     "to": "checker",
+     "verdict": "info",
+     "via_mcp": true
+    },
+    {
+     "action": "check draft",
+     "agent": "checker",
+     "ms": null,
+     "n": 3,
+     "notes": [
+      "c6-substitution.reveal.expert.en: hard-coded number in \"{c6_midfielders_after} midfielders are now on the pitch, replacing the {c6_midfielders_before}. With {c6_subs_used} substitutions made, they have {c6_subs_max - c6_subs_used} left.\""
+     ],
+     "text": {},
+     "to": "orchestrator",
+     "verdict": "fail",
+     "via_mcp": false
+    },
+    {
+     "action": "draft via MCP tools",
+     "agent": "writer",
+     "ms": 89163,
+     "n": 4,
+     "notes": [
+      "14 tool call(s) through pip-facts-mcp (stdio, JSON-RPC 2.0)"
+     ],
+     "text": {
+      "expert_en": "With {c6_midfielders_after} midfielders now on the pitch, replacing {c6_midfielders_before}, and {c6_subs_max - c6_subs_used} substitutions remaining.",
+      "plain_en": "The team brought on some fresh legs, replacing {c6_midfielders_before} with {c6_midfielders_after}. They've used {c6_subs_used} substitutions so far."
+     },
+     "to": "checker",
+     "verdict": "info",
+     "via_mcp": true
+    },
+    {
+     "action": "check draft",
+     "agent": "checker",
+     "ms": null,
+     "n": 5,
+     "notes": [
+      "c6-substitution.reveal.expert.en: hard-coded number in \"With {c6_midfielders_after} midfielders now on the pitch, replacing {c6_midfielders_before}, and {c6_subs_max - c6_subs_used} substitutions remaining.\""
+     ],
+     "text": {},
+     "to": "orchestrator",
+     "verdict": "fail",
+     "via_mcp": false
+    },
+    {
+     "action": "draft via MCP tools",
+     "agent": "writer",
+     "ms": 84821,
+     "n": 6,
+     "notes": [
+      "23 tool call(s) through pip-facts-mcp (stdio, JSON-RPC 2.0)"
+     ],
+     "text": {
+      "expert_en": "With {c6_midfielders_after} midfielders now on the pitch, replacing {c6_midfielders_before}, and {c6_subs_max - c6_subs_used} substitutions remaining.",
+      "plain_en": "Pip sees the team bring on a fresh player to boost energy."
+     },
+     "to": "checker",
+     "verdict": "info",
+     "via_mcp": true
+    },
+    {
+     "action": "check draft",
+     "agent": "checker",
+     "ms": null,
+     "n": 7,
+     "notes": [
+      "c6-substitution.reveal.expert.en: hard-coded number in \"With {c6_midfielders_after} midfielders now on the pitch, replacing {c6_midfielders_before}, and {c6_subs_max - c6_subs_used} substitutions remaining.\""
+     ],
+     "text": {},
+     "to": "orchestrator",
+     "verdict": "fail",
+     "via_mcp": false
+    },
+    {
+     "action": "fallback",
+     "agent": "orchestrator",
+     "ms": 8,
+     "n": 8,
+     "notes": [
+      "writer did not pass the checker in 2 retries: the fixed, owner-reviewed template takes over"
+     ],
+     "text": {},
+     "to": "checker",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "translate to de",
+     "agent": "translator",
+     "ms": null,
+     "n": 9,
+     "notes": [
+      "template card ships its owner-reviewed DE lines"
+     ],
+     "text": {},
+     "to": null,
+     "verdict": "info",
+     "via_mcp": false
+    },
+    {
+     "action": "translate to vi",
+     "agent": "translator",
+     "ms": null,
+     "n": 10,
+     "notes": [
+      "template card ships its owner-reviewed VI lines"
+     ],
+     "text": {},
+     "to": null,
+     "verdict": "info",
+     "via_mcp": false
+    },
+    {
+     "action": "card done",
+     "agent": "orchestrator",
+     "ms": null,
+     "n": 11,
+     "notes": [
+      "approved by template (fallback)",
+      "translations: de fallback, vi fallback"
+     ],
+     "text": {},
+     "to": null,
+     "verdict": "info",
+     "via_mcp": false
+    }
+   ],
+   "t_in_min": 56.0,
+   "team_id": "HAR",
+   "tool_calls": [
+    {
+     "arguments": {},
+     "ms": 1,
+     "result": [
+      {
+       "fact_id": "c6_midfielders_after",
+       "meaning": "midfielders on the pitch after the substitution"
+      },
+      {
+       "fact_id": "c6_midfielders_before",
+       "meaning": "midfielders on the pitch before the substitution"
+      },
+      {
+       "fact_id": "c6_subs_max",
+       "meaning": "substitutions this team may use in the match"
+      },
+      {
+       "fact_id": "c6_subs_used",
+       "meaning": "substitutions this team has used so far"
+      }
+     ],
+     "tool": "list_facts"
+    },
+    {
+     "arguments": {
+      "fact_id": "c6_midfielders_after"
+     },
+     "ms": 1,
+     "result": {
+      "fact_id": "c6_midfielders_after",
+      "meaning": "midfielders on the pitch after the substitution",
+      "note": "this value is filled into the text by code: write the placeholder {c6_midfielders_after} in your lines, NEVER the number itself",
+      "value": 3
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c6_midfielders_before"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c6_midfielders_before",
+      "meaning": "midfielders on the pitch before the substitution",
+      "note": "this value is filled into the text by code: write the placeholder {c6_midfielders_before} in your lines, NEVER the number itself",
+      "value": 3
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c6_subs_max"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c6_subs_max",
+      "meaning": "substitutions this team may use in the match",
+      "note": "this value is filled into the text by code: write the placeholder {c6_subs_max} in your lines, NEVER the number itself",
+      "value": 3
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c6_subs_used"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c6_subs_used",
+      "meaning": "substitutions this team has used so far",
+      "note": "this value is filled into the text by code: write the placeholder {c6_subs_used} in your lines, NEVER the number itself",
+      "value": 1
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {},
+     "ms": 1,
+     "result": [
+      {
+       "fact_id": "c6_midfielders_after",
+       "meaning": "midfielders on the pitch after the substitution"
+      },
+      {
+       "fact_id": "c6_midfielders_before",
+       "meaning": "midfielders on the pitch before the substitution"
+      },
+      {
+       "fact_id": "c6_subs_max",
+       "meaning": "substitutions this team may use in the match"
+      },
+      {
+       "fact_id": "c6_subs_used",
+       "meaning": "substitutions this team has used so far"
+      }
+     ],
+     "tool": "list_facts"
+    },
+    {
+     "arguments": {
+      "fact_id": "c6_midfielders_after"
+     },
+     "ms": 4,
+     "result": {
+      "fact_id": "c6_midfielders_after",
+      "meaning": "midfielders on the pitch after the substitution",
+      "note": "this value is filled into the text by code: write the placeholder {c6_midfielders_after} in your lines, NEVER the number itself",
+      "value": 3
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c6_midfielders_before"
+     },
+     "ms": 1,
+     "result": {
+      "fact_id": "c6_midfielders_before",
+      "meaning": "midfielders on the pitch before the substitution",
+      "note": "this value is filled into the text by code: write the placeholder {c6_midfielders_before} in your lines, NEVER the number itself",
+      "value": 3
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c6_subs_max"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c6_subs_max",
+      "meaning": "substitutions this team may use in the match",
+      "note": "this value is filled into the text by code: write the placeholder {c6_subs_max} in your lines, NEVER the number itself",
+      "value": 3
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c6_subs_used"
+     },
+     "ms": 1,
+     "result": {
+      "fact_id": "c6_subs_used",
+      "meaning": "substitutions this team has used so far",
+      "note": "this value is filled into the text by code: write the placeholder {c6_subs_used} in your lines, NEVER the number itself",
+      "value": 1
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c6_midfielders_after"
+     },
+     "ms": 1,
+     "result": {
+      "fact_id": "c6_midfielders_after",
+      "meaning": "midfielders on the pitch after the substitution",
+      "note": "this value is filled into the text by code: write the placeholder {c6_midfielders_after} in your lines, NEVER the number itself",
+      "value": 3
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c6_midfielders_before"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c6_midfielders_before",
+      "meaning": "midfielders on the pitch before the substitution",
+      "note": "this value is filled into the text by code: write the placeholder {c6_midfielders_before} in your lines, NEVER the number itself",
+      "value": 3
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c6_subs_max"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c6_subs_max",
+      "meaning": "substitutions this team may use in the match",
+      "note": "this value is filled into the text by code: write the placeholder {c6_subs_max} in your lines, NEVER the number itself",
+      "value": 3
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c6_subs_used"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c6_subs_used",
+      "meaning": "substitutions this team has used so far",
+      "note": "this value is filled into the text by code: write the placeholder {c6_subs_used} in your lines, NEVER the number itself",
+      "value": 1
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {},
+     "ms": 0,
+     "result": [
+      {
+       "fact_id": "c6_midfielders_after",
+       "meaning": "midfielders on the pitch after the substitution"
+      },
+      {
+       "fact_id": "c6_midfielders_before",
+       "meaning": "midfielders on the pitch before the substitution"
+      },
+      {
+       "fact_id": "c6_subs_max",
+       "meaning": "substitutions this team may use in the match"
+      },
+      {
+       "fact_id": "c6_subs_used",
+       "meaning": "substitutions this team has used so far"
+      }
+     ],
+     "tool": "list_facts"
+    },
+    {
+     "arguments": {
+      "fact_id": "c6_midfielders_after"
+     },
+     "ms": 1,
+     "result": {
+      "fact_id": "c6_midfielders_after",
+      "meaning": "midfielders on the pitch after the substitution",
+      "note": "this value is filled into the text by code: write the placeholder {c6_midfielders_after} in your lines, NEVER the number itself",
+      "value": 3
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c6_midfielders_before"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c6_midfielders_before",
+      "meaning": "midfielders on the pitch before the substitution",
+      "note": "this value is filled into the text by code: write the placeholder {c6_midfielders_before} in your lines, NEVER the number itself",
+      "value": 3
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c6_subs_max"
+     },
+     "ms": 1,
+     "result": {
+      "fact_id": "c6_subs_max",
+      "meaning": "substitutions this team may use in the match",
+      "note": "this value is filled into the text by code: write the placeholder {c6_subs_max} in your lines, NEVER the number itself",
+      "value": 3
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c6_subs_used"
+     },
+     "ms": 1,
+     "result": {
+      "fact_id": "c6_subs_used",
+      "meaning": "substitutions this team has used so far",
+      "note": "this value is filled into the text by code: write the placeholder {c6_subs_used} in your lines, NEVER the number itself",
+      "value": 1
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c6_midfielders_after"
+     },
+     "ms": 2,
+     "result": {
+      "fact_id": "c6_midfielders_after",
+      "meaning": "midfielders on the pitch after the substitution",
+      "note": "this value is filled into the text by code: write the placeholder {c6_midfielders_after} in your lines, NEVER the number itself",
+      "value": 3
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c6_midfielders_before"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c6_midfielders_before",
+      "meaning": "midfielders on the pitch before the substitution",
+      "note": "this value is filled into the text by code: write the placeholder {c6_midfielders_before} in your lines, NEVER the number itself",
+      "value": 3
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c6_subs_max"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c6_subs_max",
+      "meaning": "substitutions this team may use in the match",
+      "note": "this value is filled into the text by code: write the placeholder {c6_subs_max} in your lines, NEVER the number itself",
+      "value": 3
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c6_subs_used"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c6_subs_used",
+      "meaning": "substitutions this team has used so far",
+      "note": "this value is filled into the text by code: write the placeholder {c6_subs_used} in your lines, NEVER the number itself",
+      "value": 1
+     },
+     "tool": "get_fact"
+    }
+   ],
+   "translations": {
+    "de": {
+     "expert": "Mittelfeldspieler auf dem Platz: {c6_midfielders_before} → {c6_midfielders_after}. Genutzte Wechsel: {c6_subs_used} von {c6_subs_max}.",
+     "plain": "Frische Beine! Ein Mittelfeldspieler kommt, damit die Energie hoch bleibt.",
+     "status": "fallback"
+    },
+    "vi": {
+     "expert": "Số tiền vệ trên sân: {c6_midfielders_before} → {c6_midfielders_after}. Số lần thay người đã dùng: {c6_subs_used}/{c6_subs_max}.",
+     "plain": "Tiếp sức! Một tiền vệ vào sân để giữ nhịp độ.",
+     "status": "fallback"
+    }
+   },
+   "trigger": "substitution"
+  },
+  {
+   "approved_by": "writer (qwen2.5-7b-instruct-generic-gpu:4), edited",
+   "approved_expert_en": "{c7_fk_cross}/{c7_fk_total} free kicks were crosses.",
+   "approved_facts": {
+    "c7_fk_cross": 3,
+    "c7_fk_total": 5
+   },
+   "approved_plain_en": "Ball crossed into the box.",
+   "attempts": [
+    {
+     "attempt": 1,
+     "checker": "pass",
+     "errors": [],
+     "expert_en": "{c7_fk_cross} of {c7_fk_total} free kicks have been crosses so far.",
+     "facts": {
+      "c7_fk_cross": 3,
+      "c7_fk_total": 5
+     },
+     "note": "drafted by qwen2.5-7b-instruct-generic-gpu:4",
+     "plain_en": "The ball was crossed into the box.",
+     "writer": "writer (qwen2.5-7b-instruct-generic-gpu:4)"
+    },
+    {
+     "attempt": 2,
+     "checker": "pass",
+     "errors": [],
+     "expert_en": "{c7_fk_cross}/{c7_fk_total} free kicks were crosses.",
+     "facts": {
+      "c7_fk_cross": 3,
+      "c7_fk_total": 5
+     },
+     "note": "editor pass 1",
+     "plain_en": "Ball crossed into the box.",
+     "writer": "editor (qwen2.5-7b-instruct-generic-gpu:4)"
+    }
+   ],
+   "card_id": "c7-freekick",
+   "decision": "fire",
+   "facts_from_events": {
+    "c7_fk_cross": 3,
+    "c7_fk_total": 5
+   },
+   "question_en": "Free kick! What's coming?",
+   "steps": [
+    {
+     "action": "moment picked",
+     "agent": "orchestrator",
+     "ms": null,
+     "n": 1,
+     "notes": [
+      "free kick at 65.8' for Harbour Lights",
+      "2 code-computed fact(s) served through the MCP server"
+     ],
+     "text": {},
+     "to": "writer",
+     "verdict": "info",
+     "via_mcp": false
+    },
+    {
+     "action": "draft via MCP tools",
+     "agent": "writer",
+     "ms": 21530,
+     "n": 2,
+     "notes": [
+      "3 tool call(s) through pip-facts-mcp (stdio, JSON-RPC 2.0)"
+     ],
+     "text": {
+      "expert_en": "{c7_fk_cross} of {c7_fk_total} free kicks have been crosses so far.",
+      "plain_en": "The ball was crossed into the box."
+     },
+     "to": "checker",
+     "verdict": "info",
+     "via_mcp": true
+    },
+    {
+     "action": "check draft",
+     "agent": "checker",
+     "ms": null,
+     "n": 3,
+     "notes": [
+      "numbers, placeholders, banned words, shape, decision: all clean"
+     ],
+     "text": {},
+     "to": "orchestrator",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "verify against fetched facts",
+     "agent": "verifier",
+     "ms": 3442,
+     "n": 4,
+     "notes": [],
+     "text": {},
+     "to": "checker",
+     "verdict": "pass",
+     "via_mcp": true
+    },
+    {
+     "action": "tighten lines",
+     "agent": "editor",
+     "ms": 5958,
+     "n": 5,
+     "notes": [],
+     "text": {
+      "expert_en": "{c7_fk_cross}/{c7_fk_total} free kicks were crosses.",
+      "plain_en": "Ball crossed into the box."
+     },
+     "to": "checker",
+     "verdict": "info",
+     "via_mcp": false
+    },
+    {
+     "action": "check edited lines",
+     "agent": "checker",
+     "ms": null,
+     "n": 6,
+     "notes": [
+      "placeholders preserved: c7_fk_cross, c7_fk_total"
+     ],
+     "text": {},
+     "to": "orchestrator",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "translate to de",
+     "agent": "translator",
+     "ms": 5794,
+     "n": 7,
+     "notes": [
+      "placeholders preserved: c7_fk_cross, c7_fk_total"
+     ],
+     "text": {
+      "expert_de": "{c7_fk_cross}/{c7_fk_total} Freiwscheibe waren Kreuzungen.",
+      "plain_de": "Der Ball wurde in den Boxen gekreuzt."
+     },
+     "to": "checker",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "translate to vi",
+     "agent": "translator",
+     "ms": 6041,
+     "n": 8,
+     "notes": [
+      "placeholders preserved: c7_fk_cross, c7_fk_total"
+     ],
+     "text": {
+      "expert_vi": "{c7_fk_cross}/{c7_fk_total} quả đá phạt là cú chuyền bóng.",
+      "plain_vi": "Bóng chuyền vào trong khu cấm."
+     },
+     "to": "checker",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "card done",
+     "agent": "orchestrator",
+     "ms": null,
+     "n": 9,
+     "notes": [
+      "approved by writer (qwen2.5-7b-instruct-generic-gpu:4), edited",
+      "translations: de approved, vi approved"
+     ],
+     "text": {},
+     "to": null,
+     "verdict": "info",
+     "via_mcp": false
+    }
+   ],
+   "t_in_min": 65.8,
+   "team_id": "HAR",
+   "tool_calls": [
+    {
+     "arguments": {},
+     "ms": 0,
+     "result": [
+      {
+       "fact_id": "c7_fk_cross",
+       "meaning": "free kicks in the opponent's half this team has crossed so far today"
+      },
+      {
+       "fact_id": "c7_fk_total",
+       "meaning": "free kicks in the opponent's half this team has taken so far today"
+      }
+     ],
+     "tool": "list_facts"
+    },
+    {
+     "arguments": {
+      "fact_id": "c7_fk_cross"
+     },
+     "ms": 2,
+     "result": {
+      "fact_id": "c7_fk_cross",
+      "meaning": "free kicks in the opponent's half this team has crossed so far today",
+      "note": "this value is filled into the text by code: write the placeholder {c7_fk_cross} in your lines, NEVER the number itself",
+      "value": 3
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c7_fk_total"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c7_fk_total",
+      "meaning": "free kicks in the opponent's half this team has taken so far today",
+      "note": "this value is filled into the text by code: write the placeholder {c7_fk_total} in your lines, NEVER the number itself",
+      "value": 5
+     },
+     "tool": "get_fact"
+    }
+   ],
+   "translations": {
+    "de": {
+     "expert": "{c7_fk_cross}/{c7_fk_total} Freiwscheibe waren Kreuzungen.",
+     "plain": "Der Ball wurde in den Boxen gekreuzt.",
+     "status": "approved"
+    },
+    "vi": {
+     "expert": "{c7_fk_cross}/{c7_fk_total} quả đá phạt là cú chuyền bóng.",
+     "plain": "Bóng chuyền vào trong khu cấm.",
+     "status": "approved"
+    }
+   },
+   "trigger": "free_kick"
+  },
+  {
+   "approved_by": "writer (qwen2.5-7b-instruct-generic-gpu:4), edited",
+   "approved_expert_en": "{c8_midfielders_after} now play, {c8_subs_used} subs made.",
+   "approved_facts": {
+    "c8_midfielders_after": 2,
+    "c8_midfielders_before": 3,
+    "c8_subs_max": 3,
+    "c8_subs_used": 3
+   },
+   "approved_plain_en": "A midfielder entered, replacing Copperfield.",
+   "attempts": [
+    {
+     "attempt": 1,
+     "checker": "pass",
+     "errors": [],
+     "expert_en": "{c8_midfielders_after} midfielders are now on the pitch, with {c8_subs_used} substitutions already made.",
+     "facts": {
+      "c8_midfielders_after": 2,
+      "c8_midfielders_before": 3,
+      "c8_subs_max": 3,
+      "c8_subs_used": 3
+     },
+     "note": "drafted by qwen2.5-7b-instruct-generic-gpu:4",
+     "plain_en": "A midfielder came off the bench to replace Copperfield.",
+     "writer": "writer (qwen2.5-7b-instruct-generic-gpu:4)"
+    },
+    {
+     "attempt": 2,
+     "checker": "pass",
+     "errors": [],
+     "expert_en": "{c8_midfielders_after} now play, {c8_subs_used} subs made.",
+     "facts": {
+      "c8_midfielders_after": 2,
+      "c8_midfielders_before": 3,
+      "c8_subs_max": 3,
+      "c8_subs_used": 3
+     },
+     "note": "editor pass 1",
+     "plain_en": "A midfielder entered, replacing Copperfield.",
+     "writer": "editor (qwen2.5-7b-instruct-generic-gpu:4)"
+    }
+   ],
+   "card_id": "c8-substitution",
+   "decision": "fire",
+   "facts_from_events": {
+    "c8_midfielders_after": 2,
+    "c8_midfielders_before": 3,
+    "c8_subs_max": 3,
+    "c8_subs_used": 3
+   },
+   "question_en": "A substitution for Copperfield. What does it mean?",
+   "steps": [
+    {
+     "action": "moment picked",
+     "agent": "orchestrator",
+     "ms": null,
+     "n": 1,
+     "notes": [
+      "substitution at 75.1' for Copperfield",
+      "4 code-computed fact(s) served through the MCP server"
+     ],
+     "text": {},
+     "to": "writer",
+     "verdict": "info",
+     "via_mcp": false
+    },
+    {
+     "action": "draft via MCP tools",
+     "agent": "writer",
+     "ms": 20206,
+     "n": 2,
+     "notes": [
+      "5 tool call(s) through pip-facts-mcp (stdio, JSON-RPC 2.0)"
+     ],
+     "text": {
+      "expert_en": "{c8_midfielders_after} midfielders are now on the pitch, with {c8_subs_used} substitutions already made.",
+      "plain_en": "A midfielder came off the bench to replace Copperfield."
+     },
+     "to": "checker",
+     "verdict": "info",
+     "via_mcp": true
+    },
+    {
+     "action": "check draft",
+     "agent": "checker",
+     "ms": null,
+     "n": 3,
+     "notes": [
+      "numbers, placeholders, banned words, shape, decision: all clean"
+     ],
+     "text": {},
+     "to": "orchestrator",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "verify against fetched facts",
+     "agent": "verifier",
+     "ms": 3497,
+     "n": 4,
+     "notes": [],
+     "text": {},
+     "to": "checker",
+     "verdict": "pass",
+     "via_mcp": true
+    },
+    {
+     "action": "tighten lines",
+     "agent": "editor",
+     "ms": 5962,
+     "n": 5,
+     "notes": [],
+     "text": {
+      "expert_en": "{c8_midfielders_after} now play, {c8_subs_used} subs made.",
+      "plain_en": "A midfielder entered, replacing Copperfield."
+     },
+     "to": "checker",
+     "verdict": "info",
+     "via_mcp": false
+    },
+    {
+     "action": "check edited lines",
+     "agent": "checker",
+     "ms": null,
+     "n": 6,
+     "notes": [
+      "placeholders preserved: c8_midfielders_after, c8_subs_used"
+     ],
+     "text": {},
+     "to": "orchestrator",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "translate to de",
+     "agent": "translator",
+     "ms": 5138,
+     "n": 7,
+     "notes": [
+      "placeholders preserved: c8_midfielders_after, c8_subs_used"
+     ],
+     "text": {
+      "expert_de": "{c8_midfielders_after} spielen jetzt, {c8_subs_used} E subs wurden genutzt.",
+      "plain_de": "Ein Mittelfeldspieler trat ein, nahm Copperfield ab."
+     },
+     "to": "checker",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "translate to vi",
+     "agent": "translator",
+     "ms": 4987,
+     "n": 8,
+     "notes": [
+      "placeholders preserved: c8_midfielders_after, c8_subs_used"
+     ],
+     "text": {
+      "expert_vi": "{c8_midfielders_after} nay vào sân, {c8_subs_used} người đã thay đổi.",
+      "plain_vi": "Một tiền vệ vào thay Copperfield."
+     },
+     "to": "checker",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "card done",
+     "agent": "orchestrator",
+     "ms": null,
+     "n": 9,
+     "notes": [
+      "approved by writer (qwen2.5-7b-instruct-generic-gpu:4), edited",
+      "translations: de approved, vi approved"
+     ],
+     "text": {},
+     "to": null,
+     "verdict": "info",
+     "via_mcp": false
+    }
+   ],
+   "t_in_min": 75.1,
+   "team_id": "COP",
+   "tool_calls": [
+    {
+     "arguments": {},
+     "ms": 0,
+     "result": [
+      {
+       "fact_id": "c8_midfielders_after",
+       "meaning": "midfielders on the pitch after the substitution"
+      },
+      {
+       "fact_id": "c8_midfielders_before",
+       "meaning": "midfielders on the pitch before the substitution"
+      },
+      {
+       "fact_id": "c8_subs_max",
+       "meaning": "substitutions this team may use in the match"
+      },
+      {
+       "fact_id": "c8_subs_used",
+       "meaning": "substitutions this team has used so far"
+      }
+     ],
+     "tool": "list_facts"
+    },
+    {
+     "arguments": {
+      "fact_id": "c8_midfielders_after"
+     },
+     "ms": 1,
+     "result": {
+      "fact_id": "c8_midfielders_after",
+      "meaning": "midfielders on the pitch after the substitution",
+      "note": "this value is filled into the text by code: write the placeholder {c8_midfielders_after} in your lines, NEVER the number itself",
+      "value": 2
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c8_midfielders_before"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c8_midfielders_before",
+      "meaning": "midfielders on the pitch before the substitution",
+      "note": "this value is filled into the text by code: write the placeholder {c8_midfielders_before} in your lines, NEVER the number itself",
+      "value": 3
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c8_subs_max"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c8_subs_max",
+      "meaning": "substitutions this team may use in the match",
+      "note": "this value is filled into the text by code: write the placeholder {c8_subs_max} in your lines, NEVER the number itself",
+      "value": 3
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c8_subs_used"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c8_subs_used",
+      "meaning": "substitutions this team has used so far",
+      "note": "this value is filled into the text by code: write the placeholder {c8_subs_used} in your lines, NEVER the number itself",
+      "value": 3
+     },
+     "tool": "get_fact"
+    }
+   ],
+   "translations": {
+    "de": {
+     "expert": "{c8_midfielders_after} spielen jetzt, {c8_subs_used} E subs wurden genutzt.",
+     "plain": "Ein Mittelfeldspieler trat ein, nahm Copperfield ab.",
+     "status": "approved"
+    },
+    "vi": {
+     "expert": "{c8_midfielders_after} nay vào sân, {c8_subs_used} người đã thay đổi.",
+     "plain": "Một tiền vệ vào thay Copperfield.",
+     "status": "approved"
+    }
+   },
+   "trigger": "substitution"
+  },
+  {
+   "approved_by": "writer (qwen2.5-7b-instruct-generic-gpu:4), edited",
+   "approved_expert_en": "{c9_corners_short} short.",
+   "approved_facts": {
+    "c9_corners_short": 0
+   },
+   "approved_plain_en": "short corners near post.",
+   "attempts": [
+    {
+     "attempt": 1,
+     "checker": "pass",
+     "errors": [],
+     "expert_en": "brtcorners this team has taken {c9_corners_total} times, with {c9_league_short_share_pct}% being short according to the league average.",
+     "facts": {
+      "c9_corners_short": 0,
+      "c9_corners_total": 4,
+      "c9_league_short_share_pct": 16
+     },
+     "note": "drafted by qwen2.5-7b-instruct-generic-gpu:4",
+     "plain_en": "brtcorners were played near the post. {c9_corners_short} of their corners have been short so far.",
+     "writer": "writer (qwen2.5-7b-instruct-generic-gpu:4)"
+    },
+    {
+     "attempt": 2,
+     "checker": "pass",
+     "errors": [],
+     "expert_en": "brtcorners accounted for {c9_corners_short} of their total {c9_corners_total} corners today.",
+     "facts": {
+      "c9_corners_short": 0,
+      "c9_corners_total": 4
+     },
+     "note": "drafted by qwen2.5-7b-instruct-generic-gpu:4",
+     "plain_en": "brtcorners were played short. That's unusual for them.",
+     "writer": "writer (qwen2.5-7b-instruct-generic-gpu:4)"
+    },
+    {
+     "attempt": 3,
+     "checker": "pass",
+     "errors": [],
+     "expert_en": "{c9_corners_short} of their corners have been short so far today.",
+     "facts": {
+      "c9_corners_short": 0
+     },
+     "note": "drafted by qwen2.5-7b-instruct-generic-gpu:4",
+     "plain_en": "brtcorners were played near the post.",
+     "writer": "writer (qwen2.5-7b-instruct-generic-gpu:4)"
+    },
+    {
+     "attempt": 4,
+     "checker": "pass",
+     "errors": [],
+     "expert_en": "{c9_corners_short} short.",
+     "facts": {
+      "c9_corners_short": 0
+     },
+     "note": "editor pass 1",
+     "plain_en": "short corners near post.",
+     "writer": "editor (qwen2.5-7b-instruct-generic-gpu:4)"
+    }
+   ],
+   "card_id": "c9-corner",
+   "decision": "fire",
+   "facts_from_events": {
+    "c9_corners_short": 0,
+    "c9_corners_total": 4,
+    "c9_league_short_share_pct": 16
+   },
+   "question_en": "Corner for Harbour Lights. How will they play it?",
+   "steps": [
+    {
+     "action": "moment picked",
+     "agent": "orchestrator",
+     "ms": null,
+     "n": 1,
+     "notes": [
+      "corner at 93.2' for Harbour Lights",
+      "3 code-computed fact(s) served through the MCP server"
+     ],
+     "text": {},
+     "to": "writer",
+     "verdict": "info",
+     "via_mcp": false
+    },
+    {
+     "action": "draft via MCP tools",
+     "agent": "writer",
+     "ms": 22095,
+     "n": 2,
+     "notes": [
+      "4 tool call(s) through pip-facts-mcp (stdio, JSON-RPC 2.0)"
+     ],
+     "text": {
+      "expert_en": "brtcorners this team has taken {c9_corners_total} times, with {c9_league_short_share_pct}% being short according to the league average.",
+      "plain_en": "brtcorners were played near the post. {c9_corners_short} of their corners have been short so far."
+     },
+     "to": "checker",
+     "verdict": "info",
+     "via_mcp": true
+    },
+    {
+     "action": "check draft",
+     "agent": "checker",
+     "ms": null,
+     "n": 3,
+     "notes": [
+      "numbers, placeholders, banned words, shape, decision: all clean"
+     ],
+     "text": {},
+     "to": "orchestrator",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "verify against fetched facts",
+     "agent": "verifier",
+     "ms": 5035,
+     "n": 4,
+     "notes": [
+      "The draft mentions 'brtcorners' which is not a standard term and contradicts the use of 'corners' in the facts.",
+      "recorded; the rule-based checker (the authority) passed this draft"
+     ],
+     "text": {},
+     "to": "checker",
+     "verdict": "fail",
+     "via_mcp": true
+    },
+    {
+     "action": "draft via MCP tools",
+     "agent": "writer",
+     "ms": 16700,
+     "n": 5,
+     "notes": [
+      "7 tool call(s) through pip-facts-mcp (stdio, JSON-RPC 2.0)"
+     ],
+     "text": {
+      "expert_en": "brtcorners accounted for {c9_corners_short} of their total {c9_corners_total} corners today.",
+      "plain_en": "brtcorners were played short. That's unusual for them."
+     },
+     "to": "checker",
+     "verdict": "info",
+     "via_mcp": true
+    },
+    {
+     "action": "check draft",
+     "agent": "checker",
+     "ms": null,
+     "n": 6,
+     "notes": [
+      "numbers, placeholders, banned words, shape, decision: all clean"
+     ],
+     "text": {},
+     "to": "orchestrator",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "verify against fetched facts",
+     "agent": "verifier",
+     "ms": 3456,
+     "n": 7,
+     "notes": [
+      "brtcorners were played short contradicts c9_corners_short = 0",
+      "recorded; the rule-based checker (the authority) passed this draft"
+     ],
+     "text": {},
+     "to": "checker",
+     "verdict": "fail",
+     "via_mcp": true
+    },
+    {
+     "action": "draft via MCP tools",
+     "agent": "writer",
+     "ms": 16029,
+     "n": 8,
+     "notes": [
+      "9 tool call(s) through pip-facts-mcp (stdio, JSON-RPC 2.0)"
+     ],
+     "text": {
+      "expert_en": "{c9_corners_short} of their corners have been short so far today.",
+      "plain_en": "brtcorners were played near the post."
+     },
+     "to": "checker",
+     "verdict": "info",
+     "via_mcp": true
+    },
+    {
+     "action": "check draft",
+     "agent": "checker",
+     "ms": null,
+     "n": 9,
+     "notes": [
+      "numbers, placeholders, banned words, shape, decision: all clean"
+     ],
+     "text": {},
+     "to": "orchestrator",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "verify against fetched facts",
+     "agent": "verifier",
+     "ms": 5641,
+     "n": 10,
+     "notes": [
+      "The draft states that {c9_corners_short} of their corners have been short so far today, but the fact shows that c9_corners_short is 0, meaning none of their corners have been short.",
+      "recorded; the rule-based checker (the authority) passed this draft"
+     ],
+     "text": {},
+     "to": "checker",
+     "verdict": "fail",
+     "via_mcp": true
+    },
+    {
+     "action": "tighten lines",
+     "agent": "editor",
+     "ms": 3240,
+     "n": 11,
+     "notes": [],
+     "text": {
+      "expert_en": "{c9_corners_short} short.",
+      "plain_en": "short corners near post."
+     },
+     "to": "checker",
+     "verdict": "info",
+     "via_mcp": false
+    },
+    {
+     "action": "check edited lines",
+     "agent": "checker",
+     "ms": null,
+     "n": 12,
+     "notes": [
+      "placeholders preserved: c9_corners_short"
+     ],
+     "text": {},
+     "to": "orchestrator",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "translate to de",
+     "agent": "translator",
+     "ms": 4503,
+     "n": 13,
+     "notes": [
+      "placeholders preserved: c9_corners_short"
+     ],
+     "text": {
+      "expert_de": "{c9_corners_short} kurz.",
+      "plain_de": "Kurze Ecken nahe dem Tor."
+     },
+     "to": "checker",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "translate to vi",
+     "agent": "translator",
+     "ms": 3279,
+     "n": 14,
+     "notes": [
+      "placeholders preserved: c9_corners_short"
+     ],
+     "text": {
+      "expert_vi": "{c9_corners_short} ngắn.",
+      "plain_vi": "Cầu ngắn gần cột."
+     },
+     "to": "checker",
+     "verdict": "pass",
+     "via_mcp": false
+    },
+    {
+     "action": "card done",
+     "agent": "orchestrator",
+     "ms": null,
+     "n": 15,
+     "notes": [
+      "approved by writer (qwen2.5-7b-instruct-generic-gpu:4), edited",
+      "translations: de approved, vi approved"
+     ],
+     "text": {},
+     "to": null,
+     "verdict": "info",
+     "via_mcp": false
+    }
+   ],
+   "t_in_min": 93.2,
+   "team_id": "HAR",
+   "tool_calls": [
+    {
+     "arguments": {},
+     "ms": 0,
+     "result": [
+      {
+       "fact_id": "c9_corners_short",
+       "meaning": "corners this team has played short so far today"
+      },
+      {
+       "fact_id": "c9_corners_total",
+       "meaning": "corners this team has taken so far today"
+      },
+      {
+       "fact_id": "c9_league_short_share_pct",
+       "meaning": "league average share of corners played short, in percent"
+      }
+     ],
+     "tool": "list_facts"
+    },
+    {
+     "arguments": {
+      "fact_id": "c9_corners_short"
+     },
+     "ms": 1,
+     "result": {
+      "fact_id": "c9_corners_short",
+      "meaning": "corners this team has played short so far today",
+      "note": "this value is filled into the text by code: write the placeholder {c9_corners_short} in your lines, NEVER the number itself",
+      "value": 0
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c9_corners_total"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c9_corners_total",
+      "meaning": "corners this team has taken so far today",
+      "note": "this value is filled into the text by code: write the placeholder {c9_corners_total} in your lines, NEVER the number itself",
+      "value": 4
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c9_league_short_share_pct"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c9_league_short_share_pct",
+      "meaning": "league average share of corners played short, in percent",
+      "note": "this value is filled into the text by code: write the placeholder {c9_league_short_share_pct} in your lines, NEVER the number itself",
+      "value": 16
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {},
+     "ms": 0,
+     "result": [
+      {
+       "fact_id": "c9_corners_short",
+       "meaning": "corners this team has played short so far today"
+      },
+      {
+       "fact_id": "c9_corners_total",
+       "meaning": "corners this team has taken so far today"
+      },
+      {
+       "fact_id": "c9_league_short_share_pct",
+       "meaning": "league average share of corners played short, in percent"
+      }
+     ],
+     "tool": "list_facts"
+    },
+    {
+     "arguments": {
+      "fact_id": "c9_corners_short"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c9_corners_short",
+      "meaning": "corners this team has played short so far today",
+      "note": "this value is filled into the text by code: write the placeholder {c9_corners_short} in your lines, NEVER the number itself",
+      "value": 0
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {
+      "fact_id": "c9_corners_total"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c9_corners_total",
+      "meaning": "corners this team has taken so far today",
+      "note": "this value is filled into the text by code: write the placeholder {c9_corners_total} in your lines, NEVER the number itself",
+      "value": 4
+     },
+     "tool": "get_fact"
+    },
+    {
+     "arguments": {},
+     "ms": 0,
+     "result": [
+      {
+       "fact_id": "c9_corners_short",
+       "meaning": "corners this team has played short so far today"
+      },
+      {
+       "fact_id": "c9_corners_total",
+       "meaning": "corners this team has taken so far today"
+      },
+      {
+       "fact_id": "c9_league_short_share_pct",
+       "meaning": "league average share of corners played short, in percent"
+      }
+     ],
+     "tool": "list_facts"
+    },
+    {
+     "arguments": {
+      "fact_id": "c9_corners_short"
+     },
+     "ms": 0,
+     "result": {
+      "fact_id": "c9_corners_short",
+      "meaning": "corners this team has played short so far today",
+      "note": "this value is filled into the text by code: write the placeholder {c9_corners_short} in your lines, NEVER the number itself",
+      "value": 0
+     },
+     "tool": "get_fact"
+    }
+   ],
+   "translations": {
+    "de": {
+     "expert": "{c9_corners_short} kurz.",
+     "plain": "Kurze Ecken nahe dem Tor.",
+     "status": "approved"
+    },
+    "vi": {
+     "expert": "{c9_corners_short} ngắn.",
+     "plain": "Cầu ngắn gần cột.",
+     "status": "approved"
+    }
+   },
+   "trigger": "corner"
+  }
+ ],
+ "held": [
+  {
+   "decision": "hold",
+   "reason": "habit_not_clear_yet",
+   "t_in_min": 8.6,
+   "team_id": "HAR",
+   "trigger": "corner"
+  },
+  {
+   "decision": "hold",
+   "reason": "own_half",
+   "t_in_min": 10.0,
+   "team_id": "HAR",
+   "trigger": "free_kick"
+  },
+  {
+   "decision": "hold",
+   "reason": "habit_not_clear_yet",
+   "t_in_min": 14.3,
+   "team_id": "HAR",
+   "trigger": "corner"
+  },
+  {
+   "decision": "hold",
+   "reason": "habit_not_clear_yet",
+   "t_in_min": 15.8,
+   "team_id": "COP",
+   "trigger": "corner"
+  },
+  {
+   "decision": "hold",
+   "reason": "sample_too_small",
+   "t_in_min": 21.2,
+   "team_id": "COP",
+   "trigger": "free_kick"
+  },
+  {
+   "decision": "hold",
+   "reason": "sample_too_small",
+   "t_in_min": 22.7,
+   "team_id": "HAR",
+   "trigger": "free_kick"
+  },
+  {
+   "decision": "hold",
+   "reason": "too_close_to_previous_card",
+   "t_in_min": 27.4,
+   "team_id": "HAR",
+   "trigger": "free_kick"
+  },
+  {
+   "decision": "hold",
+   "reason": "own_half",
+   "t_in_min": 30.2,
+   "team_id": "HAR",
+   "trigger": "free_kick"
+  },
+  {
+   "decision": "hold",
+   "reason": "max_per_half",
+   "t_in_min": 37.1,
+   "team_id": "COP",
+   "trigger": "free_kick"
+  },
+  {
+   "decision": "hold",
+   "reason": "max_per_half",
+   "t_in_min": 44.9,
+   "team_id": "COP",
+   "trigger": "free_kick"
+  },
+  {
+   "decision": "hold",
+   "reason": "too_close_to_previous_card",
+   "t_in_min": 50.5,
+   "team_id": "HAR",
+   "trigger": "free_kick"
+  },
+  {
+   "decision": "hold",
+   "reason": "too_close_to_previous_card",
+   "t_in_min": 62.3,
+   "team_id": "COP",
+   "trigger": "substitution"
+  },
+  {
+   "decision": "hold",
+   "reason": "habit_not_clear_yet",
+   "t_in_min": 63.4,
+   "team_id": "COP",
+   "trigger": "corner"
+  },
+  {
+   "decision": "hold",
+   "reason": "own_half",
+   "t_in_min": 64.2,
+   "team_id": "HAR",
+   "trigger": "free_kick"
+  },
+  {
+   "decision": "hold",
+   "reason": "too_close_to_previous_card",
+   "t_in_min": 68.4,
+   "team_id": "HAR",
+   "trigger": "free_kick"
+  },
+  {
+   "decision": "hold",
+   "reason": "too_close_to_previous_card",
+   "t_in_min": 69.7,
+   "team_id": "COP",
+   "trigger": "free_kick"
+  },
+  {
+   "decision": "hold",
+   "reason": "too_close_to_previous_card",
+   "t_in_min": 70.5,
+   "team_id": "COP",
+   "trigger": "corner"
+  },
+  {
+   "decision": "hold",
+   "reason": "no_visible_change",
+   "t_in_min": 72.1,
+   "team_id": "HAR",
+   "trigger": "substitution"
+  },
+  {
+   "decision": "hold",
+   "reason": "max_per_half",
+   "t_in_min": 76.4,
+   "team_id": "HAR",
+   "trigger": "free_kick"
+  },
+  {
+   "decision": "hold",
+   "reason": "own_half",
+   "t_in_min": 80.7,
+   "team_id": "COP",
+   "trigger": "free_kick"
+  },
+  {
+   "decision": "hold",
+   "reason": "max_per_half",
+   "t_in_min": 82.5,
+   "team_id": "HAR",
+   "trigger": "free_kick"
+  },
+  {
+   "decision": "hold",
+   "reason": "max_per_half",
+   "t_in_min": 85.3,
+   "team_id": "COP",
+   "trigger": "corner"
+  },
+  {
+   "decision": "hold",
+   "reason": "max_per_half",
+   "t_in_min": 93.7,
+   "team_id": "HAR",
+   "trigger": "corner"
+  }
+ ],
+ "match_id": "synthetic-seed-43",
+ "max_retries": 2,
+ "mcp": {
+  "calls": 70,
+  "server": "pip-facts-mcp (stdio, JSON-RPC 2.0)",
+  "tools": [
+   "list_facts",
+   "get_fact"
+  ]
+ },
+ "model": "qwen2.5-7b-instruct-generic-gpu:4",
+ "model_replies": [
+  "[{\"function\": {\"arguments\": \"{}\", \"name\": \"list_facts\"}, \"id\": \"call_E3g1Ww6rT\", \"type\": \"function\"}]",
+  "The attacker wasn't offside, so the goal stands.\n{c1_var_margin_cm} cm from being offside.",
+  "{\"ok\": false, \"reason\": \"The attacker wasn't offside, but was actually 32 cm onside according to the facts.\"}",
+  "[{\"function\": {\"arguments\": \"{}\", \"name\": \"list_facts\"}, \"id\": \"call_2cOBSZf9p\", \"type\": \"function\"}]",
+  "The attacker was NOT offside, standing {c1_var_margin_cm} cm onside.\nThe VAR confirmed the goal with a {c1_var_margin_cm} cm margin.",
+  "{\"ok\": false, \"reason\": \"The draft states 'The attacker was NOT offside', but the fact shows the attacker was actually {c1_var_margin_cm} cm onside.\"}",
+  "[{\"function\": {\"arguments\": \"{}\", \"name\": \"list_facts\"}, \"id\": \"call_mDjeUYKlj\", \"type\": \"function\"}]",
+  "[{\"function\": {\"arguments\": \"{\\\"fact_id\\\":\\\"c1_var_margin_cm\\\"}\", \"name\": \"get_fact\"}, \"id\": \"call_8e9ZJUHTS\", \"type\": \"function\"}]",
+  "The attacker was NOT offside by {c1_var_margin_cm} cm.\nVAR confirmed the goal stands with a {c1_var_margin_cm} cm margin.",
+  "[{\"function\": {\"arguments\": \"{}\", \"name\": \"list_facts\"}, \"id\": \"call_F0GjjfmgO\", \"type\": \"function\"}]",
+  "It went to the far post!\n{c2_corners_total} corners taken so far today.",
+  "{\"ok\": true, \"reason\": \"\"}",
+  "{\"plain\": \"It went to the far post!\", \"expert\": \"{c2_corners_total} corners so far.\"}",
+  "{\"plain\": \"Es ging zum entfernten Pfosten!\", \"expert\": \"{c2_corners_total} Ecken bis jetzt.\"}",
+  "{\"plain\": \"It went to the far post!\", \"expert\": \"{c2_corners_total} corners so far.\"}",
+  "[{\"function\": {\"arguments\": \"{}\", \"name\": \"list_facts\"}, \"id\": \"call_hx9oSXztN\", \"type\": \"function\"}]",
+  "It was a cross into the box.\n{c3_fk_cross} of {c3_fk_total} free kicks have been crosses so far.",
+  "{\"ok\": true, \"reason\": \"\"}",
+  "{\"plain\": \"Cross into the box.\", \"expert\": \"{c3_fk_cross} of {c3_fk_total} free kicks were crosses.\"}",
+  "{\"plain\": \"Cross ins Gebiet.\", \"expert\": \"{c3_fk_cross} von {c3_fk_total} Freikicks waren Crosses.\"}",
+  "{\"plain\": \"Hòa quân vào khu cấm địa.\", \"expert\": \"{c3_fk_cross} của {c3_fk_total} quả đá phạt góc.\"}",
+  "[{\"function\": {\"arguments\": \"{}\", \"name\": \"list_facts\"}, \"id\": \"call_xB1Sekfsw\", \"type\": \"function\"}]",
+  "A cross was made from the free kick. {c4_fk_cross} is up for Harbour Lights now.\n{c4_fk_cross} out of {c4_fk_total} free kicks have been crosses for Harbour Lights so far today.",
+  "{\"ok\": true, \"reason\": \"\"}",
+  "{\"plain\": \"Free kick cross to Harbour Lights.\", \"expert\": \"{c4_fk_cross}/{c4_fk_total} free kicks were crosses to Harbour Lights.\"}",
+  "{\"plain\": \"Freier Kickschuss in die Luft gegangen bei Harbour Lights.\", \"expert\": \"{c4_fk_cross}/{c4_fk_total} Frei-Kicks waren Schüsse ins Tor für Harbour Lights.\"}",
+  "{\"plain\": \"Miễn phí quả đá phạt cho Harbour Lights.\", \"expert\": \"{c4_fk_cross}/{c4_fk_total} quả đá phạt miễn phí là những quả chuyền phạt cho Harbour Lights.\"}",
+  "[{\"function\": {\"arguments\": \"{}\", \"name\": \"list_facts\"}, \"id\": \"call_VTAkFrbi9\", \"type\": \"function\"}]",
+  "The ball was passed short to a teammate.\n{c5_fk_cross} is still low compared to their usual free kick distribution.",
+  "{\"ok\": false, \"reason\": \"The draft mentions a pass which contradicts the fact that c5_fk_cross indicates free kicks crossed in the opponent's half, not passes.\"}",
+  "[{\"function\": {\"arguments\": \"{}\", \"name\": \"list_facts\"}, \"id\": \"call_X7Tpw4wOn\", \"type\": \"function\"}]",
+  "[{\"function\": {\"arguments\": \"{\\\"fact_id\\\":\\\"c5_fk_cross\\\"}\", \"name\": \"get_fact\"}, \"id\": \"call_3tAYbVNIf\", \"type\": \"function\"}]",
+  "[{\"function\": {\"arguments\": \"{\\\"fact_id\\\":\\\"c5_fk_total\\\"}\", \"name\": \"get_fact\"}, \"id\": \"call_Qu3SLd5QP\", \"type\": \"function\"}]",
+  "{\"plain\": \"They passed short to keep possession.\", \"expert\": \"Passing short ({c5_fk_cross} crosses out of {c5_fk_total} free kicks) keeps pressure on the defense.\"}",
+  "{\"ok\": false, \"reason\": \"The draft mentions passing short to keep possession, but the facts provided are about free kicks in the opponent's half. There is no contradiction in the facts themselves, but the draft introduces an unrelated detail that isn't supported by the given facts.\"}",
+  "[{\"function\": {\"arguments\": \"{}\", \"name\": \"list_facts\"}, \"id\": \"call_NO7udvF2H\", \"type\": \"function\"}]",
+  "[{\"function\": {\"arguments\": \"{\\\"fact_id\\\":\\\"c5_fk_cross\\\"}\", \"name\": \"get_fact\"}, \"id\": \"call_0G7sBBLp7\", \"type\": \"function\"}, {\"function\": {\"arguments\": \"{\\\"fact_id\\\":\\\"c5_fk_total\\\"}\", \"name\": \"get_fact\"}, \"id\": \"call_EBHrY1Z4g\", \"type\": \"function\"}]",
+  "{\"plain\": \"Copperfield passed short to keep possession.\", \"expert\": \"With {c5_fk_cross} crosses out of {c5_fk_total} free kicks in the opponent's half, Copperfield chose to play it safe.\"}",
+  "{\"ok\": false, \"reason\": \"The draft mentions 'Copperfield passed short to keep possession' which introduces new information not supported by the facts provided. The facts only provide information about free kicks in the opponent's half but do not mention any passing actions or possession strategies.\"}",
+  "{\"plain\": \"Copperfield passed short.\", \"expert\": \"Copperfield kept possession with a short pass.\"}",
+  "{\"plain\": \"Copperfield passed short to keep possession.\", \"expert\": \"With {c5_fk_cross} crosses out of {c5_fk_total}, Copperfield played it safe.\"}",
+  "{\"plain\": \"Copperfield gab eine kurze Passe ab, um die Besitzung zu erhalten.\", \"expert\": \"Mit {c5_fk_cross} von {c5_fk_total} Fehlkicks, spielte Copperfield vorsichtig.\"}",
+  "{\"plain\": \"Copperfield传短球以保持控球权。\", \"expert\": \"在{c5_fk_cross}次传中尝试后，Copperfield选择稳妥地控制球权。\"}",
+  "{\"plain\": \"Copperfield传短球以保持控球权。\", \"expert\": \"在{c5_fk_cross}次传中之外，Copperfield选择稳妥。\"}",
+  "[{\"function\": {\"arguments\": \"{}\", \"name\": \"list_facts\"}, \"id\": \"call_bmqtzRQeu\", \"type\": \"function\"}]",
+  "Plain: A midfielder came off the bench.\nExpert: {c6_midfielders_after} midfielders are now on the pitch, replacing the {c6_midfielders_before}. With {c6_subs_used} substitutions made, they have {c6_subs_max - c6_subs_used} left.",
+  "[{\"function\": {\"arguments\": \"{}\", \"name\": \"list_facts\"}, \"id\": \"call_3yVtLYHHO\", \"type\": \"function\"}]",
+  "[{\"function\": {\"arguments\": \"{\\\"fact_id\\\":\\\"c6_midfielders_after\\\"}\", \"name\": \"get_fact\"}, \"id\": \"call_mkSipZL6H\", \"type\": \"function\"}]",
+  "[{\"function\": {\"arguments\": \"{\\\"fact_id\\\":\\\"c6_midfielders_before\\\"}\", \"name\": \"get_fact\"}, \"id\": \"call_4moUgxcos\", \"type\": \"function\"}]",
+  "[{\"function\": {\"arguments\": \"{\\\"fact_id\\\":\\\"c6_subs_max\\\"}\", \"name\": \"get_fact\"}, \"id\": \"call_aQ0WzoYc3\", \"type\": \"function\"}]",
+  "[{\"function\": {\"arguments\": \"{\\\"fact_id\\\":\\\"c6_subs_used\\\"}\", \"name\": \"get_fact\"}, \"id\": \"call_3UiusdwZK\", \"type\": \"function\"}]",
+  "{\"plain\": \"The team brought on some fresh legs, replacing {c6_midfielders_before} with {c6_midfielders_after}. They've used {c6_subs_used} substitutions so far.\", \"expert\": \"With {c6_midfielders_after} midfielders now on the pitch, replacing {c6_midfielders_before}, and {c6_subs_max - c6_subs_used} substitutions remaining.\"}",
+  "[{\"function\": {\"arguments\": \"{}\", \"name\": \"list_facts\"}, \"id\": \"call_gz1Fp4q4d\", \"type\": \"function\"}]",
+  "[{\"function\": {\"arguments\": \"{\\\"fact_id\\\":\\\"c6_midfielders_after\\\"}\", \"name\": \"get_fact\"}, \"id\": \"call_gNJdVj0xJ\", \"type\": \"function\"}]",
+  "[{\"function\": {\"arguments\": \"{\\\"fact_id\\\":\\\"c6_midfielders_before\\\"}\", \"name\": \"get_fact\"}, \"id\": \"call_b3ofl7Bxw\", \"type\": \"function\"}]",
+  "[{\"function\": {\"arguments\": \"{\\\"fact_id\\\":\\\"c6_subs_max\\\"}\", \"name\": \"get_fact\"}, \"id\": \"call_PIcFmfz68\", \"type\": \"function\"}]",
+  "[{\"function\": {\"arguments\": \"{\\\"fact_id\\\":\\\"c6_subs_used\\\"}\", \"name\": \"get_fact\"}, \"id\": \"call_VHyUkT4Y4\", \"type\": \"function\"}]",
+  " {\"plain\": \"Pip sees the team bring on a fresh player to boost energy.\", \"expert\": \"With {c6_midfielders_after} midfielders now on the pitch, replacing {c6_midfielders_before}, and {c6_subs_max - c6_subs_used} substitutions remaining.\"}",
+  "[{\"function\": {\"arguments\": \"{}\", \"name\": \"list_facts\"}, \"id\": \"call_ESm1VRZdw\", \"type\": \"function\"}]",
+  "The ball was crossed into the box.\n{c7_fk_cross} of {c7_fk_total} free kicks have been crosses so far.",
+  "{\"ok\": true, \"reason\": \"\"}",
+  "{\"plain\": \"Ball crossed into the box.\", \"expert\": \"{c7_fk_cross}/{c7_fk_total} free kicks were crosses.\"}",
+  "{\"plain\": \"Der Ball wurde in den Boxen gekreuzt.\", \"expert\": \"{c7_fk_cross}/{c7_fk_total} Freiwscheibe waren Kreuzungen.\"}",
+  "{\"plain\": \"Bóng chuyền vào trong khu cấm.\", \"expert\": \"{c7_fk_cross}/{c7_fk_total} quả đá phạt là cú chuyền bóng.\"}",
+  "[{\"function\": {\"arguments\": \"{}\", \"name\": \"list_facts\"}, \"id\": \"call_vVhHLVOYd\", \"type\": \"function\"}]",
+  "A midfielder came off the bench to replace Copperfield.\n{c8_midfielders_after} midfielders are now on the pitch, with {c8_subs_used} substitutions already made.",
+  "{\"ok\": true, \"reason\": \"\"}",
+  "{\"plain\": \"A midfielder entered, replacing Copperfield.\", \"expert\": \"{c8_midfielders_after} now play, {c8_subs_used} subs made.\"}",
+  "{\"plain\": \"Ein Mittelfeldspieler trat ein, nahm Copperfield ab.\", \"expert\": \"{c8_midfielders_after} spielen jetzt, {c8_subs_used} E subs wurden genutzt.\"}",
+  "{\"plain\": \"Một tiền vệ vào thay Copperfield.\", \"expert\": \"{c8_midfielders_after} nay vào sân, {c8_subs_used} người đã thay đổi.\"}",
+  "[{\"function\": {\"arguments\": \"{}\", \"name\": \"list_facts\"}, \"id\": \"call_7UznFY1NY\", \"type\": \"function\"}]",
+  "brtcorners were played near the post. {c9_corners_short} of their corners have been short so far.\n\nbrtcorners this team has taken {c9_corners_total} times, with {c9_league_short_share_pct}% being short according to the league average.",
+  "{\"ok\": false, \"reason\": \"The draft mentions 'brtcorners' which is not a standard term and contradicts the use of 'corners' in the facts.\"}",
+  "[{\"function\": {\"arguments\": \"{}\", \"name\": \"list_facts\"}, \"id\": \"call_1MEOa7yRC\", \"type\": \"function\"}]",
+  "brtcorners were played short. That's unusual for them.\nbrtcorners accounted for {c9_corners_short} of their total {c9_corners_total} corners today.",
+  "{\"ok\": false, \"reason\": \"brtcorners were played short contradicts c9_corners_short = 0\"}",
+  "[{\"function\": {\"arguments\": \"{}\", \"name\": \"list_facts\"}, \"id\": \"call_r6nIr9NMt\", \"type\": \"function\"}]",
+  "brtcorners were played near the post.\n{c9_corners_short} of their corners have been short so far today.",
+  "{\"ok\": false, \"reason\": \"The draft states that {c9_corners_short} of their corners have been short so far today, but the fact shows that c9_corners_short is 0, meaning none of their corners have been short.\"}",
+  "{\"plain\": \"short corners near post.\", \"expert\": \"{c9_corners_short} short.\"}",
+  "{\"plain\": \"Kurze Ecken nahe dem Tor.\", \"expert\": \"{c9_corners_short} kurz.\"}",
+  "{\"plain\": \"Cầu ngắn gần cột.\", \"expert\": \"{c9_corners_short} ngắn.\"}"
+ ],
+ "note": "Trial run. DE and VI lines are drafts until the owner checks them (AGENTS.md conventions). The hosted match plays the reviewed templates.",
+ "seconds": 664.6,
+ "seed": 43,
+ "shipped_equals_checked": false,
+ "uses_ai": true,
+ "workflow_version": "pip-agents-0.1.0+multi",
+ "writer": "multi"
+}

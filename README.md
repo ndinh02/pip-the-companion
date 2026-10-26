@@ -43,7 +43,7 @@ Then open `http://localhost:5173/tv`, start a room, and use **More → Open a ph
 | AI writer on a local model (Foundry Local) through the same checker | trial run only (`data/agent-trace-llm.json`, re-run 2026-10-26 on the current 9-question demo match) |
 | TV: home with **Resume room**, lobby with QR and code, 3D view of the match (three.js) with cameras (main stand, far side, behind each goal, close-up, overhead VAR with the offside line, tactical 2D), an automatic director, replays at each reveal, followed players marked in every camera, question card with answer counts, added-time explainer, connection alarm | built |
 | Phone: join by QR, typed code or in-app Scan (with a paste-link fallback when the browser offers no camera); animal and language; live header (crests, score, clock); answers with one change; two-depth reveal; conversation history; half-time and full-time recaps; My player; status overlays when the TV or server drops | built (DE / VI copy are drafts) |
-| Console: tracking panel, workflow trace, held-back log | built |
+| Console: tracking panel, workflow trace (three recorded runs: templates, Foundry Local, multi-agent), held-back log | built |
 | Rooms across separate devices, by HTTP polling | built (`web/server/rooms.mjs`); rooms live in memory, expire after 4 h, and the TV takes its room back after a server restart |
 
 ## Not built yet

@@ -143,10 +143,10 @@ explained. Say "replayed on the match clock, with tests that no fact looks ahead
 ### Must do (before 2026-10-27 23:59 PT)
 - [ ] **Fix CI and redeploy** (blocker 1). Then check that the live `data/match.json` has 9 cards.
 - [ ] **Fix the camera policy** (blocker 2), or at least keep the in-app Scan screen out of the video.
-- [ ] **Demo video under 2:00** (1:55) is ready and also hosted on GitHub Pages, but the rules need a **public YouTube/Vimeo URL**: upload it and replace `<YOUTUBE_URL>`. Open-source voice (Kokoro-82M, Apache 2.0) and self-synthesised music: no copyrighted music.
+- [x] **Demo video under 2:00** (1:55) uploaded as Public to YouTube: https://youtu.be/ozuCxuuRjE0 (also on GitHub Pages). Open-source voice (Kokoro-82M, Apache 2.0) and self-synthesised music: no copyrighted music.
 - [ ] **Project image** for the form (Pip artwork + TV screenshot; no PL or Microsoft logos).
 - [ ] **Fill in the form**: title, tagline, keywords, challenge, description (all in `PROJECT_PAGE.md`), then add the repo URL after saving.
-- [ ] **Test the hosted app once on a phone over mobile data** (not Wi-Fi) the day you submit.
+- [x] **Test the hosted app on a real phone** — done by the owner on 2026-10-26: joining by QR and playing works.
 - [ ] **Decide the licence and add a `LICENSE` file.** There's none in the repo now. AGENTS.md proposes MIT for code and CC BY 4.0 for data, unconfirmed (OPEN Q10). A public repo with no licence means "all rights reserved".
 - [ ] **Keep the demo awake through judging.** `.github/workflows/keep-awake.yml` stops pinging after 2026-11-11, but
   winners are announced 2026-11-20. Also, GitHub ran the "every 10 minutes" schedule only about every 6 hours today, so

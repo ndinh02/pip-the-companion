@@ -73,7 +73,7 @@ Most people who watch football with a fan are not fans yet. They can't tell why 
 |---|---|---|
 | **Azure App Service** (Linux, Node 22, France Central) | Hosts the app and the room server: HTTP-polling rooms, security headers, `/healthz` | `web/server/` |
 | **GitHub Actions** + `azure/webapps-deploy` | On every push: Python tests, full-match QA on six seeds, copy checks, type-check and build, server tests. A push to `main` deploys to App Service only after all of them pass. A scheduled ping keeps the demo awake for judging. | `.github/workflows/` |
-| **Foundry Local** (`qwen2.5-7b`, OpenAI-compatible endpoint) | An LLM writer that drafts reveal lines on the owner's machine, before the match, through the same checker. This is a trial run. The match judges see still uses the reviewed templates. | `agents/pip_agents/llm_writer.py`, `data/agent-trace-llm.json` |
+| **Foundry Local** (`qwen2.5-7b`, OpenAI-compatible endpoint) | Two recorded AI runs made on the owner's machine before the match, viewable side by side in `/console`: a single LLM writer, and a **multi-agent run** (orchestrator, writer, rule checker, LLM fact verifier, editor, translator) where the writer fetches every number through a real **MCP server** (stdio JSON-RPC, `list_facts`/`get_fact`). The match judges see still uses the reviewed templates. | `agents/pip_agents/` (`multi.py`, `mcp_server.py`), `data/agent-trace-llm.json`, `data/agent-trace-multi.json` |
 | **TypeScript** | The whole web app and its screens | `web/src/` |
 
 ### Architecture
@@ -102,6 +102,7 @@ Text for each moment goes through **Moment Picker (rules) → Writer → Checker
 - Rejected drafts go back to the writer **with the checker's errors** (at most 2 retries), then to a fixed, reviewed template. The run confirms that what ships is exactly what was checked.
 - **"Catch me lying"** in `/console` replays a run with two writers that were broken on purpose. One gets repaired after feedback, the other falls back, and nothing false ships.
 - In the Foundry Local trial (re-run 2026-10-26 on the current 9-question match, `qwen2.5-7b`, 146 s), the checker approved the model's lines for all 9 moments, 5 on the first try; it rejected drafts that graded the room ("New friends look surprised!") or used a made-up placeholder, and the model repaired them. The shipped match still uses the checked templates: the trial also showed lines a rule-based checker cannot judge (an awkward "2th", an expert line that drifts off the outcome), which is why a human-reviewed template stays the default.
+- In the **multi-agent trial** (2026-10-27, same match, 665 s on the same laptop: orchestrator, writer, rule checker, LLM fact verifier, editor, translator), the writer used native tool-calling to fetch all 70 facts through the MCP server — it never typed a number itself. 7 of 9 moments shipped model-written English lines; 2 fell back to the template, honestly recorded: one where the model hard-coded numbers in all three attempts, one where the LLM verifier misread the VAR margin twice and burned the retry budget. The code checker stayed the authority throughout: an LLM could delay or fall back, never approve what code rejected. Every handoff, verdict and failure is in the trace in `/console`.
 
 ### Responsible by design
 
@@ -126,7 +127,7 @@ Already in place: CI-gated deploys, a dependency-free server with a strict Conte
 
 - Live app: https://pip-the-companion-cjcdawd7gmf8f9h2.francecentral-01.azurewebsites.net/tv
 - Code: https://github.com/ndinh02/pip-the-companion
-- Demo video (YouTube, public): <YOUTUBE_URL>
+- Demo video (YouTube, public): https://youtu.be/ozuCxuuRjE0
 - Same video on GitHub Pages: https://ndinh02.github.io/pip-the-companion/
 - Cover image: https://ndinh02.github.io/pip-the-companion/submission/video/cover.png
 
