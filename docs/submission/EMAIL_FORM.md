@@ -1,7 +1,10 @@
 # Submission email — ready to paste
 
-Plain text, so it reads the same in any mail program. All links point at the public GitHub repository, which hosts
-the video and the images (the form allows that).
+Plain text, so it reads the same in any mail program. The official rules (section 4.4) require the demo video as a
+**public URL on YouTube, Vimeo, Facebook Video or Youku**, so upload `pip-demo.mp4` to YouTube as Public and put that
+link first. The GitHub Pages link stays as a second way to watch; the images are hosted on GitHub. The rules also say
+the entry is made on the Projects page of the Hackathon Website: if you email it, make sure the project page is filled
+in as well.
 
 ---
 
@@ -10,7 +13,8 @@ Project Details
 Title: Pip - A matchday companion that turns a synthetic match into checked, multilingual "Call it!" moments for the whole room
 
 Image/Video:
-Demo video (1:55, plays in the browser): https://ndinh02.github.io/pip-the-companion/
+Demo video (1:55, public on YouTube): <YOUTUBE_URL>
+Also playable on GitHub Pages: https://ndinh02.github.io/pip-the-companion/
 Video file: https://ndinh02.github.io/pip-the-companion/submission/video/pip-demo.mp4
 Cover image: https://ndinh02.github.io/pip-the-companion/submission/video/cover.png
 

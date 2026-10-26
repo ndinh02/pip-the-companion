@@ -374,7 +374,7 @@ Premise, stated honestly: a consumer companion app does not monetize alone. The 
 
 ## 14. OPEN questions (ask the owner — do not decide)
 
-1. **Name vs repo:** brand is "Pip"; repo is "pippi-the-companion". Is the mascot "Pip" or "Pippi"? Note: "Pippi" is strongly associated with Pippi Longstocking (Astrid Lindgren), a protected character brand — a trademark check is advisable if "Pippi" is used publicly.
+1. **Name vs repo:** DECIDED (2026-10-16): the product, mascot and repo are all "Pip" (`pip-the-companion`).
 2. **LLM provider:** Foundry Local only, Azure OpenAI (if student quota arrives), or both with fallback?
 3. **Real-time rooms in the demo:** Web PubSub, polling, or single-device mode only?
 4. **Colour clash:** DECIDED — Harbour Lights' blue is #2E7FC4.

@@ -143,7 +143,7 @@ explained. Say "replayed on the match clock, with tests that no fact looks ahead
 ### Must do (before 2026-10-27 23:59 PT)
 - [ ] **Fix CI and redeploy** (blocker 1). Then check that the live `data/match.json` has 9 cards.
 - [ ] **Fix the camera policy** (blocker 2), or at least keep the in-app Scan screen out of the video.
-- [x] **Demo video under 2:00** (1:55), hosted in the GitHub repo (`docs/submission/video/pip-demo.mp4`, linked from `PROJECT_PAGE.md` and the README). Open-source voice (Kokoro-82M, Apache 2.0) and self-synthesised music: no copyrighted music.
+- [ ] **Demo video under 2:00** (1:55) is ready and also hosted on GitHub Pages, but the rules need a **public YouTube/Vimeo URL**: upload it and replace `<YOUTUBE_URL>`. Open-source voice (Kokoro-82M, Apache 2.0) and self-synthesised music: no copyrighted music.
 - [ ] **Project image** for the form (Pip artwork + TV screenshot; no PL or Microsoft logos).
 - [ ] **Fill in the form**: title, tagline, keywords, challenge, description (all in `PROJECT_PAGE.md`), then add the repo URL after saving.
 - [ ] **Test the hosted app once on a phone over mobile data** (not Wi-Fi) the day you submit.

@@ -77,5 +77,8 @@ The chosen cut, `pip-demo.mp4` (Kokoro voice + music), is committed to the repos
 GitHub for all assets. GitHub Pages serves `docs/` from `main`, so it plays in the browser at https://ndinh02.github.io/pip-the-companion/
 (`docs/index.html`). The plain GitHub file page cannot play a file this size; it only offers a download. The music-only and captions-only cuts stay local and are not committed.
 
-A YouTube upload is optional. If you want one: upload `pip-demo.mp4` as **Public**, with `youtube-thumbnail.png` as
-the thumbnail, title `Pip: watch together, call it together (Inside the Game hackathon demo)`.
+**A YouTube (or Vimeo) upload is still required.** The official rules, section 4.4, ask for "a public URL to your demo
+video on YouTube, Vimeo, Facebook Video, or Youku"; a GitHub link alone does not meet that. Upload `pip-demo.mp4` as
+**Public** (not Unlisted), with `youtube-thumbnail.png` as the thumbnail and the title
+`Pip: watch together, call it together (Inside the Game hackathon demo)`. Then replace `<YOUTUBE_URL>` in
+`PROJECT_PAGE.md` and `EMAIL_FORM.md`, and check the link in a private window.

@@ -91,7 +91,7 @@ data/*.json (checked cards, facts, tracking, trace) ── CI ──deploy──
 
 ### Data
 
-Everything is synthetic: two fictional clubs (Harbour Lights, Copperfield), placeholder players identified by team and shirt number, no real match, club or footage. The generator runs a possession-and-zone model with team habits, so the same seed always gives the same match. The tracking synthesizer keeps players and ball consistent with the events: players accelerate within limits, keepers stay in goal, and goals count only when the ball actually reaches the net. `scripts/match_qa.py` scans every frame for things a viewer would notice (ball teleports or vanishes, keepers missing, frozen players). CI runs it on the demo match and on five freshly generated seeds.
+Everything is synthetic: two fictional clubs (Harbour Lights, Copperfield), placeholder players identified by team and shirt number, no real match, club or footage. The generator runs a possession-and-zone model with team habits, so the same seed gives the same match (CI re-runs the demo seed on Linux and reports any difference; the shipped files are the reference). The tracking synthesizer keeps players and ball consistent with the events: players accelerate within limits, keepers stay in goal, and goals count only when the ball actually reaches the net. `scripts/match_qa.py` scans every frame for things a viewer would notice (ball teleports or vanishes, keepers missing, frozen players). CI runs it on the demo match and on five freshly generated seeds.
 
 ### Agentic design: a bounded workflow, not a free-roaming agent
 
@@ -126,7 +126,8 @@ Already in place: CI-gated deploys, a dependency-free server with a strict Conte
 
 - Live app: https://pip-the-companion-cjcdawd7gmf8f9h2.francecentral-01.azurewebsites.net/tv
 - Code: https://github.com/ndinh02/pip-the-companion
-- Demo video: https://ndinh02.github.io/pip-the-companion/
+- Demo video (YouTube, public): <YOUTUBE_URL>
+- Same video on GitHub Pages: https://ndinh02.github.io/pip-the-companion/
 - Cover image: https://ndinh02.github.io/pip-the-companion/submission/video/cover.png
 
 *Built for the Microsoft "Inside the Game" hackathon. All teams, players and data are fictional. Not affiliated with or endorsed by the Premier League or Microsoft.*
