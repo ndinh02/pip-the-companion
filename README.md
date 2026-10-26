@@ -99,3 +99,6 @@ To run the production server locally: `cd web && npm run build && cp -r dist ser
 
 ## Rules the project keeps
 No betting (no odds, points, streaks or rankings), no accounts, no names, no free text from viewers, no club marks or real player likenesses. See [AGENTS.md](AGENTS.md) and [SECURITY.md](SECURITY.md). Planning documents: [docs/PROJECT_BRIEF.md](docs/PROJECT_BRIEF.md), [docs/NEXT_STEPS.md](docs/NEXT_STEPS.md), [docs/TRACKING_SPEC.md](docs/TRACKING_SPEC.md).
+
+## Licence
+Code: [MIT](LICENSE). Synthetic data and match copy: [CC BY 4.0](LICENSE-DATA.md). The Pip character artwork and the team crests are not licensed for reuse.

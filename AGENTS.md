@@ -15,7 +15,7 @@ Nhi (UX/UI designer, not a trained engineer). Explain choices in plain language,
 - Pitch coordinates: metres, 105 × 68. Synthetic data only; no real-data calibration.
 - Fictional teams: **Harbour Lights** (sea blue `#2E7FC4` / white) vs **Copperfield** (copper `#C8692F` / black). Team blue was changed from `#5AA9E6` to avoid clashing with brand Sky `#6CB4EE`.
 - Prize targets: Best Enterprise Solution + Best Azure Cloud Native Integration.
-- Licences (proposed, unconfirmed): MIT code, CC BY 4.0 data.
+- Licences (decided 2026-10-26): MIT for code (`LICENSE`), CC BY 4.0 for synthetic data and match copy (`LICENSE-DATA.md`); Pip artwork and team crests all rights reserved.
 
 ## Hard rules
 1. **No AI at runtime in the hosted app.** All AI text is generated and checked before the match, saved as files, replayed.

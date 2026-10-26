@@ -11,7 +11,7 @@
 | 7 | Player-name locales + screening | **DECIDED for the demo (2026-10-13):** no names; players are identified by team + shirt number + position. Names stay OPEN for later. **2026-10-17:** names and player news/social links are in the brief (§5.5) as optional later-stage items, not in the hackathon build. |
 | 8 | Must-have list (§5.4) | OPEN — mock covers: Call it!, two-depth reveal, DE/EN/VI. |
 | 9 | Brand (colours, type, voice) | OPEN — mock uses the draft brand. |
-| 10 | Licences | PROPOSED: MIT + CC BY 4.0 — unconfirmed. |
+| 10 | Licences | **DECIDED 2026-10-26:** MIT for code (`LICENSE`), CC BY 4.0 for synthetic data and match copy (`LICENSE-DATA.md`). Pip artwork and the team crests: all rights reserved. |
 | 11 | CLAUDE.md vs AGENTS.md | **DECIDED:** AGENTS.md shared, CLAUDE.md pointer. |
 | 12 | "Convince the room" mechanic | OPEN — not built in the mock. |
 | 13 | Sponsored moments | OPEN — keep out of all pitch material until decided. |
