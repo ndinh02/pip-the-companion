@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/ndinh02/pippi-the-companion/schemas/match.schema.json",
+  "$id": "https://github.com/ndinh02/pip-the-companion/schemas/match.schema.json",
   "title": "match",
   "description": "One full synthetic match as written by match-lab (draft v0, brief 8.2). Synthetic data only; players are placeholders.",
   "type": "object",

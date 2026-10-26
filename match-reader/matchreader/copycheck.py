@@ -2,7 +2,7 @@
 
 Same rules: every string <= 200 chars, no banned betting word in EN/DE/VI, no
 digit outside {placeholders}, every placeholder in the card's fact_ids and in
-facts, answer/pippi_call among the option ids, no leftover <team>.
+facts, answer/pip_call among the option ids, no leftover <team>.
 """
 from __future__ import annotations
 
@@ -65,8 +65,8 @@ def check_copy(match: Dict[str, Any]) -> List[str]:
         option_ids = [o["id"] for o in card["question"]["options"]]
         if card["reveal"]["answer"] not in option_ids:
             errors.append("%s: answer not among options" % card["card_id"])
-        if card["question"]["pippi_call"] not in option_ids:
-            errors.append("%s: pippi_call not among options" % card["card_id"])
+        if card["question"]["pip_call"] not in option_ids:
+            errors.append("%s: pip_call not among options" % card["card_id"])
         for lang in LANGS:
             check_text("%s.question.text" % card["card_id"], lang,
                        card["question"]["text"][lang], set())

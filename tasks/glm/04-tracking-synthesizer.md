@@ -53,7 +53,7 @@ Measure everything **from the 5 Hz output** (what Claude and Task 05 will see), 
 
 ## Result (GLM fills in)
 
-**Status: done.** All 8 test groups pass (18 tests in `match-lab/tests/test_tracking.py`; the calibration group is gated behind `PIPPI_SLOW=1`). Full match-lab suite: 43 tests OK. Full match-reader suite: 32 tests OK (see repair note below). `python3 -m matchreader.build --seed 43` still produces `data/demo-match.json` byte-for-byte (`cmp` clean). Copy check `npm run check:copy` passes. CLI: `python3 -m matchlab.track` from `match-lab/`.
+**Status: done.** All 8 test groups pass (18 tests in `match-lab/tests/test_tracking.py`; the calibration group is gated behind `PIP_SLOW=1`). Full match-lab suite: 43 tests OK. Full match-reader suite: 32 tests OK (see repair note below). `python3 -m matchreader.build --seed 43` still produces `data/demo-match.json` byte-for-byte (`cmp` clean). Copy check `npm run check:copy` passes. CLI: `python3 -m matchlab.track` from `match-lab/`.
 
 **Numbers (seeds 1–10, all measured from the 5 Hz output):**
 - Actor within 2.5 m of `event.start` at `t_ms`: **98.4–99.2 %** per seed (limit ≥ 98 %). Remaining misses are mostly chained open-play events the generator places 10–20 m apart in < 1 s (physically unreachable even at v_max) plus the keeper_save quirk below.

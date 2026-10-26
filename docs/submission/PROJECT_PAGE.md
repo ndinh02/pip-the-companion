@@ -73,7 +73,7 @@ Most people who watch football with a fan are not fans yet. They can't tell why 
 |---|---|---|
 | **Azure App Service** (Linux, Node 22, France Central) | Hosts the app and the room server: HTTP-polling rooms, security headers, `/healthz` | `web/server/` |
 | **GitHub Actions** + `azure/webapps-deploy` | On every push: Python tests, full-match QA on six seeds, copy checks, type-check and build, server tests. A push to `main` deploys to App Service only after all of them pass. A scheduled ping keeps the demo awake for judging. | `.github/workflows/` |
-| **Foundry Local** (`qwen2.5-7b`, OpenAI-compatible endpoint) | An LLM writer that drafts reveal lines on the owner's machine, before the match, through the same checker. This is a trial run. The match judges see still uses the reviewed templates. | `agents/pippi_agents/llm_writer.py`, `data/agent-trace-llm.json` |
+| **Foundry Local** (`qwen2.5-7b`, OpenAI-compatible endpoint) | An LLM writer that drafts reveal lines on the owner's machine, before the match, through the same checker. This is a trial run. The match judges see still uses the reviewed templates. | `agents/pip_agents/llm_writer.py`, `data/agent-trace-llm.json` |
 | **TypeScript** | The whole web app and its screens | `web/src/` |
 
 ### Architecture
@@ -101,7 +101,7 @@ Text for each moment goes through **Moment Picker (rules) → Writer → Checker
 - The **Checker** recomputes every fact from the events. It rejects digits typed into the text, betting words in EN/DE/VI, a line that doesn't name what actually happened, the wrong VAR decision, counts in words ("twice"), grading of people, and anything that breaks the schema.
 - Rejected drafts go back to the writer **with the checker's errors** (at most 2 retries), then to a fixed, reviewed template. The run confirms that what ships is exactly what was checked.
 - **"Catch me lying"** in `/console` replays a run with two writers that were broken on purpose. One gets repaired after feedback, the other falls back, and nothing false ships.
-- In the Foundry Local trial, the model's lines were approved for 7 of 8 moments (5 on the first try). One moment fell back to the template.
+- In the Foundry Local trial (re-run 2026-10-26 on the current 9-question match, `qwen2.5-7b`, 146 s), the checker approved the model's lines for all 9 moments, 5 on the first try; it rejected drafts that graded the room ("New friends look surprised!") or used a made-up placeholder, and the model repaired them. The shipped match still uses the checked templates: the trial also showed lines a rule-based checker cannot judge (an awkward "2th", an expert line that drifts off the outcome), which is why a human-reviewed template stays the default.
 
 ### Responsible by design
 

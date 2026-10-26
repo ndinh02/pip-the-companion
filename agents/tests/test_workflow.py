@@ -8,10 +8,10 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
-from pippi_agents import paths  # noqa: E402,F401
-from pippi_agents.run import build  # noqa: E402
-from pippi_agents.workflow import run_match  # noqa: E402
-from pippi_agents.writers import AlwaysLyingWriter, LyingOnceWriter  # noqa: E402
+from pip_agents import paths  # noqa: E402,F401
+from pip_agents.run import build  # noqa: E402
+from pip_agents.workflow import run_match  # noqa: E402
+from pip_agents.writers import AlwaysLyingWriter, LyingOnceWriter  # noqa: E402
 from matchlab import generate_match  # noqa: E402
 from matchreader import reader  # noqa: E402
 

@@ -34,9 +34,9 @@ Then open `http://localhost:5173/tv`, start a room, and use **More → Open a ph
 | 5 Hz tracking of 22 players and the ball, consistent with the events | built (`match-lab/matchlab/tracking.py`); full-match QA in `scripts/match_qa.py` |
 | Facts, "Call it!" cards, timing policy, held-back moments, "no clear answer" rule | built (`match-reader/`) |
 | Player stats per minute from events and tracking | built (`match-reader/matchreader/players.py`) |
-| Checker: numbers match the events, no betting words, no invented numbers, card schema, outcome named | built (`agents/pippi_agents/checker.py`) |
+| Checker: numbers match the events, no betting words, no invented numbers, card schema, outcome named | built (`agents/pip_agents/checker.py`) |
 | Content workflow: writer → checker → up to 2 retries → fixed template, with a trace and the "Catch me lying" integrity demo | built (`agents/`); the shipped match uses the reviewed template writer |
-| AI writer on a local model (Foundry Local) through the same checker | trial run only (`data/agent-trace-llm.json`, on an earlier build of the demo match) |
+| AI writer on a local model (Foundry Local) through the same checker | trial run only (`data/agent-trace-llm.json`, re-run 2026-10-26 on the current 9-question demo match) |
 | TV: home with **Resume room**, lobby with QR and code, 3D view of the match (three.js) with cameras (main stand, far side, behind each goal, close-up, overhead VAR with the offside line, tactical 2D), an automatic director, replays at each reveal, followed players marked in every camera, question card with answer counts, added-time explainer, connection alarm | built |
 | Phone: join by QR, typed code or in-app Scan (with paste-link fallback; on the hosted app the in-app camera is currently blocked by the server's `Permissions-Policy` header, so it falls back); animal and language; live header (crests, score, clock); answers with one change; two-depth reveal; conversation history; half-time and full-time recaps; My player; status overlays when the TV or server drops | built (DE / VI copy are drafts) |
 | Console: tracking panel, workflow trace, held-back log | built |
@@ -50,7 +50,7 @@ Then open `http://localhost:5173/tv`, start a room, and use **More → Open a ph
 ## Built with
 - **Azure App Service** (Linux, Node 22) hosts the app and the room server (`web/server/`).
 - **GitHub Actions** with `azure/webapps-deploy` handles tests, QA and the gated deploy (`.github/workflows/`).
-- **Foundry Local** serves a local model for the trial AI writer (`agents/pippi_agents/llm_writer.py`).
+- **Foundry Local** serves a local model for the trial AI writer (`agents/pip_agents/llm_writer.py`).
 - Python 3.9 (standard library only) for the match, the facts and the workflow. Vite + React + TypeScript and three.js for the screens.
 
 Submission material: [`docs/submission/`](docs/submission/).
@@ -77,7 +77,7 @@ Every number a viewer sees is filled in by code from `facts` or tracking; text o
 cd match-lab    && python3 -m matchlab.track --seed 43 --out-match ../data/tracked-seed-43.json --out-tracking ../data/tracking-seed-43.json
 cd ../match-reader && python3 -m matchreader.build --in ../data/tracked-seed-43.json --out ../data/demo-match.json
 python3 -m matchreader.players --seed 43 --out ../data/players.json
-cd ../agents    && python3 -m pippi_agents.run --seed 43 --out ../data/agent-trace.json
+cd ../agents    && python3 -m pip_agents.run --seed 43 --out ../data/agent-trace.json
 cd ..           && python3 scripts/added_time.py --in data/mock-seed-43.json --out web/public/data/added-time.json
 cp data/demo-match.json web/public/data/match.json; cp data/tracking-seed-43.json web/public/data/tracking.json
 cp data/players.json web/public/data/players.json;  cp data/agent-trace.json web/public/data/agent-trace.json

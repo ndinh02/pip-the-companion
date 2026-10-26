@@ -97,10 +97,111 @@
   },
   {
    "approved_by": "llm:qwen2.5-7b-instruct-generic-gpu:4",
-   "approved_expert_en": "That's the {c2_fk_cross}th cross out of {c2_fk_total} free kicks in the opponent's half.",
+   "approved_expert_en": "Harbour Lights' corner was played short, staying under the {c2_corners_short} threshold of {c2_corners_total}.",
    "approved_facts": {
-    "c2_fk_cross": 2,
-    "c2_fk_total": 2
+    "c2_corners_short": 0,
+    "c2_corners_total": 3,
+    "c2_league_short_share_pct": 16
+   },
+   "approved_plain_en": "The ball went to the far post.",
+   "attempts": [
+    {
+     "attempt": 1,
+     "checker": "fail",
+     "errors": [
+      "plain line talks about people's calls (\"guessed\"): Pip never grades anyone"
+     ],
+     "expert_en": "Far post: a {c2_corners_short} of {c2_corners_total} corners played short today, below the league average of {c2_league_short_share_pct}%.",
+     "facts": {
+      "c2_corners_short": 0,
+      "c2_corners_total": 3,
+      "c2_league_short_share_pct": 16
+     },
+     "note": "drafted by qwen2.5-7b-instruct-generic-gpu:4",
+     "plain_en": "The ball went to the far post! It didn't go where anyone guessed.",
+     "writer": "llm:qwen2.5-7b-instruct-generic-gpu:4"
+    },
+    {
+     "attempt": 2,
+     "checker": "pass",
+     "errors": [],
+     "expert_en": "Harbour Lights' corner was played short, staying under the {c2_corners_short} threshold of {c2_corners_total}.",
+     "facts": {
+      "c2_corners_short": 0,
+      "c2_corners_total": 3,
+      "c2_league_short_share_pct": 16
+     },
+     "note": "drafted by qwen2.5-7b-instruct-generic-gpu:4",
+     "plain_en": "The ball went to the far post.",
+     "writer": "llm:qwen2.5-7b-instruct-generic-gpu:4"
+    }
+   ],
+   "card_id": "c2-corner",
+   "decision": "fire",
+   "facts_from_events": {
+    "c2_corners_short": 0,
+    "c2_corners_total": 3,
+    "c2_league_short_share_pct": 16
+   },
+   "question_en": "Corner! Where's it going?",
+   "t_in_min": 14.9,
+   "team_id": "HAR",
+   "tool_calls": [
+    {
+     "result": [
+      "c2_corners_short",
+      "c2_corners_total",
+      "c2_league_short_share_pct"
+     ],
+     "tool": "list_facts"
+    },
+    {
+     "fact_id": "c2_corners_short",
+     "result": 0,
+     "tool": "get_fact"
+    },
+    {
+     "fact_id": "c2_corners_total",
+     "result": 3,
+     "tool": "get_fact"
+    },
+    {
+     "fact_id": "c2_league_short_share_pct",
+     "result": 16,
+     "tool": "get_fact"
+    },
+    {
+     "result": [
+      "c2_corners_short",
+      "c2_corners_total",
+      "c2_league_short_share_pct"
+     ],
+     "tool": "list_facts"
+    },
+    {
+     "fact_id": "c2_corners_short",
+     "result": 0,
+     "tool": "get_fact"
+    },
+    {
+     "fact_id": "c2_corners_total",
+     "result": 3,
+     "tool": "get_fact"
+    },
+    {
+     "fact_id": "c2_league_short_share_pct",
+     "result": 16,
+     "tool": "get_fact"
+    }
+   ],
+   "trigger": "corner"
+  },
+  {
+   "approved_by": "llm:qwen2.5-7b-instruct-generic-gpu:4",
+   "approved_expert_en": "That's the {c3_fk_cross}th cross out of {c3_fk_total} free kicks in the opponent's half.",
+   "approved_facts": {
+    "c3_fk_cross": 2,
+    "c3_fk_total": 2
    },
    "approved_plain_en": "Pip watched as the ball was swung into the box.",
    "attempts": [
@@ -108,78 +209,25 @@
      "attempt": 1,
      "checker": "pass",
      "errors": [],
-     "expert_en": "That's the {c2_fk_cross}th cross out of {c2_fk_total} free kicks in the opponent's half.",
+     "expert_en": "That's the {c3_fk_cross}th cross out of {c3_fk_total} free kicks in the opponent's half.",
      "facts": {
-      "c2_fk_cross": 2,
-      "c2_fk_total": 2
+      "c3_fk_cross": 2,
+      "c3_fk_total": 2
      },
      "note": "drafted by qwen2.5-7b-instruct-generic-gpu:4",
      "plain_en": "Pip watched as the ball was swung into the box.",
      "writer": "llm:qwen2.5-7b-instruct-generic-gpu:4"
     }
    ],
-   "card_id": "c2-freekick",
+   "card_id": "c3-freekick",
    "decision": "fire",
    "facts_from_events": {
-    "c2_fk_cross": 2,
-    "c2_fk_total": 2
+    "c3_fk_cross": 2,
+    "c3_fk_total": 2
    },
    "question_en": "Free kick! Shoot or cross?",
    "t_in_min": 23.3,
    "team_id": "COP",
-   "tool_calls": [
-    {
-     "result": [
-      "c2_fk_cross",
-      "c2_fk_total"
-     ],
-     "tool": "list_facts"
-    },
-    {
-     "fact_id": "c2_fk_cross",
-     "result": 2,
-     "tool": "get_fact"
-    },
-    {
-     "fact_id": "c2_fk_total",
-     "result": 2,
-     "tool": "get_fact"
-    }
-   ],
-   "trigger": "free_kick"
-  },
-  {
-   "approved_by": "llm:qwen2.5-7b-instruct-generic-gpu:4",
-   "approved_expert_en": "Harbour Lights made their {c3_fk_cross} cross out of {c3_fk_total} free kicks in the opposition's half.",
-   "approved_facts": {
-    "c3_fk_cross": 1,
-    "c3_fk_total": 3
-   },
-   "approved_plain_en": "Pip saw Harbour Lights cross the ball. New friends look surprised!",
-   "attempts": [
-    {
-     "attempt": 1,
-     "checker": "pass",
-     "errors": [],
-     "expert_en": "Harbour Lights made their {c3_fk_cross} cross out of {c3_fk_total} free kicks in the opposition's half.",
-     "facts": {
-      "c3_fk_cross": 1,
-      "c3_fk_total": 3
-     },
-     "note": "drafted by qwen2.5-7b-instruct-generic-gpu:4",
-     "plain_en": "Pip saw Harbour Lights cross the ball. New friends look surprised!",
-     "writer": "llm:qwen2.5-7b-instruct-generic-gpu:4"
-    }
-   ],
-   "card_id": "c3-freekick",
-   "decision": "fire",
-   "facts_from_events": {
-    "c3_fk_cross": 1,
-    "c3_fk_total": 3
-   },
-   "question_en": "Free kick for Harbour Lights. What will they try?",
-   "t_in_min": 32.3,
-   "team_id": "HAR",
    "tool_calls": [
     {
      "result": [
@@ -190,12 +238,12 @@
     },
     {
      "fact_id": "c3_fk_cross",
-     "result": 1,
+     "result": 2,
      "tool": "get_fact"
     },
     {
      "fact_id": "c3_fk_total",
-     "result": 3,
+     "result": 2,
      "tool": "get_fact"
     }
    ],
@@ -203,36 +251,51 @@
   },
   {
    "approved_by": "llm:qwen2.5-7b-instruct-generic-gpu:4",
-   "approved_expert_en": "Copperfield's cross was the {c4_fk_cross} out of {c4_fk_total} free kicks in the opponent's half today.",
+   "approved_expert_en": "Harbour Lights have crossed {c4_fk_cross} out of {c4_fk_total} free kicks in the opponent's half so far today.",
    "approved_facts": {
-    "c4_fk_cross": 3,
-    "c4_fk_total": 4
+    "c4_fk_cross": 1,
+    "c4_fk_total": 3
    },
-   "approved_plain_en": "Pip saw Copperfield cross the ball.",
+   "approved_plain_en": "Pip saw Harbour Lights cross from a free kick.",
    "attempts": [
     {
      "attempt": 1,
-     "checker": "pass",
-     "errors": [],
-     "expert_en": "Copperfield's cross was the {c4_fk_cross} out of {c4_fk_total} free kicks in the opponent's half today.",
+     "checker": "fail",
+     "errors": [
+      "plain line talks about people's calls (\"New friends\"): Pip never grades anyone"
+     ],
+     "expert_en": "Harbour Lights made their {c4_fk_cross} cross out of {c4_fk_total} free kicks in the opposition's half.",
      "facts": {
-      "c4_fk_cross": 3,
-      "c4_fk_total": 4
+      "c4_fk_cross": 1,
+      "c4_fk_total": 3
      },
      "note": "drafted by qwen2.5-7b-instruct-generic-gpu:4",
-     "plain_en": "Pip saw Copperfield cross the ball.",
+     "plain_en": "Pip saw Harbour Lights cross the ball. New friends look surprised!",
+     "writer": "llm:qwen2.5-7b-instruct-generic-gpu:4"
+    },
+    {
+     "attempt": 2,
+     "checker": "pass",
+     "errors": [],
+     "expert_en": "Harbour Lights have crossed {c4_fk_cross} out of {c4_fk_total} free kicks in the opponent's half so far today.",
+     "facts": {
+      "c4_fk_cross": 1,
+      "c4_fk_total": 3
+     },
+     "note": "drafted by qwen2.5-7b-instruct-generic-gpu:4",
+     "plain_en": "Pip saw Harbour Lights cross from a free kick.",
      "writer": "llm:qwen2.5-7b-instruct-generic-gpu:4"
     }
    ],
    "card_id": "c4-freekick",
    "decision": "fire",
    "facts_from_events": {
-    "c4_fk_cross": 3,
-    "c4_fk_total": 4
+    "c4_fk_cross": 1,
+    "c4_fk_total": 3
    },
-   "question_en": "Dead ball, Copperfield in a good spot. How do they play it?",
-   "t_in_min": 44.9,
-   "team_id": "COP",
+   "question_en": "Free kick for Harbour Lights. What will they try?",
+   "t_in_min": 32.3,
+   "team_id": "HAR",
    "tool_calls": [
     {
      "result": [
@@ -243,12 +306,29 @@
     },
     {
      "fact_id": "c4_fk_cross",
-     "result": 3,
+     "result": 1,
      "tool": "get_fact"
     },
     {
      "fact_id": "c4_fk_total",
-     "result": 4,
+     "result": 3,
+     "tool": "get_fact"
+    },
+    {
+     "result": [
+      "c4_fk_cross",
+      "c4_fk_total"
+     ],
+     "tool": "list_facts"
+    },
+    {
+     "fact_id": "c4_fk_cross",
+     "result": 1,
+     "tool": "get_fact"
+    },
+    {
+     "fact_id": "c4_fk_total",
+     "result": 3,
      "tool": "get_fact"
     }
    ],
@@ -256,12 +336,65 @@
   },
   {
    "approved_by": "llm:qwen2.5-7b-instruct-generic-gpu:4",
-   "approved_expert_en": "Substitution: {c5_midfielders_before} to {c5_midfielders_after}, leaving {c5_subs_used} out of {c5_subs_max}.",
+   "approved_expert_en": "Pass short: {c5_fk_cross} of {c5_fk_total} free kicks in the opponent's half.",
    "approved_facts": {
-    "c5_midfielders_after": 3,
-    "c5_midfielders_before": 3,
-    "c5_subs_max": 3,
-    "c5_subs_used": 1
+    "c5_fk_cross": 3,
+    "c5_fk_total": 5
+   },
+   "approved_plain_en": "Copperfield passed short to a teammate.",
+   "attempts": [
+    {
+     "attempt": 1,
+     "checker": "pass",
+     "errors": [],
+     "expert_en": "Pass short: {c5_fk_cross} of {c5_fk_total} free kicks in the opponent's half.",
+     "facts": {
+      "c5_fk_cross": 3,
+      "c5_fk_total": 5
+     },
+     "note": "drafted by qwen2.5-7b-instruct-generic-gpu:4",
+     "plain_en": "Copperfield passed short to a teammate.",
+     "writer": "llm:qwen2.5-7b-instruct-generic-gpu:4"
+    }
+   ],
+   "card_id": "c5-freekick",
+   "decision": "fire",
+   "facts_from_events": {
+    "c5_fk_cross": 3,
+    "c5_fk_total": 5
+   },
+   "question_en": "Dead ball, Copperfield in a good spot. How do they play it?",
+   "t_in_min": 46.5,
+   "team_id": "COP",
+   "tool_calls": [
+    {
+     "result": [
+      "c5_fk_cross",
+      "c5_fk_total"
+     ],
+     "tool": "list_facts"
+    },
+    {
+     "fact_id": "c5_fk_cross",
+     "result": 3,
+     "tool": "get_fact"
+    },
+    {
+     "fact_id": "c5_fk_total",
+     "result": 5,
+     "tool": "get_fact"
+    }
+   ],
+   "trigger": "free_kick"
+  },
+  {
+   "approved_by": "llm:qwen2.5-7b-instruct-generic-gpu:4",
+   "approved_expert_en": "Substitution: {c6_midfielders_before} to {c6_midfielders_after}, leaving {c6_subs_used} out of {c6_subs_max}.",
+   "approved_facts": {
+    "c6_midfielders_after": 3,
+    "c6_midfielders_before": 3,
+    "c6_subs_max": 3,
+    "c6_subs_used": 1
    },
    "approved_plain_en": "Harbour Lights brought on a fresh midfielder.",
    "attempts": [
@@ -269,25 +402,25 @@
      "attempt": 1,
      "checker": "pass",
      "errors": [],
-     "expert_en": "Substitution: {c5_midfielders_before} to {c5_midfielders_after}, leaving {c5_subs_used} out of {c5_subs_max}.",
+     "expert_en": "Substitution: {c6_midfielders_before} to {c6_midfielders_after}, leaving {c6_subs_used} out of {c6_subs_max}.",
      "facts": {
-      "c5_midfielders_after": 3,
-      "c5_midfielders_before": 3,
-      "c5_subs_max": 3,
-      "c5_subs_used": 1
+      "c6_midfielders_after": 3,
+      "c6_midfielders_before": 3,
+      "c6_subs_max": 3,
+      "c6_subs_used": 1
      },
      "note": "drafted by qwen2.5-7b-instruct-generic-gpu:4",
      "plain_en": "Harbour Lights brought on a fresh midfielder.",
      "writer": "llm:qwen2.5-7b-instruct-generic-gpu:4"
     }
    ],
-   "card_id": "c5-substitution",
+   "card_id": "c6-substitution",
    "decision": "fire",
    "facts_from_events": {
-    "c5_midfielders_after": 3,
-    "c5_midfielders_before": 3,
-    "c5_subs_max": 3,
-    "c5_subs_used": 1
+    "c6_midfielders_after": 3,
+    "c6_midfielders_before": 3,
+    "c6_subs_max": 3,
+    "c6_subs_used": 1
    },
    "question_en": "Harbour Lights make a change. What's the plan?",
    "t_in_min": 56.0,
@@ -295,30 +428,30 @@
    "tool_calls": [
     {
      "result": [
-      "c5_midfielders_after",
-      "c5_midfielders_before",
-      "c5_subs_max",
-      "c5_subs_used"
+      "c6_midfielders_after",
+      "c6_midfielders_before",
+      "c6_subs_max",
+      "c6_subs_used"
      ],
      "tool": "list_facts"
     },
     {
-     "fact_id": "c5_midfielders_after",
+     "fact_id": "c6_midfielders_after",
      "result": 3,
      "tool": "get_fact"
     },
     {
-     "fact_id": "c5_midfielders_before",
+     "fact_id": "c6_midfielders_before",
      "result": 3,
      "tool": "get_fact"
     },
     {
-     "fact_id": "c5_subs_max",
+     "fact_id": "c6_subs_max",
      "result": 3,
      "tool": "get_fact"
     },
     {
-     "fact_id": "c5_subs_used",
+     "fact_id": "c6_subs_used",
      "result": 1,
      "tool": "get_fact"
     }
@@ -327,10 +460,10 @@
   },
   {
    "approved_by": "llm:qwen2.5-7b-instruct-generic-gpu:4",
-   "approved_expert_en": "Pip noted the cross was the {c6_fk_cross} out of {c6_fk_total} free kicks in the opponent's half today.",
+   "approved_expert_en": "Pip noted the cross was the {c7_fk_cross} out of {c7_fk_total} free kicks in the opponent's half today.",
    "approved_facts": {
-    "c6_fk_cross": 3,
-    "c6_fk_total": 5
+    "c7_fk_cross": 3,
+    "c7_fk_total": 5
    },
    "approved_plain_en": "Pip saw a cross from the free kick. New to football? That's when the ball is kicked into the box.",
    "attempts": [
@@ -338,21 +471,21 @@
      "attempt": 1,
      "checker": "pass",
      "errors": [],
-     "expert_en": "Pip noted the cross was the {c6_fk_cross} out of {c6_fk_total} free kicks in the opponent's half today.",
+     "expert_en": "Pip noted the cross was the {c7_fk_cross} out of {c7_fk_total} free kicks in the opponent's half today.",
      "facts": {
-      "c6_fk_cross": 3,
-      "c6_fk_total": 5
+      "c7_fk_cross": 3,
+      "c7_fk_total": 5
      },
      "note": "drafted by qwen2.5-7b-instruct-generic-gpu:4",
      "plain_en": "Pip saw a cross from the free kick. New to football? That's when the ball is kicked into the box.",
      "writer": "llm:qwen2.5-7b-instruct-generic-gpu:4"
     }
    ],
-   "card_id": "c6-freekick",
+   "card_id": "c7-freekick",
    "decision": "fire",
    "facts_from_events": {
-    "c6_fk_cross": 3,
-    "c6_fk_total": 5
+    "c7_fk_cross": 3,
+    "c7_fk_total": 5
    },
    "question_en": "Free kick! What's coming?",
    "t_in_min": 65.8,
@@ -360,18 +493,18 @@
    "tool_calls": [
     {
      "result": [
-      "c6_fk_cross",
-      "c6_fk_total"
+      "c7_fk_cross",
+      "c7_fk_total"
      ],
      "tool": "list_facts"
     },
     {
-     "fact_id": "c6_fk_cross",
+     "fact_id": "c7_fk_cross",
      "result": 3,
      "tool": "get_fact"
     },
     {
-     "fact_id": "c6_fk_total",
+     "fact_id": "c7_fk_total",
      "result": 5,
      "tool": "get_fact"
     }
@@ -379,99 +512,39 @@
    "trigger": "free_kick"
   },
   {
-   "approved_by": "template (fallback)",
-   "approved_expert_en": "Midfielders on the pitch: {c7_midfielders_before} → {c7_midfielders_after}. Substitutions used: {c7_subs_used} of {c7_subs_max}.",
+   "approved_by": "llm:qwen2.5-7b-instruct-generic-gpu:4",
+   "approved_expert_en": "To replace a tired player with a fresher one, using {c8_subs_used} of {c8_subs_max}.",
    "approved_facts": {
-    "c7_midfielders_after": 2,
-    "c7_midfielders_before": 3,
-    "c7_subs_max": 3,
-    "c7_subs_used": 3
+    "c8_midfielders_after": 2,
+    "c8_midfielders_before": 3,
+    "c8_subs_max": 3,
+    "c8_subs_used": 3
    },
-   "approved_plain_en": "Fresh legs! A midfielder joins, so Copperfield keep the middle of the pitch busy.",
+   "approved_plain_en": "A midfielder came on to give them fresh legs.",
    "attempts": [
     {
      "attempt": 1,
-     "checker": "fail",
-     "errors": [
-      "c7-substitution.reveal.expert.de: placeholder {c7_midfielders_before} not in fact_ids",
-      "c7-substitution.reveal.expert.de: placeholder {c7_midfielders_before} not in facts",
-      "c7-substitution.reveal.expert.de: placeholder {c7_midfielders_after} not in fact_ids",
-      "c7-substitution.reveal.expert.de: placeholder {c7_midfielders_after} not in facts",
-      "c7-substitution.reveal.expert.vi: placeholder {c7_midfielders_before} not in fact_ids",
-      "c7-substitution.reveal.expert.vi: placeholder {c7_midfielders_before} not in facts",
-      "c7-substitution.reveal.expert.vi: placeholder {c7_midfielders_after} not in fact_ids",
-      "c7-substitution.reveal.expert.vi: placeholder {c7_midfielders_after} not in facts"
-     ],
-     "expert_en": "To replace a tired player with a fresher one, using {c7_subs_used} of {c7_subs_max}.",
+     "checker": "pass",
+     "errors": [],
+     "expert_en": "To replace a tired player with a fresher one, using {c8_subs_used} of {c8_subs_max}.",
      "facts": {
-      "c7_subs_max": 3,
-      "c7_subs_used": 3
+      "c8_midfielders_after": 2,
+      "c8_midfielders_before": 3,
+      "c8_subs_max": 3,
+      "c8_subs_used": 3
      },
      "note": "drafted by qwen2.5-7b-instruct-generic-gpu:4",
      "plain_en": "A midfielder came on to give them fresh legs.",
      "writer": "llm:qwen2.5-7b-instruct-generic-gpu:4"
-    },
-    {
-     "attempt": 2,
-     "checker": "fail",
-     "errors": [
-      "c7-substitution.reveal.expert.de: placeholder {c7_midfielders_before} not in fact_ids",
-      "c7-substitution.reveal.expert.de: placeholder {c7_midfielders_before} not in facts",
-      "c7-substitution.reveal.expert.vi: placeholder {c7_midfielders_before} not in fact_ids",
-      "c7-substitution.reveal.expert.vi: placeholder {c7_midfielders_before} not in facts"
-     ],
-     "expert_en": "A {c7_subs_max}th substitution was made, replacing a {c7_subs_used} substituted player with a fresh {c7_midfielders_after}.",
-     "facts": {
-      "c7_midfielders_after": 2,
-      "c7_subs_max": 3,
-      "c7_subs_used": 3
-     },
-     "note": "drafted by qwen2.5-7b-instruct-generic-gpu:4",
-     "plain_en": "A midfielder came off the bench to replace someone tired.",
-     "writer": "llm:qwen2.5-7b-instruct-generic-gpu:4"
-    },
-    {
-     "attempt": 3,
-     "checker": "fail",
-     "errors": [
-      "c7-substitution.reveal.expert.de: placeholder {c7_subs_used} not in fact_ids",
-      "c7-substitution.reveal.expert.de: placeholder {c7_subs_used} not in facts",
-      "c7-substitution.reveal.expert.vi: placeholder {c7_subs_used} not in fact_ids",
-      "c7-substitution.reveal.expert.vi: placeholder {c7_subs_used} not in facts"
-     ],
-     "expert_en": "A {c7_subs_max}th substitution was made, replacing one of the {c7_midfielders_before} with another midfielder, leaving {c7_midfielders_after} on the pitch.",
-     "facts": {
-      "c7_midfielders_after": 2,
-      "c7_midfielders_before": 3,
-      "c7_subs_max": 3
-     },
-     "note": "drafted by qwen2.5-7b-instruct-generic-gpu:4",
-     "plain_en": "A midfielder came off the bench to replace someone. Now there are more fresh players on the field.",
-     "writer": "llm:qwen2.5-7b-instruct-generic-gpu:4"
-    },
-    {
-     "attempt": 4,
-     "checker": "pass",
-     "errors": [],
-     "expert_en": "Midfielders on the pitch: {c7_midfielders_before} → {c7_midfielders_after}. Substitutions used: {c7_subs_used} of {c7_subs_max}.",
-     "facts": {
-      "c7_midfielders_after": 2,
-      "c7_midfielders_before": 3,
-      "c7_subs_max": 3,
-      "c7_subs_used": 3
-     },
-     "note": "retries used up",
-     "plain_en": "Fresh legs! A midfielder joins, so Copperfield keep the middle of the pitch busy.",
-     "writer": "template (fallback)"
     }
    ],
-   "card_id": "c7-substitution",
+   "card_id": "c8-substitution",
    "decision": "fire",
    "facts_from_events": {
-    "c7_midfielders_after": 2,
-    "c7_midfielders_before": 3,
-    "c7_subs_max": 3,
-    "c7_subs_used": 3
+    "c8_midfielders_after": 2,
+    "c8_midfielders_before": 3,
+    "c8_subs_max": 3,
+    "c8_subs_used": 3
    },
    "question_en": "A substitution for Copperfield. What does it mean?",
    "t_in_min": 75.1,
@@ -479,108 +552,30 @@
    "tool_calls": [
     {
      "result": [
-      "c7_midfielders_after",
-      "c7_midfielders_before",
-      "c7_subs_max",
-      "c7_subs_used"
+      "c8_midfielders_after",
+      "c8_midfielders_before",
+      "c8_subs_max",
+      "c8_subs_used"
      ],
      "tool": "list_facts"
     },
     {
-     "fact_id": "c7_midfielders_after",
+     "fact_id": "c8_midfielders_after",
      "result": 2,
      "tool": "get_fact"
     },
     {
-     "fact_id": "c7_midfielders_before",
+     "fact_id": "c8_midfielders_before",
      "result": 3,
      "tool": "get_fact"
     },
     {
-     "fact_id": "c7_subs_max",
+     "fact_id": "c8_subs_max",
      "result": 3,
      "tool": "get_fact"
     },
     {
-     "fact_id": "c7_subs_used",
-     "result": 3,
-     "tool": "get_fact"
-    },
-    {
-     "result": [
-      "c7_midfielders_after",
-      "c7_midfielders_before",
-      "c7_subs_max",
-      "c7_subs_used"
-     ],
-     "tool": "list_facts"
-    },
-    {
-     "fact_id": "c7_midfielders_after",
-     "result": 2,
-     "tool": "get_fact"
-    },
-    {
-     "fact_id": "c7_midfielders_before",
-     "result": 3,
-     "tool": "get_fact"
-    },
-    {
-     "fact_id": "c7_subs_max",
-     "result": 3,
-     "tool": "get_fact"
-    },
-    {
-     "fact_id": "c7_subs_used",
-     "result": 3,
-     "tool": "get_fact"
-    },
-    {
-     "result": [
-      "c7_midfielders_after",
-      "c7_midfielders_before",
-      "c7_subs_max",
-      "c7_subs_used"
-     ],
-     "tool": "list_facts"
-    },
-    {
-     "fact_id": "c7_midfielders_after",
-     "result": 2,
-     "tool": "get_fact"
-    },
-    {
-     "fact_id": "c7_midfielders_before",
-     "result": 3,
-     "tool": "get_fact"
-    },
-    {
-     "fact_id": "c7_subs_max",
-     "result": 3,
-     "tool": "get_fact"
-    },
-    {
-     "fact_id": "c7_subs_used",
-     "result": 3,
-     "tool": "get_fact"
-    },
-    {
-     "fact_id": "c7_midfielders_before",
-     "result": 3,
-     "tool": "get_fact"
-    },
-    {
-     "fact_id": "c7_midfielders_after",
-     "result": 2,
-     "tool": "get_fact"
-    },
-    {
-     "fact_id": "c7_subs_used",
-     "result": 3,
-     "tool": "get_fact"
-    },
-    {
-     "fact_id": "c7_subs_max",
+     "fact_id": "c8_subs_used",
      "result": 3,
      "tool": "get_fact"
     }
@@ -589,99 +584,97 @@
   },
   {
    "approved_by": "llm:qwen2.5-7b-instruct-generic-gpu:4",
-   "approved_expert_en": "This team has played {c8_corners_short} of their {c8_corners_total} corners short so far today, below the league average of {c8_league_short_share_pct}%.",
+   "approved_expert_en": "Harbour Lights played {c9_corners_short} out of {c9_corners_total} corners short so far today.",
    "approved_facts": {
-    "c8_corners_short": 3,
-    "c8_corners_total": 4,
-    "c8_league_short_share_pct": 16
+    "c9_corners_short": 0,
+    "c9_corners_total": 4
    },
-   "approved_plain_en": "The ball went short.",
+   "approved_plain_en": "Pip saw a corner kick near the post.",
    "attempts": [
     {
      "attempt": 1,
      "checker": "fail",
      "errors": [
-      "expert line states a count in words (\"again\"): numbers must come from {placeholders}"
+      "plain line talks about people's calls (\"New friends\"): Pip never grades anyone"
      ],
-     "expert_en": "Short again ({c8_corners_short}/{c8_corners_total}), below league average ({c8_league_short_share_pct}%).",
+     "expert_en": "Harbour Lights played {c9_corners_short} of {c9_corners_total} corners short, below the league's {c9_league_short_share_pct}% average.",
      "facts": {
-      "c8_corners_short": 3,
-      "c8_corners_total": 4,
-      "c8_league_short_share_pct": 16
+      "c9_corners_short": 0,
+      "c9_corners_total": 4,
+      "c9_league_short_share_pct": 16
      },
      "note": "drafted by qwen2.5-7b-instruct-generic-gpu:4",
-     "plain_en": "It went short! Looks like they're playing it safe.",
+     "plain_en": "Pip saw the ball go near the post. New friends look surprised.",
      "writer": "llm:qwen2.5-7b-instruct-generic-gpu:4"
     },
     {
      "attempt": 2,
      "checker": "pass",
      "errors": [],
-     "expert_en": "This team has played {c8_corners_short} of their {c8_corners_total} corners short so far today, below the league average of {c8_league_short_share_pct}%.",
+     "expert_en": "Harbour Lights played {c9_corners_short} out of {c9_corners_total} corners short so far today.",
      "facts": {
-      "c8_corners_short": 3,
-      "c8_corners_total": 4,
-      "c8_league_short_share_pct": 16
+      "c9_corners_short": 0,
+      "c9_corners_total": 4
      },
      "note": "drafted by qwen2.5-7b-instruct-generic-gpu:4",
-     "plain_en": "The ball went short.",
+     "plain_en": "Pip saw a corner kick near the post.",
      "writer": "llm:qwen2.5-7b-instruct-generic-gpu:4"
     }
    ],
-   "card_id": "c8-corner",
+   "card_id": "c9-corner",
    "decision": "fire",
    "facts_from_events": {
-    "c8_corners_short": 3,
-    "c8_corners_total": 4,
-    "c8_league_short_share_pct": 16
+    "c9_corners_short": 0,
+    "c9_corners_total": 4,
+    "c9_league_short_share_pct": 16
    },
-   "question_en": "Corner! Where's it going?",
-   "t_in_min": 85.3,
-   "team_id": "COP",
+   "question_en": "Corner for Harbour Lights. How will they play it?",
+   "t_in_min": 93.2,
+   "team_id": "HAR",
    "tool_calls": [
     {
      "result": [
-      "c8_corners_short",
-      "c8_corners_total",
-      "c8_league_short_share_pct"
+      "c9_corners_short",
+      "c9_corners_total",
+      "c9_league_short_share_pct"
      ],
      "tool": "list_facts"
     },
     {
-     "fact_id": "c8_corners_short",
-     "result": 3,
+     "fact_id": "c9_corners_short",
+     "result": 0,
      "tool": "get_fact"
     },
     {
-     "fact_id": "c8_corners_total",
+     "fact_id": "c9_corners_total",
      "result": 4,
      "tool": "get_fact"
     },
     {
-     "fact_id": "c8_league_short_share_pct",
+     "fact_id": "c9_league_short_share_pct",
      "result": 16,
      "tool": "get_fact"
     },
     {
      "result": [
-      "c8_corners_short",
-      "c8_corners_total",
-      "c8_league_short_share_pct"
+      "c9_corners_short",
+      "c9_corners_total",
+      "c9_league_short_share_pct"
      ],
      "tool": "list_facts"
     },
     {
-     "fact_id": "c8_corners_short",
-     "result": 3,
+     "fact_id": "c9_corners_short",
+     "result": 0,
      "tool": "get_fact"
     },
     {
-     "fact_id": "c8_corners_total",
+     "fact_id": "c9_corners_total",
      "result": 4,
      "tool": "get_fact"
     },
     {
-     "fact_id": "c8_league_short_share_pct",
+     "fact_id": "c9_league_short_share_pct",
      "result": 16,
      "tool": "get_fact"
     }
@@ -708,13 +701,6 @@
    "decision": "hold",
    "reason": "habit_not_clear_yet",
    "t_in_min": 14.3,
-   "team_id": "HAR",
-   "trigger": "corner"
-  },
-  {
-   "decision": "hold",
-   "reason": "max_per_half",
-   "t_in_min": 14.9,
    "team_id": "HAR",
    "trigger": "corner"
   },
@@ -755,15 +741,15 @@
   },
   {
    "decision": "hold",
-   "reason": "too_close_to_previous_card",
+   "reason": "max_per_half",
    "t_in_min": 37.1,
    "team_id": "COP",
    "trigger": "free_kick"
   },
   {
    "decision": "hold",
-   "reason": "too_close_to_previous_card",
-   "t_in_min": 46.5,
+   "reason": "max_per_half",
+   "t_in_min": 44.9,
    "team_id": "COP",
    "trigger": "free_kick"
   },
@@ -825,7 +811,7 @@
   },
   {
    "decision": "hold",
-   "reason": "too_close_to_previous_card",
+   "reason": "max_per_half",
    "t_in_min": 76.4,
    "team_id": "HAR",
    "trigger": "free_kick"
@@ -839,7 +825,7 @@
   },
   {
    "decision": "hold",
-   "reason": "too_close_to_previous_card",
+   "reason": "max_per_half",
    "t_in_min": 82.5,
    "team_id": "HAR",
    "trigger": "free_kick"
@@ -847,8 +833,8 @@
   {
    "decision": "hold",
    "reason": "max_per_half",
-   "t_in_min": 93.2,
-   "team_id": "HAR",
+   "t_in_min": 85.3,
+   "team_id": "COP",
    "trigger": "corner"
   },
   {
@@ -865,21 +851,22 @@
   "{\"plain\": \"The VAR checked if the player was offside but found he wasn't.\", \"expert\": \"The attacker was {var_margin_cm} cm onside, confirming the goal.\"}",
   "{\"plain\": \"VAR confirmed the goal; the attacker was just {var_margin_cm} cm onside.\", \"expert\": \"VAR confirmed the goal; the attacker was just {var_margin_cm} cm onside, standing by the {fk_cross} rule.\"}",
   "{\"plain\": \"The attacker wasn't offside! The goal stands.\", \"expert\": \"VAR confirmed the attacker was {var_margin_cm} cm onside, so the goal stands.\"}",
+  "{\"plain\": \"The ball went to the far post! It didn't go where anyone guessed.\", \"expert\": \"Far post: a {corners_short} of {corners_total} corners played short today, below the league average of {league_short_share_pct}%.\"}",
+  "{\"plain\": \"The ball went to the far post.\", \"expert\": \"Harbour Lights' corner was played short, staying under the {corners_short} threshold of {corners_total}.\"}",
   "{\"plain\": \"Pip watched as the ball was swung into the box.\", \"expert\": \"That's the {fk_cross}th cross out of {fk_total} free kicks in the opponent's half.\"}",
   "{\"plain\": \"Pip saw Harbour Lights cross the ball. New friends look surprised!\", \"expert\": \"Harbour Lights made their {fk_cross} cross out of {fk_total} free kicks in the opposition's half.\"}",
-  "{\"plain\": \"Pip saw Copperfield cross the ball.\", \"expert\": \"Copperfield's cross was the {fk_cross} out of {fk_total} free kicks in the opponent's half today.\"}",
+  "{\"plain\": \"Pip saw Harbour Lights cross from a free kick.\", \"expert\": \"Harbour Lights have crossed {fk_cross} out of {fk_total} free kicks in the opponent's half so far today.\"}",
+  "{\"plain\": \"Copperfield passed short to a teammate.\", \"expert\": \"Pass short: {fk_cross} of {fk_total} free kicks in the opponent's half.\"}",
   "{\"plain\": \"Harbour Lights brought on a fresh midfielder.\", \"expert\": \"Substitution: {midfielders_before} to {midfielders_after}, leaving {subs_used} out of {subs_max}.\"}",
   "{\"plain\": \"Pip saw a cross from the free kick. New to football? That's when the ball is kicked into the box.\", \"expert\": \"Pip noted the cross was the {fk_cross} out of {fk_total} free kicks in the opponent's half today.\"}",
   "{\"plain\": \"A midfielder came on to give them fresh legs.\", \"expert\": \"To replace a tired player with a fresher one, using {subs_used} of {subs_max}.\"}",
-  "{\"plain\": \"A midfielder came off the bench to replace someone tired.\", \"expert\": \"A {subs_max}th substitution was made, replacing a {subs_used} substituted player with a fresh {midfielders_after}.\"}",
-  "{\"plain\": \"A midfielder came off the bench to replace someone. Now there are more fresh players on the field.\", \"expert\": \"A {subs_max}th substitution was made, replacing one of the {midfielders_before} with another midfielder, leaving {midfielders_after} on the pitch.\"}",
-  "{\"plain\": \"It went short! Looks like they're playing it safe.\", \"expert\": \"Short again ({corners_short}/{corners_total}), below league average ({league_short_share_pct}%).\"}",
-  "{\"plain\": \"The ball went short.\", \"expert\": \"This team has played {corners_short} of their {corners_total} corners short so far today, below the league average of {league_short_share_pct}%.\"}"
+  "{\"plain\": \"Pip saw the ball go near the post. New friends look surprised.\", \"expert\": \"Harbour Lights played {corners_short} of {corners_total} corners short, below the league's {league_short_share_pct}% average.\"}",
+  "{\"plain\": \"Pip saw a corner kick near the post.\", \"expert\": \"Harbour Lights played {corners_short} out of {corners_total} corners short so far today.\"}"
  ],
- "seconds": 55.2,
+ "seconds": 145.8,
  "seed": 43,
  "shipped_equals_checked": false,
  "uses_ai": true,
- "workflow_version": "pippi-agents-0.1.0",
+ "workflow_version": "pip-agents-0.1.0",
  "writer": "llm:qwen2.5-7b-instruct-generic-gpu:4"
 }

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/ndinh02/pippi-the-companion/schemas/event.schema.json",
+  "$id": "https://github.com/ndinh02/pip-the-companion/schemas/event.schema.json",
   "title": "event",
   "description": "One SPADL-like on-ball action from match-lab (draft v0, brief 8.2). Coordinates in metres on a 105 x 68 pitch, origin bottom-left. Players are placeholders such as HAR-7.",
   "type": "object",

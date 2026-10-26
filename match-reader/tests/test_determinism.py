@@ -39,7 +39,7 @@ class CliOutputTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.tmp = tempfile.mkdtemp(prefix="pippi-demo-")
+        cls.tmp = tempfile.mkdtemp(prefix="pip-demo-")
         cls.out_path = os.path.join(cls.tmp, "demo-match.json")
         cls.root = util.ROOT
         env = dict(os.environ)

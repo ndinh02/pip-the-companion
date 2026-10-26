@@ -29,7 +29,7 @@ def score_seed(demo: Dict[str, Any]) -> Dict[str, Any]:
     halves = set()
     for card in demo["cards"]:
         counts[card["trigger"]] += 1
-        if card["question"]["pippi_call"] == card["reveal"]["answer"]:
+        if card["question"]["pip_call"] == card["reveal"]["answer"]:
             right += 1
         else:
             wrong += 1

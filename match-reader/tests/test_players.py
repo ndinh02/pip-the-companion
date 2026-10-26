@@ -7,7 +7,7 @@ Groups mirror tasks/glm/05-player-stats-feed.md:
 3. no future: truncating events/frames at minute m leaves array[m] unchanged
 4. monotone arrays; hard_ok <= passes_ok <= passes
 5. on_min / off_min vs players_on_pitch and the first/last tracked frame
-6. calibration, seeds 1-10 -- SLOW, run with PIPPI_SLOW=1
+6. calibration, seeds 1-10 -- SLOW, run with PIP_SLOW=1
 7. determinism; CLI --seed 43 equals --match/--tracking
 8. schema; a broken copy is rejected; no names anywhere
 9. data/demo-match.json still equals a fresh --seed 43 build
@@ -33,7 +33,7 @@ from matchlab.tracking import track_match
 
 from matchreader.schemacheck import check, load_schema
 
-SLOW = os.environ.get("PIPPI_SLOW") == "1"
+SLOW = os.environ.get("PIP_SLOW") == "1"
 SPRINT_MS = 25.0 / 3.6
 DM = 10.0
 
@@ -392,7 +392,7 @@ class MinutesTest(unittest.TestCase):
 
 # ---- 6. calibration (slow: seeds 1-10) ----------------------------------------------
 
-@unittest.skipUnless(SLOW, "calibration over seeds 1-10; run with PIPPI_SLOW=1")
+@unittest.skipUnless(SLOW, "calibration over seeds 1-10; run with PIP_SLOW=1")
 class CalibrationTest(unittest.TestCase):
     def test_published_ranges(self) -> None:
         for seed in range(1, 11):

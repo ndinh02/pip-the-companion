@@ -159,7 +159,7 @@ export function followLine(match: Match, p: PlayerRow, minute: number, lang: Lan
 }
 
 // ---- "Follow" lives on this phone only (AGENTS.md rule 6) ---------------------------------------------------------
-const FOLLOW_KEY = "pippi:follow";
+const FOLLOW_KEY = "pip:follow";
 export function loadFollow(): string | null {
   try {
     return localStorage.getItem(FOLLOW_KEY);

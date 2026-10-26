@@ -41,7 +41,7 @@
           { "id": "far", "label": { "en": "Far post", "de": "Fernpfosten", "vi": "Cột xa" } },
           { "id": "short", "label": { "en": "Short", "de": "Kurz", "vi": "Ngắn" } }
         ],
-        "pippi_call": "near"
+        "pip_call": "near"
       },
       "reveal": {
         "answer": "short",
@@ -73,7 +73,7 @@
           { "id": "foul", "label": { "en": "Foul", "de": "Foul", "vi": "Phạm lỗi" } },
           { "id": "handball", "label": { "en": "Handball", "de": "Handspiel", "vi": "Chạm tay" } }
         ],
-        "pippi_call": "offside"
+        "pip_call": "offside"
       },
       "reveal": {
         "answer": "offside",
@@ -105,7 +105,7 @@
           { "id": "defend", "label": { "en": "Defend", "de": "Verteidigen", "vi": "Phòng ngự" } },
           { "id": "fresh", "label": { "en": "Fresh legs", "de": "Frische Beine", "vi": "Thêm sức" } }
         ],
-        "pippi_call": "attack"
+        "pip_call": "attack"
       },
       "reveal": {
         "answer": "attack",
@@ -137,7 +137,7 @@
           { "id": "cross", "label": { "en": "Cross", "de": "Flanke", "vi": "Tạt" } },
           { "id": "short", "label": { "en": "Pass short", "de": "Kurz spielen", "vi": "Chuyền ngắn" } }
         ],
-        "pippi_call": "shoot"
+        "pip_call": "shoot"
       },
       "reveal": {
         "answer": "cross",

@@ -39,7 +39,7 @@ for (const card of match.cards) {
   for (const id of ids) if (!(id in match.facts)) errors.push(`${card.card_id}: unknown fact_id ${id}`);
   const optionIds = card.question.options.map((o) => o.id);
   if (!optionIds.includes(card.reveal.answer)) errors.push(`${card.card_id}: answer not among options`);
-  if (!optionIds.includes(card.question.pippi_call)) errors.push(`${card.card_id}: pippi_call not among options`);
+  if (!optionIds.includes(card.question.pip_call)) errors.push(`${card.card_id}: pip_call not among options`);
   for (const l of LANGS) {
     checkText(`${card.card_id}.question.text`, l, card.question.text[l], new Set());
     for (const o of card.question.options) checkText(`${card.card_id}.option.${o.id}`, l, o.label[l], new Set());

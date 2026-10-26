@@ -54,9 +54,9 @@ The challenge's five required pipeline stages: **(a) ingest** synthetic events l
 
 | Topic | Status | Decision |
 |---|---|---|
-| Product + mascot name | DECIDED | **Pip** (repo is named `pippi-the-companion` — see OPEN Q1) |
+| Product + mascot name | DECIDED | **Pip** (repo is named `pip-the-companion` — see OPEN Q1) |
 | Prize categories to target | DECIDED | **Best Enterprise Solution** + **Best Azure Cloud Native Integration** (a project can win at most one category prize) |
-| Repository | DECIDED | https://github.com/ndinh02/pippi-the-companion (public) |
+| Repository | DECIDED | https://github.com/ndinh02/pip-the-companion (public) |
 | Owner's machine | DECIDED | Mac with Apple Silicon |
 | Azure | DECIDED (status) | Owner has **not yet signed up** for Azure for Students |
 | Front end | DECIDED | **Vite + React + TypeScript** |
@@ -287,7 +287,7 @@ User tests: consent form, P1–P5 IDs, aggregates only, raw notes deleted after 
 ## 10. Proposed repository structure (PROPOSED — confirm before creating)
 
 ```
-pippi-the-companion/
+pip-the-companion/
 ├─ CLAUDE.md / AGENTS.md        # instructions for AI coding assistants
 ├─ README.md
 ├─ SECURITY.md

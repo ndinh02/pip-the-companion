@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/ndinh02/pippi-the-companion/schemas/tracking.schema.json",
+  "$id": "https://github.com/ndinh02/pip-the-companion/schemas/tracking.schema.json",
   "title": "tracking",
   "description": "Synthetic 5 Hz tracking of the ball and 28 players (22 on the pitch at a time). See docs/TRACKING_SPEC.md. Positions in decimetres; -1 means not on the pitch.",
   "type": "object",

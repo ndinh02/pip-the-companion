@@ -10,7 +10,7 @@ Deadline: 2026-10-27 23:59 PT (2026-10-28 07:59 German time).
 1. **CI is red on `main`, so the live site is two commits behind.** The `Content workflow tests` step fails (run for
    `c25397e`), so the `deploy` job was skipped. The live app still serves the 8-card match from `181fe33`: there's no
    `c9-corner` "No clear answer" moment and no half-time recap on phones (both arrived in `315550f`).
-   Cause: `agents/pippi_agents/checker.py` doesn't know about void cards. For `c9-corner` (void, `answer: "near"`) the
+   Cause: `agents/pip_agents/checker.py` doesn't know about void cards. For `c9-corner` (void, `answer: "near"`) the
    reviewed template itself fails two rules:
    - `plain line does not say what happened (expected one of: near)`. A void card should skip this rule.
    - `expert line states a count in words ("again")`. The words "or the corner was taken again" trip `COUNT_WORDS`.
@@ -55,14 +55,15 @@ Deadline: 2026-10-27 23:59 PT (2026-10-28 07:59 German time).
 ### 2. Agentic design & innovation
 **Where we meet it**
 - A bounded workflow: Moment Picker (rules, `match-reader/matchreader/reader.py`) → Writer → Checker (code,
-  `agents/pippi_agents/checker.py`) → feedback retry ×2 → fixed template (`agents/pippi_agents/workflow.py`).
-- Writers get numbers only through logged function tools (`agents/pippi_agents/tools.py`), and every draft is recorded in the trace.
+  `agents/pip_agents/checker.py`) → feedback retry ×2 → fixed template (`agents/pip_agents/workflow.py`).
+- Writers get numbers only through logged function tools (`agents/pip_agents/tools.py`), and every draft is recorded in the trace.
 - The checker goes beyond facts: it also checks that the line names the real outcome, states the right VAR decision, has
   no counts in words and never grades people.
-- Integrity proof, "Catch me lying": sabotaged writers in `agents/pippi_agents/writers.py`, shown in `/console` (`web/src/components/WorkflowTrace.tsx`).
-- An LLM writer on Foundry Local (`agents/pippi_agents/llm_writer.py`). Trial in `data/agent-trace-llm.json`: 8
-  moments, 5 passed on the first try, 7 approved from the model, 1 fell back to the template, 55 s. The trial ran on an
-  earlier 8-card build of seed 43.
+- Integrity proof, "Catch me lying": sabotaged writers in `agents/pip_agents/writers.py`, shown in `/console` (`web/src/components/WorkflowTrace.tsx`).
+- An LLM writer on Foundry Local (`agents/pip_agents/llm_writer.py`). Trial in `data/agent-trace-llm.json`: 8
+  moments (re-run 2026-10-26 on the current 9-card match): 5 passed on the first try, 9 approved from the model, 0 fell
+  back to the template, 146 s. Some approved lines are still weak in ways the rules can't see ("2th", an expert line off
+  the outcome, the void corner described as "near the post"): good material for "why templates ship".
 
 **Weak (be upfront about it)**
 - There's one writer and one checker. It's a workflow with a repair loop, not multi-agent collaboration.
@@ -166,7 +167,7 @@ explained. Say "replayed on the match clock, with tests that no fact looks ahead
   someone else while I was checking) already change them to "Du lagst richtig!", "Pip sagte" and "Pip meint". Commit
   those with the CI fix so the live app gets them.
 - Update the `SECURITY.md` "Status: 2026-10-14" line and the live-headers note (headers are now confirmed on the live site).
-- `docs/PROJECT_BRIEF.md` still says the repo is `pippi-the-companion` and still plans Static Web Apps, Web PubSub and
+- `docs/PROJECT_BRIEF.md` still says the repo is `pip-the-companion` and still plans Static Web Apps, Web PubSub and
   Cosmos DB. It's marked PROPOSED, but a judge may read it as claims. A one-line note at the top pointing to README for
   what's built would help (owner's call).
 - Re-run the Foundry Local trial on the current match and show one AI-approved line in the video.

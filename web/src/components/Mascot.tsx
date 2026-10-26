@@ -23,5 +23,5 @@ const ALT: Record<MascotPose, string> = {
 
 /** `size` is the drawing's height in px; the width follows each drawing's own shape. */
 export default function Mascot({ pose = "asks", size = 120 }: { pose?: MascotPose; size?: number }) {
-  return <img className={`pippi pippi-${pose}`} src={`/pip/pip-${pose}.png`} alt={`${NAME}, ${ALT[pose]}`} height={size} style={{ height: size, width: "auto" }} draggable={false} />;
+  return <img className={`pip-art pip-art-${pose}`} src={`/pip/pip-${pose}.png`} alt={`${NAME}, ${ALT[pose]}`} height={size} style={{ height: size, width: "auto" }} draggable={false} />;
 }

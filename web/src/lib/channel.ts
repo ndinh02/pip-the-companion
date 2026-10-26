@@ -307,10 +307,10 @@ export function useRoomChannel(room: string, role: Role, onMessage: (m: Msg) => 
 
 export function deviceId(): string {
   try {
-    let id = sessionStorage.getItem("pippi:device");
+    let id = sessionStorage.getItem("pip:device");
     if (!id) {
       id = Math.random().toString(36).slice(2, 10);
-      sessionStorage.setItem("pippi:device", id);
+      sessionStorage.setItem("pip:device", id);
     }
     return id;
   } catch {

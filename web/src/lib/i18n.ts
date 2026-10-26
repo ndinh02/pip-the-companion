@@ -9,7 +9,7 @@ export const UI = {
   locked: { en: "Locked in", de: "Antwort steht", vi: "Đã chốt" },
   lockedWait: { en: "Waiting for the match to answer…", de: "Warten auf die Antwort des Spiels …", vi: "Đang chờ trận đấu trả lời…" },
   matchSays: { en: "The match says", de: "Das Spiel sagt", vi: "Trận đấu cho biết" },
-  pippiCalled: { en: "Pip called", de: "Pip sagte", vi: "Pip đoán" },
+  pipCalled: { en: "Pip called", de: "Pip sagte", vi: "Pip đoán" },
   roomSays: { en: "The room called", de: "Der Raum sagte", vi: "Cả phòng đoán" },
   goDeeper: { en: "Go deeper", de: "Mehr Details", vi: "Tìm hiểu thêm" },
   hide: { en: "Hide", de: "Ausblenden", vi: "Ẩn" },

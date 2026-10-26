@@ -1,7 +1,7 @@
 """Command line, from agents/:
 
-    python3 -m pippi_agents.run --seed 43 --out ../data/agent-trace.json
-    python3 -m pippi_agents.run --seed 43 --writer llm --model qwen2.5-7b --out ../data/agent-trace-llm.json
+    python3 -m pip_agents.run --seed 43 --out ../data/agent-trace.json
+    python3 -m pip_agents.run --seed 43 --writer llm --model qwen2.5-7b --out ../data/agent-trace-llm.json
 
 Writes the trace of the real run (today: template writer, no AI) plus the "Catch me lying"
 integrity demo: the same match with two sabotaged writers, to prove bad text cannot ship.

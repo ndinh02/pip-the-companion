@@ -8,8 +8,8 @@ from unittest import mock
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
-from pippi_agents import llm_writer  # noqa: E402
-from pippi_agents.workflow import run_match  # noqa: E402
+from pip_agents import llm_writer  # noqa: E402
+from pip_agents.workflow import run_match  # noqa: E402
 from matchlab import generate_match  # noqa: E402
 
 

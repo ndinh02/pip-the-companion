@@ -9,7 +9,7 @@ B. saves look like saves; blocked shots deflect; off-target shots look off
    than 11 per team; no statues; no long overlaps; the actor is at the ball
 
 Everything is measured from the 5 Hz output (dm), never from simulator
-internals. Seeds 1-5 run always; seeds 6-20 join under PIPPI_SLOW=1.
+internals. Seeds 1-5 run always; seeds 6-20 join under PIP_SLOW=1.
 """
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from matchlab import generate_match
 from matchlab.tracking import track_match
 
-SEEDS = list(range(1, 6)) if os.environ.get("PIPPI_SLOW") != "1" \
+SEEDS = list(range(1, 6)) if os.environ.get("PIP_SLOW") != "1" \
     else list(range(1, 21))
 DM = 10.0                      # dm -> m
 L, W = 1050.0, 680.0           # pitch, dm

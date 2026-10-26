@@ -41,13 +41,13 @@ One candidate per event/stoppage of these kinds. `answer` = the option id the ma
 - `t_in_min`, `team_id`, `pitch {x,y}`: from the event's `start` (corner/free kick) or the incoming player's event (`substitution` events have start = end = ball position — fine); for VAR use the scoring team's shot event (the stoppage's `related_event_ids[0]`). Moment time for VAR = `t_start_ms` of the stoppage.
 - `moment_id`: `"m-<trigger>-<round(t_in_min)>"`; `card_id`: `"c<n>-<trigger>"` (n = 1-based position in time order after selection).
 
-### 1c. Pippi's call (rule-based, learnable, sometimes wrong on purpose)
+### 1c. Pip's call (rule-based, learnable, sometimes wrong on purpose)
 Computed only from events **before** the moment:
 - `corner`: most common `target_zone` among that team's earlier corners (ties → `far`, then `near`, then `short`); `central` counts as nothing; no history → `far`.
 - `free_kick`: most common routine among that team's earlier opponent-half free kicks (ties → `cross`, `shoot`, `short`); no history → `cross`.
 - `substitution`: team losing at that minute → `attack`; winning → `defend`; level → `fresh`.
 - `var`: always `offside`.
-Reveal pose: `wow` if `pippi_call == answer`, else `oops`.
+Reveal pose: `wow` if `pip_call == answer`, else `oops`.
 
 ### 1d. Which moments become cards (timing policy, brief §5.2)
 Constants at the top of the file with comments, so Claude can tune them:
@@ -57,7 +57,7 @@ Greedy: sort eligible candidates by priority `var` > `substitution` > `free_kick
 ### 1e. Output file
 Top level keys: `match_id`, `seed`, `generator_version`, `reader_version` (`"matchreader-0.1.0"`), `competition`, `venue`, `pitch`, `coord_system`, `teams` (`team_id, name, short_name, kit{primary,secondary}` — drop `gk`), `score_timeline`, `facts`, `cards`, `moments_held`.
 - `score_timeline`: `[{"from_min":0,"HAR":0,"COP":0}, …]`, one entry per **counted** goal (shot events with `outcome == "goal"`; `disallowed` are not goals), `from_min` = that event's `t_in_min`; the last entry must equal `final_score`.
-- `cards[]`: exactly the shape of `schemas/overlay_card.schema.json` / `fake-match.json`: `question.text`/`options` from the template (replace `<team>` with the team's `name`), `question.pippi_call`, `reveal.{answer,pose,plain,expert,fact_ids}` from the template for the answer key, `<team>` replaced, placeholders re-scoped (1a). `reveal.answer` for `var` = `check_type`.
+- `cards[]`: exactly the shape of `schemas/overlay_card.schema.json` / `fake-match.json`: `question.text`/`options` from the template (replace `<team>` with the team's `name`), `question.pip_call`, `reveal.{answer,pose,plain,expert,fact_ids}` from the template for the answer key, `<team>` replaced, placeholders re-scoped (1a). `reveal.answer` for `var` = `check_type`.
 - `moments_held[]`: `{"trigger","t_in_min","team_id","reason"}`.
 
 ## Step 2 — command line
@@ -67,13 +67,13 @@ python3 -m matchreader.pick_seed --from 1 --to 200          # prints the 8 best 
 python3 -m matchreader.build --in ../data/mock-seed-1.json --out ../data/demo-match.json
 ```
 - `build` also accepts `--seed N`: generate with `matchlab.generate_match` (add `../match-lab` to `sys.path`) instead of reading a file. Print a one-line summary (cards by trigger, held count, score).
-- `pick_seed` scores each seed: must have ≥ 1 card of each of the four triggers, ≥ 6 cards, ≥ 1 card in each half, ≥ 1 card with `pippi_call == answer` and ≥ 1 with `!=`; rank by number of cards, then closest final score. Print a table `seed | cards by trigger | pippi right/wrong | score`. **Do not choose the demo seed yourself**: write the table into the Result section and stop; Claude and the owner pick.
+- `pick_seed` scores each seed: must have ≥ 1 card of each of the four triggers, ≥ 6 cards, ≥ 1 card in each half, ≥ 1 card with `pip_call == answer` and ≥ 1 with `!=`; rank by number of cards, then closest final score. Print a table `seed | cards by trigger | Pip right/wrong | score`. **Do not choose the demo seed yourself**: write the table into the Result section and stop; Claude and the owner pick.
 - After the owner picks a seed N, `build --seed N --out ../data/demo-match.json` is the only way `data/demo-match.json` is written.
 
 ## Step 3 — tests (`match-reader/tests/`, run with `python3 -m unittest discover -s tests -v`)
 1. **Facts are true:** for 5 seeds, recompute `corners_short/total`, `fk_cross/total`, forwards/defenders/midfielders before/after, `subs_used` **independently in the test** (a second, simple implementation: loop over events) and compare with the build output.
 2. **No spoilers / no future:** a fact's value never changes if you delete all events after the moment's own event and rebuild that card's facts (call the facts function on a truncated copy).
-3. **Copy rules** (port of `scripts/check-copy.mjs`, reads `scripts/banned-words.json`): every string ≤ 200 chars; no banned word in EN/DE/VI; no digit outside `{…}`; every `{placeholder}` is in the card's `fact_ids` and in `facts`; `answer` and `pippi_call` are among the option ids; no leftover `<team>`.
+3. **Copy rules** (port of `scripts/check-copy.mjs`, reads `scripts/banned-words.json`): every string ≤ 200 chars; no banned word in EN/DE/VI; no digit outside `{…}`; every `{placeholder}` is in the card's `fact_ids` and in `facts`; `answer` and `pip_call` are among the option ids; no leftover `<team>`.
 4. **Schema:** each card validates against `schemas/overlay_card.schema.json`. Copy the small `check()` function from `match-lab/tests/test_schema.py` into `match-reader/matchreader/schemacheck.py` (stdlib only; add `maxLength` support if the card schema needs it — it does).
 5. **Policy:** per half ≤ 4 cards; consecutive cards ≥ 8 min apart; no card (other than `var`) within 60 s after a goal; `score_timeline` ends at `final_score`; cards are in time order; `t_in_min` ≤ 45 for period-1 cards.
 6. **Determinism:** same input → identical bytes; the `data/demo-match.json` written by the CLI parses and passes 3–5.

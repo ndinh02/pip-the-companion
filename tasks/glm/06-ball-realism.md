@@ -49,7 +49,7 @@ Regenerate `data/tracked-seed-43.json` and `data/tracking-seed-43.json` (`python
 | Speed bands (outfield) | stand 22 / walk 28 / jog 46 / run 3 / hs 0.6 / sprint 0.7 % | stand 18.8–22.3 / walk 41.3–43.5 / jog 19.2–21.0 / run 14.9–16.9 / sprint 0.7–0.9 % (all inside limits) |
 | Calibration (seeds 1–10) | — | outfield 9.00–12.23 km/90, 8.0–31.9 sprints/90, GK 4.5–7.0 km/90, fastest top speed 34–37 km/h |
 
-**Suites:** `match-lab` fast 51/51 OK; `PIPPI_SLOW=1` OK (incl. `test_published_ranges`); `match-reader` 52/52 OK after regenerating seed 43; `npm run check:copy` pass. `data/tracked-seed-43.json`, `data/tracking-seed-43.json`, `data/players.json` regenerated.
+**Suites:** `match-lab` fast 51/51 OK; `PIP_SLOW=1` OK (incl. `test_published_ranges`); `match-reader` 52/52 OK after regenerating seed 43; `npm run check:copy` pass. `data/tracked-seed-43.json`, `data/tracking-seed-43.json`, `data/players.json` regenerated.
 
 **Constants changed / added in `tracking.py`.**
 - Sprint model: `SPRINT_FRAC = 0.97`, `FAT_SPRINT_FLOOR = 0.90` (fatigue never costs more than a tenth of top speed — the slowest tired player must still clear 25 km/h), `SPRINT_TOP_MS = 9.5` (dm rounding inflates a recorded 0.2 s step by up to ~2.5 km/h; capping true speed at 34.2 km/h keeps the measured fastest inside 34–37).

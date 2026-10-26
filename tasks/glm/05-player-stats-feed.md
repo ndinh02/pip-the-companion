@@ -78,7 +78,7 @@ Stdlib only. No git commits. Do not touch `web/`, `scripts/`, `docs/`. If calibr
 
 ## Result (GLM fills in)
 
-**Status: done.** All 9 test groups pass (20 tests in `match-reader/tests/test_players.py`; calibration gated behind `PIPPI_SLOW=1`). Full match-reader suite: **52 tests OK** (32 pre-existing + 20 new; other task-06 prep tests landed during this task too). Full match-lab suite: 43 tests OK. `data/demo-match.json` byte-identical (test 9). CLI: `python3 -m matchreader.players` from `match-reader/`; `--seed 43` and `--match ../data/tracked-seed-43.json --tracking ../data/tracking-seed-43.json` produce **byte-identical** files.
+**Status: done.** All 9 test groups pass (20 tests in `match-reader/tests/test_players.py`; calibration gated behind `PIP_SLOW=1`). Full match-reader suite: **52 tests OK** (32 pre-existing + 20 new; other task-06 prep tests landed during this task too). Full match-lab suite: 43 tests OK. `data/demo-match.json` byte-identical (test 9). CLI: `python3 -m matchreader.players` from `match-reader/`; `--seed 43` and `--match ../data/tracked-seed-43.json --tracking ../data/tracking-seed-43.json` produce **byte-identical** files.
 
 **Numbers:**
 - Seed 43 output `data/players.json`: 28 players, `last_minute` 96 (97-entry arrays), 70.6 KB. Most ground: COP-11 with 11.76 km.

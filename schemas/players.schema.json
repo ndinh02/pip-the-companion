@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/ndinh02/pippi-the-companion/schemas/players.schema.json",
+  "$id": "https://github.com/ndinh02/pip-the-companion/schemas/players.schema.json",
   "title": "players",
   "description": "Per-player cumulative stats by match minute (task 05). array[m] = value at the start of minute m: counted stats from the tracked events, physical stats from the 5 Hz synthetic tracking. Cards identify players by team + number + position only (scope decision D1: no names).",
   "type": "object",

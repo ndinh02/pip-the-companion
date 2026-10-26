@@ -25,7 +25,7 @@ Task 06 is reviewed and accepted (Claude, 2026-10-16). This task fixes what an a
 5. **The ball goes into the net.** For a goal, the ball keeps flying until it crosses the goal line **between the posts** (y 30.34–37.66 m, under the bar: z < 2.44 m), ends **inside the goal** (x within 2 m behind the line), and stays there (still, at ground height) until a player picks it up — only then −1 or carried, as in Task 06. Same for the period-1 and period-2 ends.
 6. **Nothing invented:** a player is only at a spot that an event, a formation or the movement model puts them; no jumps faster than the speed caps (already true: keep it).
 
-## Tests (`match-lab/tests/test_tracking_positions.py`, seeds 1–5 fast; seeds 1–20 under `PIPPI_SLOW=1`)
+## Tests (`match-lab/tests/test_tracking_positions.py`, seeds 1–5 fast; seeds 1–20 under `PIP_SLOW=1`)
 - Keeper leash: max distance from own goal line ≤ 30 m in open play (exclude 5 s around `goal_kick`, `keeper_save`, keeper `pass` events); ≤ 20 m in ≥ 95 % of frames; never in the other half.
 - Period 2, first frame: every player in their own half for the second-half ends; each keeper within 6 m of their own goal line.
 - Every `kick_off` event frame: everyone in their own half (± 1 m); taker within 1 m of (52.5, 34).
@@ -78,7 +78,7 @@ Regenerate `data/tracked-seed-43.json`, `data/tracking-seed-43.json` and `data/p
 
 ## Result (GLM fills in)
 
-**Done 2026-10-20. `match_qa.py` prints "All 14 checks pass" for seed 43 and for seeds 1–5** (all six outputs below, final code). `match-lab` test suite: 65 pass + 1 pre-existing skip (`PIPPI_SLOW` gated). `npm run check:copy` passes. `data/tracked-seed-43.json`, `data/tracking-seed-43.json` and `data/players.json` regenerated from the final code (Python 3.9, `/usr/bin/python3 -m matchlab.track --seed 43` / `matchreader.players --seed 43`). `scripts/match_qa.py` and `schemas/*.json` untouched.
+**Done 2026-10-20. `match_qa.py` prints "All 14 checks pass" for seed 43 and for seeds 1–5** (all six outputs below, final code). `match-lab` test suite: 65 pass + 1 pre-existing skip (`PIP_SLOW` gated). `npm run check:copy` passes. `data/tracked-seed-43.json`, `data/tracking-seed-43.json` and `data/players.json` regenerated from the final code (Python 3.9, `/usr/bin/python3 -m matchlab.track --seed 43` / `matchreader.players --seed 43`). `scripts/match_qa.py` and `schemas/*.json` untouched.
 
 ### The six QA runs
 
@@ -270,7 +270,7 @@ All 14 checks pass.
 
 ### Tests
 
-`test_tracking_positions.py` (new) covers rules 1–3, 8, 16 on seeds 1–5 (fast) / 1–20 (`PIPPI_SLOW=1`); `test_tracking_ball.py` extends rules 5, 7, 9–15. Suite: **66 tests, 65 pass, 1 skip** (pre-existing slow-gate). All green before regeneration.
+`test_tracking_positions.py` (new) covers rules 1–3, 8, 16 on seeds 1–5 (fast) / 1–20 (`PIP_SLOW=1`); `test_tracking_ball.py` extends rules 5, 7, 9–15. Suite: **66 tests, 65 pass, 1 skip** (pre-existing slow-gate). All green before regeneration.
 
 ### Deviations / notes for Claude
 

@@ -10,7 +10,7 @@ Full context: [`docs/PROJECT_BRIEF.md`](docs/PROJECT_BRIEF.md) (read §§3, 6, 9
 Nhi (UX/UI designer, not a trained engineer). Explain choices in plain language, keep code readable, work in small testable steps. Ask before deciding anything the brief marks PROPOSED or OPEN.
 
 ## Decided (do not re-litigate)
-- Name: **Pip** (owner renamed from "Pippi" on 2026-10-16). Keep the name in one constant (`web/src/lib/brand.ts`) so it can change. Internal identifiers that still say `pippi` (`pippi_call`, `pippi_agents`, storage keys, the repo name) stay as they are.
+- Name: **Pip** (owner renamed from "Pippi" on 2026-10-16). Keep the name in one constant (`web/src/lib/brand.ts`) so it can change. Since 2026-10-26 (owner) the internal identifiers say `pip` too: the card field `pip_call`, the package `agents/pip_agents`, `PIP_SLOW`, storage keys `pip:*`, the repo `pip-the-companion`. Only notes about the rename itself still mention "Pippi".
 - Stack: Vite + React + TypeScript (web), Python (match-lab, match-reader, agents).
 - Pitch coordinates: metres, 105 × 68. Synthetic data only; no real-data calibration.
 - Fictional teams: **Harbour Lights** (sea blue `#2E7FC4` / white) vs **Copperfield** (copper `#C8692F` / black). Team blue was changed from `#5AA9E6` to avoid clashing with brand Sky `#6CB4EE`.

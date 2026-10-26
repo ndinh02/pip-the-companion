@@ -22,7 +22,7 @@ The other clusters on the six QA seeds: seed 43 at 12:55–12:57 and 22:46–22:
 **What to do:** in `tracking.py`, join the deflected ball to the next possession the way a real loose ball moves: it rolls or bounces on to the next event's `start`, and the next actor runs to meet it, within the Task 04 speed caps and with no teleports. If that cannot fit the time before the next event, tell Claude which events make it impossible. Do **not** change the generator for this without asking Claude first. Any event change changes the demo match cards, and the feature freeze is 2026-10-24.
 
 **Tests (add to `test_tracking_positions.py`):**
-- From a blocked shot up to the next restart or change of possession, every event's actor is within 2 m of the ball at the event frame (seeds 1–5; 1–20 under `PIPPI_SLOW=1`).
+- From a blocked shot up to the next restart or change of possession, every event's actor is within 2 m of the ball at the event frame (seeds 1–5; 1–20 under `PIP_SLOW=1`).
 - The ball never lies still for more than 2 s while an event (other than a foul or restart wait) happens 5 m or more away from it.
 - In `match_qa.py`, the list of actors far from the ball contains **nothing over 10 m** on seed 43 or seeds 1–5. The one exception is the generator anomaly you already noted: on seed 3, COP-7 is named for a free kick at 68:50 after being substituted off. List any other exception in the Result.
 
@@ -70,7 +70,7 @@ Claude's cause reading is confirmed: the generator starts the next possession at
 - Block waypoint due time moved 0.3 s earlier (`t + block_delay + tt - 0.1`): a defender paced to land WITH the ball finished their deceleration a frame or two behind the deflection (seed 5 78.7 s, 1.4 m). On the point early is the true block read anyway.
 
 **New tests** (`test_tracking_positions.py`, class `AfterBlocks`):
-- `test_rebound_actors_at_the_ball`: from each blocked shot up to the next restart/substitution/card/opponent event, every actor within 2.0 m of the ball at the event frame. 28 windows across seeds 1–5, worst case under the bar; also passes 1–20 under `PIPPI_SLOW=1`.
+- `test_rebound_actors_at_the_ball`: from each blocked shot up to the next restart/substitution/card/opponent event, every actor within 2.0 m of the ball at the event frame. 28 windows across seeds 1–5, worst case under the bar; also passes 1–20 under `PIP_SLOW=1`.
 - `test_ball_never_parks_through_far_events`: the ball never sits still <0.6 dm/frame for 2 s while a non-restart/foul event fires ≥5 m away. Passes seeds 1–5.
 
 **QA (final code, six seeds):** "All 14 checks pass" on seed 43 and seeds 1–5. Actors >2 m from the ball at their event (2% allowance): seed 43: 6, seed 1: 5/1383, seed 2: 5/1487, seed 3: 20/1487, seed 4: 7/1597, seed 5: 4/1362.
@@ -116,7 +116,7 @@ Task 08's made-players-stand rule moved standing from ~19–22% to 13.6–16.4%,
 ### Part 3 — blocks hold by construction
 Two changes:
 1. **Blocker pin**: during the last 0.8 s of a blocked shot's flight the chosen blocker glides straight to the block point `(fxe, fye)`, arriving 0.2 s before the ball, capped at 1.15·vmax (fatigue-adjusted). At the block frame the blocker is ON the point whatever the timing — no reliance on paced arrival, so hypot/trig rounding drift between macOS and Linux cannot leave them short. (The cap makes it a glide; if even the cap cannot cover the last metres they arrive as close as their legs allow, but the *choice* of blocker already guarantees the needed launch delay, so in practice they are there early.)
-2. `test_blocks` detector fix (test-side, same file): the deflection scan was accepting the launch handover (dribble-carry → flight, a 2.7→18.5 m/s turn within 0.6 m of the start) as "the deflection" under `PIPPI_SLOW` (seed 6, 1.28 m false fail). Turns whose ball was stationary within 0.6 m of the start two frames earlier are now skipped. Seeds 1–20 pass.
+2. `test_blocks` detector fix (test-side, same file): the deflection scan was accepting the launch handover (dribble-carry → flight, a 2.7→18.5 m/s turn within 0.6 m of the start) as "the deflection" under `PIP_SLOW` (seed 6, 1.28 m false fail). Turns whose ball was stationary within 0.6 m of the start two frames earlier are now skipped. Seeds 1–20 pass.
 
 CI (Linux) could not be run from here; the pin is plain arithmetic on the same trajectory both platforms compute, and the paced-arrival dependency it removes was the only cross-platform assumption. CI on `main` must confirm.
 
@@ -127,5 +127,5 @@ CI (Linux) could not be run from here; the pin is plain arithmetic on the same t
 - `scripts/match_qa.py`: "All 14 checks pass" ×6 (seed 43 defaults; seeds 1–5 regenerated via `--events/--tracking`).
 - Tracked events changed (366 re-named on seed 43), so `data/tracked-seed-43.json`, `data/tracking-seed-43.json` were regenerated and `data/demo-match.json` rebuilt with `matchreader.reader.dumps`; `npm run check:copy` and `node scripts/check-copy.mjs data/demo-match.json` both pass.
 
-### `PIPPI_SLOW=1` residuals (not CI-gating — CI does not set it)
+### `PIP_SLOW=1` residuals (not CI-gating — CI does not set it)
 At Task 08 HEAD: 6 failures. Now: 4. This task fixed `test_blocks` (seed 7), `test_actor_at_ball_98pct` (seed 10), `test_goal_ball_goes_in` (seed 7). Still failing: `test_leash` seed 14 (30.8 m, was 31.4 — the 24 m gate helps but a swap at 24 m plus the event's own follow-through still edges past 30; tighten the gate to ~20 m if you want it by construction), `test_off_target` seed 7 (unchanged, pre-existing), `test_saves` (seed 16 now, seed 11 at HEAD — same class, ball never reaches the keeper), and `test_published_ranges` seed 1 — the "fastest 1563 km/h" there is a one-frame keeper snap at the period-2 kick-off (frame 14174); **measured at HEAD too (1570 km/h, same frame), so pre-existing**, it was just masked before because the earlier sprints assertion tripped first.

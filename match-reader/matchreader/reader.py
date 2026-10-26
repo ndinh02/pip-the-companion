@@ -319,13 +319,13 @@ def candidates(match: Dict[str, Any],
             if e["type"] == "corner" and e["team_id"] == team and e["idx"] < ev["idx"]:
                 counts[e["set_piece"]["target_zone"]] += 1
         if sum(counts.values()) == 0:
-            pippi = "far"
+            pip_pick = "far"
         else:
-            pippi = max(corner_pref, key=lambda z: (counts[z], -corner_pref.index(z)))
+            pip_pick = max(corner_pref, key=lambda z: (counts[z], -corner_pref.index(z)))
         void = _set_piece_void(match, ev)
         eligible.append({"seq": seq, "trigger": "corner", "event": ev, "stoppage": None,
                          "t_ms": ev["t_ms"], "period": period, "t_in_min": t, "team_id": team,
-                         "pitch": ev["start"], "answer": answer, "pippi_call": pippi,
+                         "pitch": ev["start"], "answer": answer, "pip_call": pip_pick,
                          "reveal_key": "void" if void else answer, "void": void,
                          "goal_event_id": None})
         seq += 1
@@ -356,13 +356,13 @@ def candidates(match: Dict[str, Any],
                     and _in_opponent_half(e)):
                 counts[e["set_piece"]["routine"]] += 1
         if sum(counts.values()) == 0:
-            pippi = "cross"
+            pip_pick = "cross"
         else:
-            pippi = max(fk_pref, key=lambda z: (counts[z], -fk_pref.index(z)))
+            pip_pick = max(fk_pref, key=lambda z: (counts[z], -fk_pref.index(z)))
         void = _set_piece_void(match, ev)
         eligible.append({"seq": seq, "trigger": "free_kick", "event": ev, "stoppage": None,
                          "t_ms": ev["t_ms"], "period": period, "t_in_min": t, "team_id": team,
-                         "pitch": ev["start"], "answer": answer, "pippi_call": pippi,
+                         "pitch": ev["start"], "answer": answer, "pip_call": pip_pick,
                          "reveal_key": "void" if void else answer, "void": void,
                          "goal_event_id": None})
         seq += 1
@@ -390,14 +390,14 @@ def candidates(match: Dict[str, Any],
         score = _score_before(match, t_ms)
         other = AWAY if team == HOME else HOME
         if score[team] < score[other]:
-            pippi = "attack"
+            pip_pick = "attack"
         elif score[team] > score[other]:
-            pippi = "defend"
+            pip_pick = "defend"
         else:
-            pippi = "fresh"
+            pip_pick = "fresh"
         eligible.append({"seq": seq, "trigger": "substitution", "event": first, "stoppage": None,
                          "t_ms": t_ms, "period": period, "t_in_min": t, "team_id": team,
-                         "pitch": first["start"], "answer": answer, "pippi_call": pippi,
+                         "pitch": first["start"], "answer": answer, "pip_call": pip_pick,
                          "reveal_key": answer, "goal_event_id": None})
         seq += 1
 
@@ -423,7 +423,7 @@ def candidates(match: Dict[str, Any],
         eligible.append({"seq": seq, "trigger": "var", "event": shot, "stoppage": stoppage,
                          "t_ms": t_ms, "period": period, "t_in_min": t, "team_id": team,
                          "pitch": shot["start"], "answer": var["check_type"],
-                         "pippi_call": "offside", "reveal_key": reveal_key,
+                         "pip_call": "offside", "reveal_key": reveal_key,
                          "goal_event_id": shot["event_id"]})
         seq += 1
 
@@ -601,12 +601,12 @@ def _build(match: Dict[str, Any],
                 "text": {lang: _scope_text(q_text[lang], team["name"], prefix)
                          for lang in LANGS},
                 "options": copy.deepcopy(tpl["question"]["options"]),
-                "pippi_call": cand["pippi_call"],
+                "pip_call": cand["pip_call"],
             },
             "reveal": {
                 "answer": cand["answer"],
                 "pose": ("thinks" if cand.get("void")
-                         else "wow" if cand["pippi_call"] == cand["answer"] else "oops"),
+                         else "wow" if cand["pip_call"] == cand["answer"] else "oops"),
                 "plain": {lang: _scope_text(plain_text[lang], team["name"], prefix)
                           for lang in LANGS},
                 "expert": {lang: _scope_text(reveal_tpl["expert"][lang], team["name"], prefix)

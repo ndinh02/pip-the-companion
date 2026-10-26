@@ -9,7 +9,7 @@ Groups mirror tasks/glm/04-tracking-synthesizer.md:
 4. pitch bounds, -1 exactly when off, 11 per team (sub window / second yellow
    exceptions), separation
 5. shape sanity per period
-6. calibration ranges, seeds 1-10 -- SLOW, run with PIPPI_SLOW=1
+6. calibration ranges, seeds 1-10 -- SLOW, run with PIP_SLOW=1
 7. determinism
 8. schema validation
 
@@ -37,7 +37,7 @@ except ImportError:
 
 SPRINT_MS = 25.0 / 3.6        # 25 km/h in m/s (6.94)
 DM = 10.0                     # dm -> m
-SLOW = os.environ.get("PIPPI_SLOW") == "1"
+SLOW = os.environ.get("PIP_SLOW") == "1"
 
 _CACHE: Dict[int, Tuple[Dict[str, Any], Dict[str, Any]]] = {}
 
@@ -409,7 +409,7 @@ class Shape(unittest.TestCase):
 
 # ---- 6. calibration (slow: seeds 1-10) ------------------------------------------
 
-@unittest.skipUnless(SLOW, "calibration over seeds 1-10; run with PIPPI_SLOW=1")
+@unittest.skipUnless(SLOW, "calibration over seeds 1-10; run with PIP_SLOW=1")
 class Calibration(unittest.TestCase):
     def test_published_ranges(self) -> None:
         for seed in range(1, 11):

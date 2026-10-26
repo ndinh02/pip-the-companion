@@ -17,7 +17,7 @@ Do these before adding new features.
 
 Complete these first.
 
-- [x] **Fix the Git repository boundary.** Done 2026-10-14: project has its own repository (one local commit); the stray repo in the home folder was removed. Not pushed yet. The project folder currently resolves to a Git repository at `/Users/admin`, rather than having its own repository metadata. Confirm that `pippi-the-companion` is an independent repository, contains the project files, has a clean history, and is pushed to its required public GitHub URL.
+- [x] **Fix the Git repository boundary.** Done 2026-10-14: project has its own repository (one local commit); the stray repo in the home folder was removed. Not pushed yet. The project folder currently resolves to a Git repository at `/Users/admin`, rather than having its own repository metadata. Confirm that `pip-the-companion` is an independent repository, contains the project files, has a clean history, and is pushed to its required public GitHub URL.
 - [x] **Register for the hackathon** — done 2026-10-15.
 - [x] **Create the Azure account/subscription** — Azure for Students verified 2026-10-15. Still to record: chosen region and any Student subscription restrictions.
 - [x] **Deploy the web app** — live 2026-10-16 at https://pip-the-companion-cjcdawd7gmf8f9h2.francecentral-01.azurewebsites.net (deployed by CI from `main`). Owner chose Azure App Service (Free F1, France Central, Node 22) on 2026-10-16 because Static Web Apps is not offered in the subscription's allowed regions. Test the public URL in a private browser window and keep it available through 2026-11-10.

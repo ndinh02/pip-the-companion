@@ -89,7 +89,7 @@ a { color: var(--sky); }
 .opts li { display: flex; justify-content: space-between; background: var(--navy-2); border-radius: 8px; padding: 0.5vw 1vw; font-weight: 800; }
 .opts .count { color: var(--floodlight); }
 .plain { line-height: 1.35; }
-.pippi-call { font-size: 0.8em; color: var(--dim); }
+.pip-call { font-size: 0.8em; color: var(--dim); }
 .lower-third.added { border-left-color: var(--sky); }
 .added-breakdown { display: grid; gap: 0.6vw; }
 .added-breakdown ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.4vw; }
@@ -222,8 +222,8 @@ a { color: var(--sky); }
 /* Goal: Pip pops in to celebrate, under the scoreboard */
 .goal-pop { position: absolute; top: calc(5% + max(56px, 4.6vw)); left: 5%; z-index: 7; display: flex; align-items: center; gap: 0.8vw; background: rgba(14, 26, 43, 0.92); border: 2px solid var(--floodlight); border-radius: 14px; padding: 0.5vw 1.2vw 0.5vw 0.6vw; font-size: max(14px, 1.1vw); animation: goal-in 0.45s cubic-bezier(0.2, 1.6, 0.4, 1) both, goal-out 0.4s ease-in 7.6s both; }
 .goal-pop strong { font-size: 1.6em; font-weight: 900; color: var(--floodlight); letter-spacing: 0.04em; }
-.goal-pop .pippi { animation: goal-hop 0.6s ease-in-out infinite alternate; }
-.pippi-wing { transform-box: fill-box; transform-origin: 0% 100%; animation: pip-wave 0.5s ease-in-out 3 alternate; }
+.goal-pop .pip-art { animation: goal-hop 0.6s ease-in-out infinite alternate; }
+.pip-wing { transform-box: fill-box; transform-origin: 0% 100%; animation: pip-wave 0.5s ease-in-out 3 alternate; }
 @keyframes pip-wave { from { transform: rotate(-8deg); } to { transform: rotate(14deg); } }
 @keyframes goal-in { from { transform: scale(0.3) rotate(-8deg); opacity: 0; } }
 @keyframes goal-out { to { transform: translateY(-20px); opacity: 0; } }
@@ -243,7 +243,7 @@ a { color: var(--sky); }
 .phone header .alert-chip { min-width: 44px; min-height: 44px; background: none; border: 0; font-size: 18px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .goal-pop, .goal-pop .pippi, .pippi-wing, .opts .count, .phone main.wake { animation: none; }
+  .goal-pop, .goal-pop .pip-art, .pip-wing, .opts .count, .phone main.wake { animation: none; }
 }
 
 /* Goal scorer's quick profile on the TV (lower third, slides in after Pip's pop-up) */
@@ -395,11 +395,11 @@ a { color: var(--sky); }
 .link-bar.tv-quiet { background: #4a3d12; color: #fff3c4; }
 .change-once { min-height: 48px; padding: 10px 18px; border-radius: 999px; border: 2px solid currentColor; background: transparent; color: inherit; font: inherit; font-weight: 800; }
 .pip-wait { display: grid; place-items: center; }
-.pip-wait .pippi { transform-origin: 50% 100%; animation: pip-wait 2.4s ease-in-out infinite; }
-.pip-wait.all-in .pippi { animation: pip-watch 1.4s ease-in-out infinite; }
+.pip-wait .pip-art { transform-origin: 50% 100%; animation: pip-wait 2.4s ease-in-out infinite; }
+.pip-wait.all-in .pip-art { animation: pip-watch 1.4s ease-in-out infinite; }
 @keyframes pip-wait { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg) translateY(-2px); } }
 @keyframes pip-watch { 0%, 100% { transform: translateY(0) scale(1, 1); } 40% { transform: translateY(-4px) scale(.98, 1.02); } 60% { transform: translateY(0) scale(1.03, .97); } }
-@media (prefers-reduced-motion: reduce) { .pip-wait .pippi { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .pip-wait .pip-art { animation: none; } }
 
 /* =====================================================================================================================
    Room prototype (docs/design-options/prototype.html, owner 2026-10-23), ported 1:1.
@@ -411,7 +411,7 @@ a { color: var(--sky); }
   --q-line: rgba(20, 32, 47, 0.12); --q-hi: rgba(255, 210, 63, 0.7); --q-right: #3F7A52; --q-danger: #9A3B32;
 }
 /* Pip's ink is black: a thin chalk edge keeps it readable on navy (prototype "sticker" edge). */
-.pippi { display: block; flex: none; filter: drop-shadow(1px 0 0 rgba(246, 243, 236, 0.85)) drop-shadow(-1px 0 0 rgba(246, 243, 236, 0.85)) drop-shadow(0 -1px 0 rgba(246, 243, 236, 0.85)); user-select: none; }
+.pip-art { display: block; flex: none; filter: drop-shadow(1px 0 0 rgba(246, 243, 236, 0.85)) drop-shadow(-1px 0 0 rgba(246, 243, 236, 0.85)) drop-shadow(0 -1px 0 rgba(246, 243, 236, 0.85)); user-select: none; }
 
 /* ---------- phone ---------- */
 .q-ph { position: relative; min-height: 100dvh; max-width: 520px; margin: 0 auto; background: var(--q-paper); color: var(--q-ink); display: flex; flex-direction: column; gap: 12px; padding: max(18px, env(safe-area-inset-top)) 18px 20px; font-size: 15px; color-scheme: light; }
@@ -478,7 +478,7 @@ a { color: var(--sky); }
 /* chat: Pip speaks in bubbles */
 .q-row { display: flex; align-items: flex-end; gap: 8px; }
 .q-av { width: 40px; height: 40px; flex: none; border-radius: 50%; background: var(--q-paper-2); display: grid; place-items: end center; overflow: hidden; }
-.q-av .pippi { height: 38px !important; margin-bottom: -4px; filter: none; }
+.q-av .pip-art { height: 38px !important; margin-bottom: -4px; filter: none; }
 .q-av.hidden { visibility: hidden; }
 .q-bub { background: var(--q-card); border: 1px solid var(--q-line); border-radius: 18px 18px 18px 6px; padding: 10px 13px; line-height: 1.4; max-width: 86%; }
 .q-bub.big { font-size: 21px; font-weight: 800; line-height: 1.15; }
@@ -505,7 +505,7 @@ a { color: var(--sky); }
 .q-pickname { font-size: 34px; font-weight: 800; letter-spacing: -0.02em; }
 .q-change { background: rgba(255, 255, 255, 0.18); color: inherit; border: 2px solid currentColor; }
 .q-chip-big { font-size: 26px; font-weight: 800; border-radius: 18px; padding: 18px 26px; }
-.pip-wait .pippi { transform-origin: 50% 100%; animation: pip-wait 2.4s ease-in-out infinite; }
+.pip-wait .pip-art { transform-origin: 50% 100%; animation: pip-wait 2.4s ease-in-out infinite; }
 /* outcome */
 .q-banner { border-radius: 16px; padding: 14px 16px; font-weight: 800; font-size: 20px; }
 .q-banner.right { background: var(--q-right); color: #fff; }
@@ -574,7 +574,7 @@ a { color: var(--sky); }
 .tvn-lobby { position: absolute; inset: 0; z-index: 8; background: rgba(10, 18, 30, 0.72); backdrop-filter: blur(6px); display: grid; place-content: center; }
 .tvn-lobby-card { position: relative; width: max(560px, 52vw); background: var(--q-paper); color: var(--q-ink); border-radius: 1.6vw; padding: 2.4vw; display: grid; grid-template-columns: auto 1fr; gap: 2.4vw; align-items: center; font-size: max(16px, 1.5vw); box-shadow: 0 2vw 5vw -2vw #000; }
 .tvn-lobby-pip { position: absolute; right: 2vw; top: -7.4vw; }
-.tvn-lobby-pip .pippi { height: max(100px, 8.5vw) !important; }
+.tvn-lobby-pip .pip-art { height: max(100px, 8.5vw) !important; }
 .tvn-qr { width: max(160px, 14vw); height: max(160px, 14vw); border-radius: 1vw; background: #fff; padding: 0.8vw; }
 .tvn-qr svg { width: 100%; height: 100%; }
 .tvn-lobby-text { display: grid; gap: 0.7vw; }
@@ -595,7 +595,7 @@ a { color: var(--sky); }
 .tvn-note { position: absolute; left: 5%; bottom: 5%; width: 28%; min-width: 340px; z-index: 7; background: var(--q-paper); color: var(--q-ink); border-radius: 1vw; box-shadow: 0 1.2vw 3vw -1vw rgba(0, 0, 0, 0.55); padding: 1vw 1.2vw; display: grid; gap: 0.6vw; font-size: max(16px, 1.5vw); animation: tvn-rise 0.45s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
 @keyframes tvn-rise { from { translate: 0 40%; opacity: 0; } }
 .tvn-pip { position: absolute; left: -0.8vw; top: -4.6vw; animation: tvn-pipin 0.6s cubic-bezier(0.3, 1.6, 0.5, 1) both; transform-origin: 50% 100%; }
-.tvn-pip .pippi { height: max(64px, 5.8vw) !important; }
+.tvn-pip .pip-art { height: max(64px, 5.8vw) !important; }
 @keyframes tvn-pipin { from { scale: 0.3; opacity: 0; } }
 .tvn-who { display: flex; gap: 0.6vw; font-size: 0.62em; color: var(--q-muted); padding-left: max(60px, 5.2vw); font-weight: 600; }
 .tvn-who b { color: var(--q-ink); }
@@ -616,7 +616,7 @@ a { color: var(--sky); }
 .tvn-big { position: absolute; inset: 0; z-index: 7; display: grid; place-content: center; background: rgba(10, 18, 30, 0.6); backdrop-filter: blur(4px); }
 .tvn-big-in { position: relative; width: max(520px, 46vw); background: var(--q-paper); color: var(--q-ink); border-radius: 1.4vw; padding: 2vw; display: grid; gap: 1vw; font-size: max(16px, 1.5vw); }
 .tvn-bigpip { position: absolute; right: 1.6vw; top: -7vw; }
-.tvn-bigpip .pippi { height: max(100px, 8.5vw) !important; }
+.tvn-bigpip .pip-art { height: max(100px, 8.5vw) !important; }
 .tvn-big-in h2 { font-size: 1.75em; font-weight: 800; letter-spacing: -0.03em; }
 .tvn-rows { display: grid; gap: 0.5vw; }
 .tvn-rows div { display: flex; justify-content: space-between; gap: 1vw; background: #fff; border: 1px solid var(--q-line); border-radius: 0.6vw; padding: 0.6vw 0.9vw; }
@@ -628,7 +628,7 @@ a { color: var(--sky); }
   .tvn-note { bottom: 64px; width: min(92%, 420px); left: 4%; font-size: 15px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .tvn-note, .tvn-pip, .tvn-corner, .q-wake, .q-sheet, .pip-wait .pippi { animation: none; }
+  .tvn-note, .tvn-pip, .tvn-corner, .q-wake, .q-sheet, .pip-wait .pip-art { animation: none; }
 }
 
 /* Scan (room prototype "Scan QR" / "QR not found"): a dark camera screen; frames never leave the phone. */
@@ -654,7 +654,7 @@ a { color: var(--sky); }
   .tvn-qr { width: 168px; height: 168px; padding: 8px; border-radius: 14px; }
   .tvn-code { font-size: 44px; }
   .tvn-lobby-pip { top: -62px; right: 14px; }
-  .tvn-lobby-pip .pippi { height: 84px !important; }
+  .tvn-lobby-pip .pip-art { height: 84px !important; }
   .tvn-ppl { justify-content: center; gap: 6px; min-height: 34px; }
   .tvn-kick { justify-self: center; padding: 12px 26px; font-size: 16px; }
   .tvn-corner { transform: none; top: 12px; right: 12px; gap: 8px; padding: 6px 8px; border-radius: 12px; font-size: 12px; }
@@ -664,7 +664,7 @@ a { color: var(--sky); }
   .tv .skip-note, .tv .hl-intro { top: 76px; max-width: calc(100% - 24px); }
   .tvn-note { left: 12px; right: 12px; width: auto; min-width: 0; bottom: var(--tv-controls-h, 112px); font-size: 15px; padding: 14px; gap: 8px; border-radius: 14px; }
   .tvn-pip { top: -50px; left: 6px; }
-  .tvn-pip .pippi { height: 58px !important; }
+  .tvn-pip .pip-art { height: 58px !important; }
   .tvn-who { padding-left: 62px; font-size: 12px; gap: 6px; flex-wrap: wrap; }
   .tvn-note li { padding: 6px 8px; border-radius: 8px; gap: 8px; }
   .tvn-sw { width: 12px; height: 12px; }
@@ -672,7 +672,7 @@ a { color: var(--sky); }
   .tvn-big { padding: 16px; }
   .tvn-big-in { width: min(100%, 440px); padding: 22px 16px 18px; gap: 10px; font-size: 15px; border-radius: 18px; }
   .tvn-bigpip { top: -66px; right: 12px; }
-  .tvn-bigpip .pippi { height: 86px !important; }
+  .tvn-bigpip .pip-art { height: 86px !important; }
   .tvn-rows { gap: 6px; }
   .tvn-rows div { padding: 8px 10px; border-radius: 8px; }
   .tvn-home { padding: 24px; gap: 14px; }

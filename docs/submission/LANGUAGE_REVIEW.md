@@ -33,7 +33,7 @@ Reviewed 2026-10-26 by Claude acting as DE/VI localization reviewer. EN stays ca
 | i18n.ts | `eyesUp` | vi | Ngẩng lên xem nào – Pip sẽ gọi bạn ở quãng nghỉ sau. | Ngẩng lên xem trận nào – Pip sẽ gọi bạn ở quãng nghỉ sau. | Clearer: look up at the match |
 | i18n.ts | `locked` | de | Eingeloggt | Antwort steht | "Eingeloggt" reads as "logged in" inside an app |
 | i18n.ts | `lockedWait` | de | Warten, bis das Spiel antwortet … | Warten auf die Antwort des Spiels … | Smoother |
-| i18n.ts | `pippiCalled` | de | Pip tippte auf | Pip sagte | "tippen auf" is Tippspiel/betting register |
+| i18n.ts | `pipCalled` | de | Pip tippte auf | Pip sagte | "tippen auf" is Tippspiel/betting register |
 | i18n.ts | `roomSays` | vi | Cả nhà đoán | Cả phòng đoán | One term for "the room": cả phòng |
 | i18n.ts | `goDeeper` | vi | Xem sâu hơn | Tìm hiểu thêm | Literal; natural VI for "learn more" |
 | i18n.ts | `fullTime` | vi | Hết giờ | Hết trận | "Hết giờ" = time is up; full time is "hết trận" |
