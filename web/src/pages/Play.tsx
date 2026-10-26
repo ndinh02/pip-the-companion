@@ -161,6 +161,11 @@ export default function Play() {
     return () => clearInterval(id);
   }, []);
 
+  // Opening a player (or going back to the list) starts at the top, not at the list's scroll position.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [viewId, saved?.followId]);
+
   // Keep the conversation scrolled to the newest message as the match goes on.
   const endRef = useRef<HTMLDivElement>(null);
   const historyLen = state?.history?.length ?? 0;

@@ -7,3 +7,6 @@ __pycache__/
 .env
 .env.*
 *.log
+
+# Demo video renders: uploaded to YouTube, too big for the repo
+docs/submission/video/*.mp4
