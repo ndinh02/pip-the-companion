@@ -74,8 +74,8 @@ To swap in your own voice: record one file, then mix it under the captions-only 
 ## Where the video is hosted
 
 The chosen cut, `pip-demo.mp4` (Kokoro voice + music), is committed to the repository; the submission form allows
-GitHub for all assets. Link: https://github.com/ndinh02/pip-the-companion/blob/main/docs/submission/video/pip-demo.mp4
-(it plays in the browser). The music-only and captions-only cuts stay local and are not committed.
+GitHub for all assets. GitHub Pages serves `docs/` from `main`, so it plays in the browser at https://ndinh02.github.io/pip-the-companion/
+(`docs/index.html`). The plain GitHub file page cannot play a file this size; it only offers a download. The music-only and captions-only cuts stay local and are not committed.
 
 A YouTube upload is optional. If you want one: upload `pip-demo.mp4` as **Public**, with `youtube-thumbnail.png` as
 the thumbnail, title `Pip: watch together, call it together (Inside the Game hackathon demo)`.

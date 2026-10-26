@@ -126,8 +126,8 @@ Already in place: CI-gated deploys, a dependency-free server with a strict Conte
 
 - Live app: https://pip-the-companion-cjcdawd7gmf8f9h2.francecentral-01.azurewebsites.net/tv
 - Code: https://github.com/ndinh02/pip-the-companion
-- Demo video: https://github.com/ndinh02/pip-the-companion/blob/main/docs/submission/video/pip-demo.mp4
-- Cover image: https://raw.githubusercontent.com/ndinh02/pip-the-companion/main/docs/submission/video/cover.png
+- Demo video: https://ndinh02.github.io/pip-the-companion/
+- Cover image: https://ndinh02.github.io/pip-the-companion/submission/video/cover.png
 
 *Built for the Microsoft "Inside the Game" hackathon. All teams, players and data are fictional. Not affiliated with or endorsed by the Premier League or Microsoft.*
 

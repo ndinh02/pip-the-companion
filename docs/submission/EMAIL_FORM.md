@@ -10,8 +10,9 @@ Project Details
 Title: Pip - A matchday companion that turns a synthetic match into checked, multilingual "Call it!" moments for the whole room
 
 Image/Video:
-Demo video (1:55): https://github.com/ndinh02/pip-the-companion/blob/main/docs/submission/video/pip-demo.mp4
-Cover image: https://github.com/ndinh02/pip-the-companion/blob/main/docs/submission/video/cover.png
+Demo video (1:55, plays in the browser): https://ndinh02.github.io/pip-the-companion/
+Video file: https://ndinh02.github.io/pip-the-companion/submission/video/pip-demo.mp4
+Cover image: https://ndinh02.github.io/pip-the-companion/submission/video/cover.png
 
 Tagline: Watch together. Call it together. At every dead ball, Pip asks the room one question on their phones. The synthetic match answers, and Pip explains why: a plain line for newcomers, a data line for fans, in English, German or Vietnamese.
 
