@@ -1,0 +1,121 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face { font-family: BVP; font-weight: 500; src: url(file:///Users/admin/Documents/footballll/web/node_modules/@fontsource/be-vietnam-pro/files/be-vietnam-pro-latin-500-normal.woff2); }
+@font-face { font-family: BVP; font-weight: 700; src: url(file:///Users/admin/Documents/footballll/web/node_modules/@fontsource/be-vietnam-pro/files/be-vietnam-pro-latin-700-normal.woff2); }
+@font-face { font-family: BVP; font-weight: 800; src: url(file:///Users/admin/Documents/footballll/web/node_modules/@fontsource/be-vietnam-pro/files/be-vietnam-pro-latin-800-normal.woff2); }
+@font-face { font-family: BVP; font-weight: 900; src: url(file:///Users/admin/Documents/footballll/web/node_modules/@fontsource/be-vietnam-pro/files/be-vietnam-pro-latin-900-normal.woff2); }
+* { box-sizing: border-box; margin: 0; }
+body { width: 1280px; height: 720px; overflow: hidden; font-family: BVP, sans-serif; background: #0B1626; position: relative; color: #F6F3EC; }
+/* floodlights */
+.beam { position: absolute; top: -120px; width: 260px; height: 900px; background: linear-gradient(180deg, rgba(255,210,63,.32), rgba(255,210,63,0) 75%); filter: blur(18px); transform-origin: top center; }
+.glow { position: absolute; inset: 0; background: radial-gradient(60% 70% at 62% 58%, rgba(46,127,196,.35), transparent 70%), radial-gradient(40% 50% at 15% 30%, rgba(255,210,63,.14), transparent 70%); }
+/* title */
+.title { position: absolute; left: 46px; top: 54px; z-index: 5; }
+.title h1 { font-size: 150px; line-height: .86; font-weight: 900; letter-spacing: -.045em; color: #FFD23F; text-shadow: 0 8px 0 #0E1A2B, 0 14px 40px rgba(0,0,0,.6); transform: rotate(-4deg); transform-origin: left; }
+.title h1 span { display: block; color: #F6F3EC; }
+.title p { margin-top: 26px; font-size: 32px; font-weight: 800; line-height: 1.15; max-width: 420px; text-shadow: 0 3px 12px rgba(0,0,0,.6); }
+.title p b { color: #FFD23F; }
+/* TV */
+.tv { position: absolute; left: 500px; top: 34px; width: 740px; height: 430px; border-radius: 22px; background: #05080D; padding: 14px; box-shadow: 0 30px 70px rgba(0,0,0,.65), 0 0 0 3px #1E3150; z-index: 3; transform: rotate(1.5deg); }
+.screen { position: relative; width: 100%; height: 100%; border-radius: 12px; overflow: hidden; }
+.screen svg { position: absolute; inset: 0; }
+.score { position: absolute; right: 16px; bottom: 14px; background: rgba(14,26,43,.92); border-radius: 10px; padding: 6px 12px; font-weight: 800; font-size: 22px; display: flex; gap: 10px; align-items: center; }
+.score .d { width: 12px; height: 12px; border-radius: 50%; }
+.score .clk { color: #FFD23F; }
+.live { position: absolute; left: 16px; top: 14px; background: #E0362C; color: #fff; font-weight: 900; font-size: 18px; letter-spacing: .1em; border-radius: 8px; padding: 6px 12px; }
+.q { position: absolute; left: 18px; bottom: 16px; width: 318px; background: #F4F1EA; color: #14202F; border-radius: 14px; padding: 12px 14px 12px; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+.q h2 { font-size: 22px; font-weight: 900; line-height: 1.08; margin-bottom: 8px; padding-left: 76px; letter-spacing: -.01em; }
+.q .pip { position: absolute; left: -12px; top: -44px; height: 92px; }
+.q ul { list-style: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.q li { font-size: 17px; font-weight: 800; border-radius: 8px; padding: 6px 9px; color: #fff; display: flex; justify-content: space-between; }
+.q li i { font-style: normal; opacity: .9; }
+/* phones */
+.phone { position: absolute; width: 140px; height: 260px; border-radius: 26px; background: #05080D; padding: 8px; box-shadow: 0 24px 50px rgba(0,0,0,.6); z-index: 6; }
+.phone .in { width: 100%; height: 100%; border-radius: 19px; background: #F4F1EA; overflow: hidden; display: flex; flex-direction: column; }
+.phone .hd { background: #14202F; color: #F6F3EC; font-weight: 900; font-size: 15px; text-align: center; padding: 8px 4px 6px; }
+.phone .hd small { display: block; font-size: 11px; color: #9BE3BC; font-weight: 700; }
+.phone .tile { margin: 14px 10px 12px; border-radius: 14px; color: #fff; font-weight: 900; font-size: 22px; text-align: center; padding: 26px 6px; box-shadow: inset 0 -5px 0 rgba(0,0,0,.18); position: relative; line-height: 1.05; }
+.phone .tile::after { content: "✓"; position: absolute; right: 6px; top: 6px; width: 22px; height: 22px; border-radius: 50%; background: #F4F1EA; color: #14202F; font-size: 13px; display: grid; place-items: center; }
+.phone .who { text-align: center; font-weight: 800; font-size: 13px; color: #14202F; margin-top: 10px; }
+.hand { position: absolute; width: 120px; height: 120px; border-radius: 50% 50% 40% 40%; z-index: 5; }
+/* ribbon */
+.ribbon { position: absolute; left: 46px; bottom: 40px; z-index: 7; display: flex; align-items: center; gap: 14px; background: #FFD23F; color: #0E1A2B; border-radius: 999px; padding: 10px 22px 10px 12px; font-weight: 900; font-size: 25px; white-space: nowrap; box-shadow: 0 10px 30px rgba(0,0,0,.45); }
+.ribbon img { height: 48px; }
+.conf { position: absolute; width: 14px; height: 22px; border-radius: 3px; z-index: 8; }
+</style></head>
+<body>
+<div class="glow"></div>
+<div class="beam" style="left:520px; transform: rotate(18deg)"></div>
+<div class="beam" style="left:980px; transform: rotate(-16deg)"></div>
+<div class="beam" style="left:60px; transform: rotate(10deg); opacity:.6"></div>
+
+<div class="title">
+  <h1>CALL<span>IT!</span></h1>
+  <p>The match on the TV.<br>The question on <b>every phone</b>.</p>
+</div>
+
+<div class="tv"><div class="screen">
+  <!-- A clear, top-down corner: Harbour Lights (blue) take it from the right flag; the ball curls to the far post. -->
+  <svg viewBox="0 0 712 402" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1F8F57"/><stop offset="1" stop-color="#157544"/></linearGradient>
+      <pattern id="stripes" width="110" height="402" patternUnits="userSpaceOnUse"><rect width="55" height="402" fill="rgba(255,255,255,.05)"/></pattern>
+      <pattern id="net" width="8" height="8" patternUnits="userSpaceOnUse"><path d="M0 0 L8 8 M8 0 L0 8" stroke="rgba(255,255,255,.55)" stroke-width="1.2"/></pattern>
+      <marker id="arr" markerUnits="userSpaceOnUse" markerWidth="26" markerHeight="26" refX="14" refY="13" orient="auto"><path d="M0,0 L26,13 L0,26 Z" fill="#FFD23F"/></marker>
+    </defs>
+    <rect width="712" height="402" fill="url(#g)"/><rect width="712" height="402" fill="url(#stripes)"/>
+    <rect x="300" y="64" width="112" height="40" fill="url(#net)" stroke="#fff" stroke-width="5"/>
+    <g stroke="#fff" stroke-width="4" fill="none" opacity=".92">
+      <line x1="0" y1="104" x2="712" y2="104"/>
+      <rect x="160" y="104" width="392" height="170"/>
+      <rect x="268" y="104" width="176" height="62"/>
+      <path d="M296 274 A 66 66 0 0 0 416 274"/>
+      <path d="M652 104 A 26 26 0 0 0 678 130"/>
+    </g>
+    <circle cx="356" cy="226" r="4" fill="#fff"/>
+    <line x1="678" y1="104" x2="678" y2="42" stroke="#F6F3EC" stroke-width="5"/><path d="M678 42 L706 53 L678 64 Z" fill="#FFD23F"/>
+    <path d="M660 110 C 590 8, 380 18, 322 92" stroke="#FFD23F" stroke-width="7" fill="none" stroke-dasharray="16 10" marker-end="url(#arr)"/>
+    <circle cx="664" cy="114" r="12" fill="#fff" stroke="#14202F" stroke-width="3"/>
+    <g font-family="BVP" font-weight="900" font-size="17" text-anchor="middle">
+      <g><circle cx="318" cy="136" r="19" fill="#2E7FC4" stroke="#fff" stroke-width="3"/><text x="318" y="142" fill="#fff">9</text></g>
+      <g><circle cx="392" cy="150" r="19" fill="#2E7FC4" stroke="#fff" stroke-width="3"/><text x="392" y="156" fill="#fff">4</text></g>
+      <g><circle cx="470" cy="128" r="19" fill="#2E7FC4" stroke="#fff" stroke-width="3"/><text x="470" y="134" fill="#fff">11</text></g>
+      <g><circle cx="560" cy="200" r="19" fill="#2E7FC4" stroke="#fff" stroke-width="3"/><text x="560" y="206" fill="#fff">7</text></g>
+      <g><circle cx="350" cy="122" r="19" fill="#C8692F" stroke="#111" stroke-width="3"/><text x="350" y="128" fill="#fff">5</text></g>
+      <g><circle cx="430" cy="132" r="19" fill="#C8692F" stroke="#111" stroke-width="3"/><text x="430" y="138" fill="#fff">3</text></g>
+      <g><circle cx="282" cy="160" r="19" fill="#C8692F" stroke="#111" stroke-width="3"/><text x="282" y="166" fill="#fff">2</text></g>
+      <g><circle cx="356" cy="88" r="19" fill="#7B4FC9" stroke="#fff" stroke-width="3"/><text x="356" y="94" fill="#fff">1</text></g>
+      <g><circle cx="510" cy="190" r="19" fill="#C8692F" stroke="#111" stroke-width="3"/><text x="510" y="196" fill="#fff">8</text></g>
+    </g>
+  </svg>
+  <div class="score"><span class="d" style="background:#2E7FC4"></span>HAR 1–0 COP<span class="d" style="background:#C8692F"></span><span class="clk">14:52</span></div>
+  <div class="live">LIVE</div>
+  <div class="q">
+    <img class="pip" src="file:///Users/admin/Documents/footballll/web/public/pip/pip-corner.png" alt="">
+    <h2>Corner!<br>Where's it going?</h2>
+    <ul>
+      <li style="background:#B4483E">Near post <i>1</i></li>
+      <li style="background:#2F6F7E">Far post <i>2</i></li>
+      <li style="background:#C9A13B; color:#14202F">Short <i>0</i></li>
+      <li style="background:#3F7A52">Middle <i>1</i></li>
+    </ul>
+  </div>
+</div></div>
+
+<!-- the room: phones raised from the sofa -->
+<div class="phone" style="left:650px; top:500px; transform: rotate(-13deg)"><div class="in"><div class="hd">HAR 1–0 COP<small>14:52</small></div><div class="tile" style="background:#2F6F7E">Far<br>post</div></div></div>
+<div class="phone" style="left:805px; top:528px; transform: rotate(-4deg)"><div class="in"><div class="hd">HAR 1–0 COP<small>14:52</small></div><div class="tile" style="background:#B4483E">Near<br>post</div></div></div>
+<div class="phone" style="left:960px; top:524px; transform: rotate(5deg)"><div class="in"><div class="hd">HAR 1–0 COP<small>14:52</small></div><div class="tile" style="background:#2F6F7E">Far<br>post</div></div></div>
+<div class="phone" style="left:1112px; top:494px; transform: rotate(14deg)"><div class="in"><div class="hd">HAR 1–0 COP<small>14:52</small></div><div class="tile" style="background:#3F7A52">Middle</div></div></div>
+
+<div class="ribbon"><img src="file:///Users/admin/Documents/footballll/web/public/pip/pip-wave.png" alt="">Pip · the matchday game for the room</div>
+
+<div class="conf" style="left:420px;top:40px;background:#FFD23F;transform:rotate(25deg)"></div>
+<div class="conf" style="left:1238px;top:120px;background:#2E7FC4;transform:rotate(-30deg)"></div>
+<div class="conf" style="left:1200px;top:30px;background:#C8692F;transform:rotate(60deg)"></div>
+<div class="conf" style="left:395px;top:300px;background:#3F7A52;transform:rotate(-15deg)"></div>
+<div class="conf" style="left:30px;top:420px;background:#2E7FC4;transform:rotate(40deg)"></div>
+<div class="conf" style="left:350px;top:520px;background:#FFD23F;transform:rotate(-50deg)"></div>
+<div class="conf" style="left:1250px;top:380px;background:#FFD23F;transform:rotate(15deg)"></div>
+</body></html>
