@@ -1,8 +1,14 @@
 # Pip — Project Brief
 
 > **Corrections since rev 3 (2026-10-16).** The mascot and product are named **Pip** (owner decision 2026-10-16; "Pippi" was used 2026-10-13 to 10-16). Harbour Lights' blue is **#2E7FC4**, not #5AA9E6. For what is actually built, see `README.md`; for what is decided, `docs/OPEN_QUESTIONS.md`.
+>
+> **Planned vs built (2026-10-26).** This brief is the plan written at the start. As built: hosting is **Azure App
+> Service** (Free F1, France Central), not Static Web Apps (not offered in the regions this subscription may use);
+> rooms use **HTTP polling** on that server, not Web PubSub; there is **no database** (rooms live in server memory and
+> recover after a restart); the content workflow is a template writer plus a code checker, with an AI writer trialled
+> on **Foundry Local** only. Azure OpenAI, Microsoft Agent Framework and Cosmos DB are not used.
 
-**Repository:** https://github.com/ndinh02/pippi-the-companion
+**Repository:** https://github.com/ndinh02/pip-the-companion
 **Owner:** Nhi Ngoc Uyen Dinh (Macaroonie), solo entrant, UX/UI designer, building with AI coding assistants
 **Hackathon:** Microsoft Innovation Studio — "Inside the Game" Developer Hackathon
 **Challenge:** The Synthetic Match Insights Engine for Premier League Studio
