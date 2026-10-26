@@ -10,9 +10,11 @@ on:
 permissions:
   contents: read
 
+# Pinned to Ubuntu 24.04: from 2026-10 `ubuntu-latest` is 26.04, which has no Python 3.9 (the code targets 3.9).
+
 jobs:
   python:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -49,7 +51,7 @@ jobs:
           done
 
   web:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -81,7 +83,7 @@ jobs:
 
   determinism:
     # Diagnostic, never blocks: is seed 43 the same match twice on Linux? Findings appear as warnings on the run page.
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
@@ -97,7 +99,7 @@ jobs:
     # regions this Azure for Students subscription may use (docs/OPEN_QUESTIONS.md).
     needs: [web, python]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       PUBLISH_PROFILE: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
       APP_NAME: ${{ vars.AZURE_WEBAPP_NAME }}
