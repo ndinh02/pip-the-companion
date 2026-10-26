@@ -8,5 +8,6 @@ __pycache__/
 .env.*
 *.log
 
-# Demo video renders: uploaded to YouTube, too big for the repo
+# Demo video renders: only the chosen cut is hosted in the repo (the form allows GitHub for assets)
 docs/submission/video/*.mp4
+!docs/submission/video/pip-demo.mp4

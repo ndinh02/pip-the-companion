@@ -4,7 +4,8 @@ Files in this folder:
 
 | File | What it is |
 |---|---|
-| `pip-demo.mp4` | Narrated version (macOS `say`, voice "Samantha"), 1920×1080, H.264 High, 30 fps, AAC. 1:54.7 |
+| `pip-demo.mp4` | Narrated version: open-source voice Kokoro-82M ("af_heart", Apache 2.0, run locally) over a quiet music bed that ducks under the voice. 1920×1080, H.264 High, 30 fps, AAC, −16 LUFS. 1:54.8 |
+| `pip-demo-music-only.mp4` | The same picture with the music bed only, no voice (captions carry the story). 1:54.8 |
 | `pip-demo-captions-only.mp4` | The same picture with a silent audio track. 1:54.8 |
 | `cover.png` / `cover-1280.png` | Project image (1920×1080 / 1280×720): real TV and phone screenshots, "Pip", tagline |
 | `stills/*.png` | Key moments for the project page (TV and phone side by side, plus a few phone-only shots and the /console trace) |
@@ -13,7 +14,11 @@ All footage is the real app. It was built with `npm run build` and served by `we
 room server was real too. One browser page ran as the TV (1280×720) and a second, separate page ran as a phone (390×844,
 mobile, touch). Both were driven live and screen-recorded at the same time. The edit cuts dead time and speeds up a few
 stretches (marked ×N below). No UI state was mocked. The title, "under the hood" and closing cards are made for the
-video, and the closing card says so in its own words. Music: none.
+video, and the closing card says so in its own words.
+
+Audio: the voice is Kokoro-82M (Apache 2.0 model weights, generated offline on this Mac). The music is our own: a short
+Python script synthesises it note by note (pad, plucked arpeggio, soft beat), with no samples or third-party tracks, so
+there is no copyrighted music.
 
 All app shots come from one continuous session (room AV3S, "The Living Room Terrace"), in the order shown. Between the
 moments, the TV's **Next moment** button and, after the 23' free kick, **More → Full match** were used so the match
@@ -66,16 +71,11 @@ Read calmly. Each line has to finish before the next timecode. Total speaking ti
 To swap in your own voice: record one file, then mix it under the captions-only video, for example
 `ffmpeg -i pip-demo-captions-only.mp4 -i my-voice.wav -map 0:v -map 1:a -c:v copy -c:a aac -shortest pip-demo-myvoice.mp4`.
 
-## Uploading to YouTube (the rules need a public URL)
+## Where the video is hosted
 
-1. Go to studio.youtube.com, choose **Create → Upload videos**, and pick `pip-demo.mp4` (or the captions-only file if
-   you prefer no voice).
-2. Title: `Pip: watch together, call it together (Inside the Game hackathon demo)`. Description: paste the elevator
-   pitch from `docs/submission/PITCH.md`, then the live app and repo links.
-3. Audience: **No, it's not made for kids**.
-4. Optional: upload `cover.png` as the thumbnail (needs a verified account).
-5. Visibility: **Public**. *Unlisted is not enough.* Publish.
-6. Copy the link (`https://youtu.be/...`). YouTube may show "processing" for a few minutes; HD appears after that.
-7. Put the link in two places: the Innovation Studio project page (the Image/Video field, added after saving), and
-   `docs/submission/PROJECT_PAGE.md`, where the Links section has `Demo video: <VIDEO_URL>`.
-8. Open the link in a private window to check it plays for someone who is not signed in.
+The chosen cut, `pip-demo.mp4` (Kokoro voice + music), is committed to the repository; the submission form allows
+GitHub for all assets. Link: https://github.com/ndinh02/pip-the-companion/blob/main/docs/submission/video/pip-demo.mp4
+(it plays in the browser). The music-only and captions-only cuts stay local and are not committed.
+
+A YouTube upload is optional. If you want one: upload `pip-demo.mp4` as **Public**, with `youtube-thumbnail.png` as
+the thumbnail, title `Pip: watch together, call it together (Inside the Game hackathon demo)`.
