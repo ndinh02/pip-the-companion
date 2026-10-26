@@ -10,8 +10,8 @@ export const GLOSSARY: Record<string, { term: I18n; meaning: I18n }> = {
     term: { en: "Corner kick", de: "Eckstoß", vi: "Phạt góc" },
     meaning: {
       en: "When a defender sends the ball out over their own goal line, the attackers restart from the corner of the pitch.",
-      de: "Schlägt ein Verteidiger den Ball über die eigene Torlinie ins Aus, startet der Angriff von der Ecke des Spielfelds neu.",
-      vi: "Khi hậu vệ đưa bóng ra ngoài đường biên ngang của chính mình, đội tấn công được đá bóng từ góc sân.",
+      de: "Spielt ein Verteidiger den Ball über die eigene Torlinie ins Aus, geht es für die Angreifer mit einer Ecke von der Eckfahne weiter.",
+      vi: "Khi hậu vệ đưa bóng ra ngoài đường biên ngang phần sân nhà, đội tấn công được đá bóng từ góc sân.",
     },
   },
   free_kick: {
@@ -31,11 +31,11 @@ export const GLOSSARY: Record<string, { term: I18n; meaning: I18n }> = {
     },
   },
   substitution: {
-    term: { en: "Substitution", de: "Einwechslung", vi: "Thay người" },
+    term: { en: "Substitution", de: "Spielerwechsel", vi: "Thay người" },
     meaning: {
       en: "A coach swaps a tired or tactically unsuited player for a fresh one from the bench.",
-      de: "Der Trainer ersetzt einen müden oder taktisch ungeeigneten Spieler durch einen frischen von der Bank.",
-      vi: "Huấn luyện viên đổi một cầu thủ mệt hoặc không còn phù hợp chiến thuật bằng người mới từ ghế dự bị.",
+      de: "Der Trainer ersetzt einen müden Spieler oder wechselt aus taktischen Gründen einen frischen Spieler von der Bank ein.",
+      vi: "Huấn luyện viên thay một cầu thủ đã mệt, hoặc vì lý do chiến thuật, bằng người mới từ ghế dự bị.",
     },
   },
 };

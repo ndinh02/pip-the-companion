@@ -12,18 +12,18 @@ export const STAT_LABEL = {
   distance: { en: "Distance", de: "Strecke", vi: "Quãng đường" },
   topSpeed: { en: "Top speed", de: "Spitzentempo", vi: "Tốc độ tối đa" },
   sprints: { en: "Sprints", de: "Sprints", vi: "Nước rút" },
-  passes: { en: "Passes completed", de: "Pässe angekommen", vi: "Chuyền thành công" },
-  hardPasses: { en: "Hard passes completed", de: "Schwere Pässe angekommen", vi: "Đường chuyền khó thành công" },
+  passes: { en: "Passes completed", de: "Angekommene Pässe", vi: "Chuyền thành công" },
+  hardPasses: { en: "Hard passes completed", de: "Angekommene schwere Pässe", vi: "Đường chuyền khó thành công" },
   ballWins: { en: "Ball wins", de: "Balleroberungen", vi: "Giành bóng" },
   shots: { en: "Shots", de: "Schüsse", vi: "Cú sút" },
-  saves: { en: "Saves", de: "Paraden", vi: "Cú cản phá" },
+  saves: { en: "Saves", de: "Paraden", vi: "Cứu thua" },
   goals: { en: "Goals", de: "Tore", vi: "Bàn thắng" },
 } satisfies Record<string, Record<Lang, string>>;
 
 export const STATUS = {
   starter: { en: "Started the match", de: "Von Beginn an dabei", vi: "Đá chính" },
-  cameOn: { en: "Came on at", de: "Eingewechselt in der", vi: "Vào sân phút" },
-  wentOff: { en: "Went off at", de: "Ausgewechselt in der", vi: "Rời sân phút" },
+  cameOn: { en: "Came on at", de: "Eingewechselt", vi: "Vào sân" },
+  wentOff: { en: "Went off at", de: "Ausgewechselt", vi: "Rời sân" },
   bench: { en: "On the bench so far", de: "Bisher auf der Bank", vi: "Đang ngồi dự bị" },
 } satisfies Record<string, Record<Lang, string>>;
 
@@ -64,18 +64,18 @@ const SENTENCES: Record<string, Record<Lang, string>> = {
   },
   passer: {
     en: "Number {n} has completed the most passes for {team} so far: {v}.",
-    de: "Nummer {n} hat bisher die meisten Pässe für {team} gespielt, die ankamen: {v}.",
+    de: "Nummer {n} hat bisher die meisten angekommenen Pässe für {team}: {v}.",
     vi: "Số {n} đến giờ có nhiều đường chuyền thành công nhất của {team}: {v}.",
   },
   fastest: {
     en: "Number {n} is the fastest player so far: {v} km/h at top speed.",
     de: "Nummer {n} ist bisher der schnellste Spieler: {v} km/h Spitzentempo.",
-    vi: "Số {n} đến giờ là cầu thủ nhanh nhất: {v} km/h ở tốc độ tối đa.",
+    vi: "Số {n} đến giờ là cầu thủ nhanh nhất: tốc độ tối đa {v} km/h.",
   },
   ground: {
     en: "Number {n} has covered the most ground for {team} so far: {v} km.",
     de: "Nummer {n} ist bisher am meisten für {team} gelaufen: {v} km.",
-    vi: "Số {n} đến giờ chạy nhiều nhất của {team}: {v} km.",
+    vi: "Số {n} đến giờ là người chạy nhiều nhất của {team}: {v} km.",
   },
   winner: {
     en: "Number {n} has won the ball back the most often for {team} so far: {v} times.",
@@ -94,7 +94,7 @@ const SENTENCES: Record<string, Record<Lang, string>> = {
   },
   FW: {
     en: "Number {n}, a forward: the player closest to goal, whose job is to score and to create chances.",
-    de: "Nummer {n}, ein Stürmer: der Spieler am nächsten zum Tor, der trifft und Chancen vorbereitet.",
+    de: "Nummer {n}, ein Stürmer: spielt am nächsten am Tor und soll treffen und Chancen vorbereiten.",
     vi: "Số {n}, tiền đạo: cầu thủ gần khung thành nhất, có nhiệm vụ ghi bàn và tạo cơ hội.",
   },
   bench: {
@@ -183,7 +183,7 @@ const NOTE = {
   wentOff: { en: "Went off", de: "Ausgewechselt", vi: "Rời sân" },
   goal: { en: "Scored", de: "Tor erzielt", vi: "Ghi bàn" },
   firstShot: { en: "First shot of their match", de: "Erster Schuss im Spiel", vi: "Cú sút đầu tiên trong trận" },
-  topSpeed: { en: "Top speed so far: {v} km/h", de: "Bisheriges Spitzentempo: {v} km/h", vi: "Tốc độ cao nhất đến giờ: {v} km/h" },
+  topSpeed: { en: "Top speed so far: {v} km/h", de: "Bisheriges Spitzentempo: {v} km/h", vi: "Tốc độ tối đa đến giờ: {v} km/h" },
   ballWins: { en: "{v} ball wins so far", de: "Bisher {v} Balleroberungen", vi: "Đã giành lại bóng {v} lần" },
 } satisfies Record<string, Record<Lang, string>>;
 

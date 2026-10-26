@@ -1,6 +1,6 @@
 # The Free App Service plan sleeps after ~20 minutes without visitors, and waking it takes ~40 s.
 # This pings the health check every 10 minutes so judges get a fast first load. It stops by itself after the
-# judging window (AGENTS.md: keep the hosted demo working until 2026-11-10). GitHub may delay scheduled runs.
+# judging window: winners are announced 2026-11-20 (AGENTS.md asks for at least 2026-11-10). GitHub may delay scheduled runs.
 name: keep-awake
 
 on:
@@ -19,5 +19,5 @@ jobs:
         env:
           SITE: https://pip-the-companion-cjcdawd7gmf8f9h2.francecentral-01.azurewebsites.net
         run: |
-          if [ "$(date -u +%Y%m%d)" -gt 20261111 ]; then echo "Judging window over; not pinging."; exit 0; fi
+          if [ "$(date -u +%Y%m%d)" -gt 20261121 ]; then echo "Judging window over; not pinging."; exit 0; fi
           curl --silent --show-error --fail --retry 3 --retry-delay 10 --max-time 90 "$SITE/healthz"

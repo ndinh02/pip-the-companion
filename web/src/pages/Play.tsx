@@ -542,6 +542,8 @@ function Conversation({ match, state, saved, lang, minute, half, inRoom, onInvit
   const goals = match.score_timeline.filter((g) => g.player_id && g.from_min <= minute);
   type Item = { min: number; key: string; node: ReactNode };
   const items: Item[] = [{ min: -1, key: "ko", node: <div className="q-sys">{ui("cvKickoff", lang)}</div> }];
+  // A late joiner sees where they came in; everything above this line is what they missed.
+  if (saved.joinedAt > 1) items.push({ min: saved.joinedAt - 0.001, key: "joined", node: <div className="q-sys joined">{fmt(ui("cvJoined", lang), { min: `${saved.joinedAt}'` })}</div> });
   for (const g of goals) {
     const team = match.teams.find((x) => x.team_id === g.team_id);
     items.push({

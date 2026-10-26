@@ -33,7 +33,9 @@ const SECURITY_HEADERS = {
   "X-Content-Type-Options": "nosniff",
   "X-Frame-Options": "DENY",
   "Referrer-Policy": "no-referrer",
-  "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+  // camera=(self): the phone's Scan screen reads the TV's QR on this site only (frames never leave the phone);
+  // every other device feature stays off.
+  "Permissions-Policy": "camera=(self), microphone=(), geolocation=(), payment=(), usb=()",
   "Cross-Origin-Opener-Policy": "same-origin",
   "Strict-Transport-Security": "max-age=31536000",
 };

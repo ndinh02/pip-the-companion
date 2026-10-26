@@ -841,3 +841,4 @@ a { color: var(--sky); }
 .q-recap summary::-webkit-details-marker { display: none; }
 .q-recap .q-callrow { font-size: 15px; padding-top: 8px; border-top: 1px solid var(--q-line); }
 .q-right { color: var(--q-right); font-weight: 800; }
+.q-sys.joined { background: transparent; border: 1px dashed var(--q-muted); color: var(--q-muted); }

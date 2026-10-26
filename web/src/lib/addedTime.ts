@@ -5,7 +5,7 @@ export const STOP_LABEL: Record<string, Record<Lang, string>> = {
   goal: { en: "Goals", de: "Tore", vi: "Bàn thắng" },
   sub: { en: "Substitutions", de: "Wechsel", vi: "Thay người" },
   injury: { en: "Injuries", de: "Verletzungen", vi: "Chấn thương" },
-  VAR: { en: "VAR checks", de: "VAR-Prüfungen", vi: "Kiểm tra VAR" },
+  VAR: { en: "VAR checks", de: "VAR-Checks", vi: "Kiểm tra VAR" },
   card: { en: "Cards", de: "Karten", vi: "Thẻ phạt" },
   other: { en: "Other", de: "Sonstiges", vi: "Khác" },
 };

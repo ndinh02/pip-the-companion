@@ -53,9 +53,10 @@ def check_card(card: Dict[str, Any], facts: Dict[str, Dict[str, Any]], truth: Di
     errors.extend(copycheck.check_copy({"facts": facts, "cards": [card]}))
     # 3. shape: the card format a broadcast graphics partner would receive
     errors.extend("schema: " + e for e in schemacheck.validate_card(card))
-    # 4. truth of the reveal: the plain English line must name the match's actual answer
+    # 4. truth of the reveal: the plain English line must name the match's actual answer. A void card ("no clear
+    #    answer", task 11) has no answer by design: its plain line says what really happened instead.
     words = ANSWER_WORDS.get(card["reveal"]["answer"], [card["reveal"]["answer"]])
-    if not any(re.search(r"\b%s" % w, card["reveal"]["plain"]["en"], re.IGNORECASE) for w in words):
+    if not card["reveal"].get("void") and not any(re.search(r"\b%s" % w, card["reveal"]["plain"]["en"], re.IGNORECASE) for w in words):
         errors.append('plain line does not say what happened (expected one of: %s)' % ", ".join(words))
     # 5. no numbers in words, no grading, the right VAR decision (English lines)
     for part in ("plain", "expert"):

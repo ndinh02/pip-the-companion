@@ -28,7 +28,7 @@
      "id": "near",
      "label": {
       "en": "Near post",
-      "de": "Nahpfosten",
+      "de": "Erster Pfosten",
       "vi": "Cột gần"
      }
     },
@@ -36,7 +36,7 @@
      "id": "far",
      "label": {
       "en": "Far post",
-      "de": "Fernpfosten",
+      "de": "Zweiter Pfosten",
       "vi": "Cột xa"
      }
     },
@@ -45,7 +45,7 @@
      "label": {
       "en": "Short",
       "de": "Kurz",
-      "vi": "Ngắn"
+      "vi": "Đá ngắn"
      }
     },
     {
@@ -63,7 +63,7 @@
     "plain": [
      {
       "en": "Short! <team> passed to a teammate nearby instead of crossing.",
-      "de": "Kurz! <team> spielte zu einem nahen Mitspieler, statt zu flanken.",
+      "de": "Kurz! <team> passte zu einem Mitspieler in der Nähe, statt zu flanken.",
       "vi": "Đá ngắn! <team> chuyền cho đồng đội đứng gần thay vì tạt bóng."
      },
      {
@@ -74,13 +74,13 @@
      {
       "en": "Short! The ball stayed near the corner flag as <team> built the move from there.",
       "de": "Kurz! Der Ball blieb nahe der Eckfahne, <team> baute den Angriff von dort auf.",
-      "vi": "Chuyền ngắn! Bóng ở lại gần cờ góc, <team> triển khai pha bóng từ đó."
+      "vi": "Phạt góc ngắn! Bóng ở lại gần cờ góc, <team> triển khai pha bóng từ đó."
      }
     ],
     "expert": {
      "en": "<team> have played {corners_short} of their {corners_total} corners short today. The league average is about {league_short_share_pct}%.",
      "de": "<team> hat heute {corners_short} von {corners_total} Ecken kurz gespielt. Der Ligaschnitt liegt bei etwa {league_short_share_pct} %.",
-     "vi": "Hôm nay <team> đã đá ngắn {corners_short}/{corners_total} quả phạt góc. Trung bình giải khoảng {league_short_share_pct}%."
+     "vi": "Hôm nay <team> đã đá ngắn {corners_short}/{corners_total} quả phạt góc. Trung bình toàn giải là khoảng {league_short_share_pct}%."
     },
     "fact_ids": [
      "corners_short",
@@ -92,24 +92,24 @@
     "plain": [
      {
       "en": "Near post! The ball was crossed to the post closest to the corner flag.",
-      "de": "Nahpfosten! Der Ball kam auf den Pfosten, der der Eckfahne am nächsten ist.",
+      "de": "Erster Pfosten! Der Ball kam an den Pfosten, der der Eckfahne am nächsten ist.",
       "vi": "Cột gần! Bóng được treo vào cột gần cờ góc nhất."
      },
      {
       "en": "Near post! <team> aimed for the post closest to the corner.",
-      "de": "Nahpfosten! <team> zielte auf den Pfosten, der der Ecke am nächsten ist.",
+      "de": "Erster Pfosten! <team> zielte auf den Pfosten nahe der Ecke.",
       "vi": "Cột gần! <team> nhắm vào cột gần góc phạt nhất."
      },
      {
       "en": "Near post it is! The delivery landed in front of the post nearest the taker.",
-      "de": "Es ist der Nahpfosten! Die Hereingabe landete vor dem Pfosten, der dem Schützen am nächsten ist.",
-      "vi": "Là cột gần! Quả tạt rơi trước cột gần người đá nhất."
+      "de": "Erster Pfosten also! Die Hereingabe landete vor dem Pfosten, der dem Schützen am nächsten ist.",
+      "vi": "Cột gần đấy! Quả tạt rơi trước cột gần người đá nhất."
      }
     ],
     "expert": {
      "en": "<team> have played {corners_short} of their {corners_total} corners short today. The league average is about {league_short_share_pct}%.",
      "de": "<team> hat heute {corners_short} von {corners_total} Ecken kurz gespielt. Der Ligaschnitt liegt bei etwa {league_short_share_pct} %.",
-     "vi": "Hôm nay <team> đã đá ngắn {corners_short}/{corners_total} quả phạt góc. Trung bình giải khoảng {league_short_share_pct}%."
+     "vi": "Hôm nay <team> đã đá ngắn {corners_short}/{corners_total} quả phạt góc. Trung bình toàn giải là khoảng {league_short_share_pct}%."
     },
     "fact_ids": [
      "corners_short",
@@ -121,24 +121,24 @@
     "plain": [
      {
       "en": "Far post! The ball sailed across to the post furthest from the corner flag.",
-      "de": "Fernpfosten! Der Ball flog zum Pfosten, der am weitesten von der Eckfahne entfernt ist.",
+      "de": "Zweiter Pfosten! Der Ball flog zum Pfosten, der am weitesten von der Eckfahne entfernt ist.",
       "vi": "Cột xa! Bóng bay sang cột xa cờ góc nhất."
      },
      {
       "en": "Far post! <team> sent it all the way across the box.",
-      "de": "Fernpfosten! <team> schlug ihn quer durch den Strafraum.",
+      "de": "Zweiter Pfosten! <team> schlug den Ball quer durch den Strafraum.",
       "vi": "Cột xa! <team> treo bóng chéo qua cả vòng cấm."
      },
      {
       "en": "Far post it is! The delivery travelled past the near post to the other side.",
-      "de": "Es ist der Fernpfosten! Die Hereingabe flog am nahen Pfosten vorbei auf die andere Seite.",
-      "vi": "Là cột xa! Quả tạt bay qua cột gần sang phía bên kia."
+      "de": "Zweiter Pfosten also! Die Hereingabe flog am ersten Pfosten vorbei auf die andere Seite.",
+      "vi": "Cột xa đấy! Quả tạt bay qua cột gần sang phía bên kia."
      }
     ],
     "expert": {
      "en": "<team> have played {corners_short} of their {corners_total} corners short today. The league average is about {league_short_share_pct}%.",
      "de": "<team> hat heute {corners_short} von {corners_total} Ecken kurz gespielt. Der Ligaschnitt liegt bei etwa {league_short_share_pct} %.",
-     "vi": "Hôm nay <team> đã đá ngắn {corners_short}/{corners_total} quả phạt góc. Trung bình giải khoảng {league_short_share_pct}%."
+     "vi": "Hôm nay <team> đã đá ngắn {corners_short}/{corners_total} quả phạt góc. Trung bình toàn giải là khoảng {league_short_share_pct}%."
     },
     "fact_ids": [
      "corners_short",
@@ -151,7 +151,7 @@
      {
       "en": "Middle! <team> aimed the corner at the space in front of goal.",
       "de": "Mitte! <team> zielte mit der Ecke auf den Raum vor dem Tor.",
-      "vi": "Giữa! <team> đưa quả phạt góc vào khoảng trống trước khung thành."
+      "vi": "Khu giữa! <team> đưa quả phạt góc vào khoảng trống trước khung thành."
      },
      {
       "en": "Into the middle! The delivery dropped between the posts, around the penalty spot.",
@@ -162,7 +162,7 @@
     "expert": {
      "en": "<team> have played {corners_short} of their {corners_total} corners short today. The league average is about {league_short_share_pct}%.",
      "de": "<team> hat heute {corners_short} von {corners_total} Ecken kurz gespielt. Der Ligaschnitt liegt bei etwa {league_short_share_pct} %.",
-     "vi": "Hôm nay <team> đã đá ngắn {corners_short}/{corners_total} quả phạt góc. Trung bình giải khoảng {league_short_share_pct}%."
+     "vi": "Hôm nay <team> đã đá ngắn {corners_short}/{corners_total} quả phạt góc. Trung bình toàn giải là khoảng {league_short_share_pct}%."
     },
     "fact_ids": [
      "corners_short",
@@ -175,18 +175,18 @@
      {
       "en": "The defence headed it away before it reached anyone.",
       "de": "Die Abwehr köpfte den Ball weg, bevor er jemanden erreichte.",
-      "vi": "Hàng thủ đánh đầu đẩy bóng đi trước khi nó tới được ai."
+      "vi": "Hàng thủ đánh đầu phá bóng trước khi nó tới chân ai."
      },
      {
-      "en": "The ball touched a defender out of play, so the corner was taken again.",
+      "en": "The ball touched a defender out of play, so the corner was retaken.",
       "de": "Der Ball ging über einen Abwehrspieler ins Aus, und die Ecke wurde neu getreten.",
       "vi": "Bóng chạm hậu vệ rồi ra ngoài, nên quả phạt góc được đá lại."
      }
     ],
     "expert": {
-     "en": "No delivery reached a zone: a defender cleared it from inside the six-yard box, or the corner was taken again.",
-     "de": "Keine Hereingabe erreichte eine Zone: Ein Verteidiger klärte aus dem Torraum, oder die Ecke wurde neu getreten.",
-     "vi": "Không quả tạt nào tới được khu vực: hậu vệ phá bóng từ trong khu vòng cấm nhỏ, hoặc quả phạt góc được đá lại."
+     "en": "No delivery reached a zone: a defender cleared it from inside the six-yard box, or the corner was retaken.",
+     "de": "Die Hereingabe erreichte keine der Zonen: Ein Verteidiger klärte im Torraum, oder die Ecke wurde neu getreten.",
+     "vi": "Quả tạt không tới được khu vực nào: hậu vệ phá bóng ngay trong vòng cấm nhỏ, hoặc quả phạt góc được đá lại."
     },
     "fact_ids": []
    }
@@ -202,7 +202,7 @@
     },
     {
      "en": "Free kick for <team>. What will they try?",
-     "de": "Freistoß für <team>. Was probieren sie?",
+     "de": "Freistoß für <team>. Was haben sie vor?",
      "vi": "Đá phạt cho <team>. Họ sẽ thử gì?"
     },
     {
@@ -235,7 +235,7 @@
      "label": {
       "en": "Cross",
       "de": "Flanke",
-      "vi": "Tạt"
+      "vi": "Tạt bóng"
      }
     },
     {
@@ -292,7 +292,7 @@
      {
       "en": "Shot! <team> went straight for goal.",
       "de": "Schuss! <team> ging direkt aufs Tor.",
-      "vi": "Sút! <team> sút thẳng vào khung thành."
+      "vi": "Sút! <team> dứt điểm thẳng vào khung thành."
      },
      {
       "en": "A direct shot! <team> tried to beat the goalkeeper from the free kick.",
@@ -312,7 +312,7 @@
      {
       "en": "Shot! <team> had a go at goal from the free kick.",
       "de": "Schuss! <team> versuchte es mit dem Freistoß direkt aufs Tor.",
-      "vi": "Sút! <team> thử vận may vào khung thành từ quả đá phạt."
+      "vi": "Sút! <team> thử dứt điểm từ quả đá phạt."
      }
     ],
     "expert": {
@@ -367,19 +367,19 @@
     "plain": [
      {
       "en": "Play stopped before the ball reached anyone, so there was no result to check.",
-      "de": "Das Spiel wurde gestoppt, bevor der Ball jemanden erreichte, also gab es kein Ergebnis.",
+      "de": "Das Spiel wurde gestoppt, bevor der Ball jemanden erreichte, also gibt es nichts zu prüfen.",
       "vi": "Trận đấu dừng lại trước khi bóng tới được ai, nên không có kết quả để kiểm tra."
      },
      {
-      "en": "The free kick was taken again, so the first kick does not count.",
+      "en": "The free kick was retaken, so the first kick does not count.",
       "de": "Der Freistoß wurde neu ausgeführt, der erste Versuch zählt deshalb nicht.",
       "vi": "Quả đá phạt được đá lại, nên lần đầu không được tính."
      }
     ],
     "expert": {
-     "en": "The free kick never reached an option: it was taken again, or play stopped before the ball got anywhere.",
-     "de": "Der Freistoß erreichte keine Option: Er wurde neu ausgeführt, oder das Spiel wurde vorher gestoppt.",
-     "vi": "Quả đá phạt không tới được lựa chọn nào: được đá lại, hoặc trận đấu dừng trước khi bóng đi xa."
+     "en": "The free kick never reached an option: it was retaken, or play stopped before the ball got anywhere.",
+     "de": "Der Freistoß passte zu keiner Antwort: Er wurde neu ausgeführt, oder das Spiel wurde vorher gestoppt.",
+     "vi": "Quả đá phạt không khớp với lựa chọn nào: được đá lại, hoặc trận đấu dừng trước khi bóng đi xa."
     },
     "fact_ids": []
    }
@@ -395,8 +395,8 @@
     },
     {
      "en": "A substitution for <team>. What does it mean?",
-     "de": "Wechsel bei <team>. Was bedeutet er?",
-     "vi": "<team> thay người. Điều đó có nghĩa là gì?"
+     "de": "Wechsel bei <team>. Was heißt das?",
+     "vi": "Thay người bên phía <team>. Điều đó có ý nghĩa gì?"
     },
     {
      "en": "<team> send a player on. What are they after?",
@@ -411,7 +411,7 @@
     {
      "en": "<team> shake things up with a change. What's the thinking?",
      "de": "<team> bringt mit einem Wechsel Bewegung ins Spiel. Was steckt dahinter?",
-     "vi": "<team> thay người để tạo thay đổi. Họ nghĩ gì?"
+     "vi": "<team> thay người để làm mới lối chơi. Họ tính gì đây?"
     }
    ],
    "options": [
@@ -419,7 +419,7 @@
      "id": "attack",
      "label": {
       "en": "Attack",
-      "de": "Angreifen",
+      "de": "Offensive",
       "vi": "Tấn công"
      }
     },
@@ -427,7 +427,7 @@
      "id": "defend",
      "label": {
       "en": "Defend",
-      "de": "Verteidigen",
+      "de": "Defensive",
       "vi": "Phòng ngự"
      }
     },
@@ -436,7 +436,7 @@
      "label": {
       "en": "Fresh legs",
       "de": "Frische Beine",
-      "vi": "Thêm sức"
+      "vi": "Tiếp sức"
      }
     }
    ]
@@ -446,12 +446,12 @@
     "plain": [
      {
       "en": "Attack! A forward comes on, so <team> add more attacking options.",
-      "de": "Angreifen! Ein Stürmer kommt, also hat <team> mehr Optionen im Angriff.",
+      "de": "Offensive! Ein Stürmer kommt, also hat <team> mehr Optionen im Angriff.",
       "vi": "Tấn công! Một tiền đạo vào sân, nên <team> có thêm lựa chọn tấn công."
      },
      {
       "en": "Attack! A forward joins in, so <team> look to create more chances.",
-      "de": "Angreifen! Ein Stürmer kommt, <team> will mehr Chancen herausspielen.",
+      "de": "Offensive! Ein Stürmer kommt, <team> will mehr Chancen herausspielen.",
       "vi": "Tấn công! Một tiền đạo vào sân, <team> muốn tạo thêm cơ hội."
      },
      {
@@ -474,18 +474,18 @@
     "plain": [
      {
       "en": "Defend! A defender comes on, so <team> add cover at the back.",
-      "de": "Verteidigen! Ein Verteidiger kommt, also hat <team> mehr Absicherung hinten.",
-      "vi": "Phòng ngự! Một hậu vệ vào sân, nên <team> chắc chắn hơn ở phía sau."
+      "de": "Defensive! Ein Verteidiger kommt, also hat <team> hinten mehr Absicherung.",
+      "vi": "Phòng ngự! Một hậu vệ vào sân, nên <team> chắc chắn hơn ở hàng thủ."
      },
      {
       "en": "Defend! A defender is on, so <team> strengthen the back line.",
-      "de": "Verteidigen! Ein Verteidiger ist drin, <team> stärkt die Abwehrreihe.",
+      "de": "Defensive! Ein Verteidiger kommt rein, <team> stärkt die Abwehrreihe.",
       "vi": "Phòng ngự! Một hậu vệ vào sân, <team> củng cố hàng thủ."
      },
      {
       "en": "Safety first! <team> brought on a defender for more cover.",
       "de": "Sicherheit zuerst! <team> brachte einen Verteidiger für mehr Absicherung.",
-      "vi": "An toàn trước! <team> đưa một hậu vệ vào để chắc chắn hơn."
+      "vi": "An toàn là trên hết! <team> đưa một hậu vệ vào để chắc chắn hơn."
      }
     ],
     "expert": {
@@ -503,12 +503,12 @@
      {
       "en": "Fresh legs! A midfielder comes on to keep the energy up.",
       "de": "Frische Beine! Ein Mittelfeldspieler kommt, damit die Energie hoch bleibt.",
-      "vi": "Thêm sức! Một tiền vệ vào sân để giữ nhịp độ."
+      "vi": "Tiếp sức! Một tiền vệ vào sân để giữ nhịp độ."
      },
      {
       "en": "Fresh legs! A midfielder joins, so <team> keep the middle of the pitch busy.",
       "de": "Frische Beine! Ein Mittelfeldspieler kommt, <team> hält die Mitte des Feldes besetzt.",
-      "vi": "Thêm sức! Một tiền vệ vào sân, <team> giữ cho khu giữa sân luôn sôi động."
+      "vi": "Tiếp sức! Một tiền vệ vào sân, <team> giữ cho khu giữa sân luôn sôi động."
      },
      {
       "en": "New energy! <team> brought on a midfielder to keep the tempo.",
@@ -535,8 +535,8 @@
    "text": [
     {
      "en": "VAR is checking. What are they looking at?",
-     "de": "Der VAR prüft. Was wird geprüft?",
-     "vi": "VAR đang kiểm tra. Họ xem điều gì?"
+     "de": "Der VAR prüft. Worum geht es?",
+     "vi": "VAR đang kiểm tra. Họ đang xem tình huống gì?"
     },
     {
      "en": "The video referee steps in. What's being checked?",
@@ -577,17 +577,17 @@
      {
       "en": "Offside. The attacker was ahead of the last defender when the pass was played. The goal is ruled out.",
       "de": "Abseits. Der Angreifer stand beim Pass vor dem letzten Verteidiger. Das Tor zählt nicht.",
-      "vi": "Việt vị. Lúc đường chuyền được thực hiện, tiền đạo đứng trước hậu vệ cuối cùng. Bàn thắng bị hủy."
+      "vi": "Việt vị. Lúc đường chuyền được thực hiện, cầu thủ tấn công đứng trước hậu vệ cuối cùng. Bàn thắng bị hủy."
      },
      {
       "en": "Offside! The attacker was in front of the last defender at the moment of the pass, so no goal.",
       "de": "Abseits! Der Angreifer stand beim Pass vor dem letzten Verteidiger, also kein Tor.",
-      "vi": "Việt vị! Lúc chuyền bóng, tiền đạo đứng trước hậu vệ cuối cùng, nên không có bàn thắng."
+      "vi": "Việt vị! Lúc chuyền bóng, cầu thủ tấn công đứng trước hậu vệ cuối cùng, nên không có bàn thắng."
      }
     ],
     "expert": {
      "en": "Offside by {var_margin_cm} cm, judged on the frame the pass was played.",
-     "de": "Abseits um {var_margin_cm} cm, bewertet im Bild des Passes.",
+     "de": "Abseits um {var_margin_cm} cm, gemessen im Moment der Ballabgabe.",
      "vi": "Việt vị {var_margin_cm} cm, xét theo khung hình lúc chuyền bóng."
     },
     "fact_ids": [
@@ -598,19 +598,19 @@
     "plain": [
      {
       "en": "Offside check. The attacker was level with or behind the last defender, so the goal stands.",
-      "de": "Abseits-Prüfung. Der Angreifer stand auf einer Höhe oder dahinter, das Tor zählt.",
-      "vi": "Kiểm tra việt vị. Tiền đạo ngang hoặc sau hậu vệ cuối cùng, nên bàn thắng được công nhận."
+      "de": "Abseits-Check. Der Angreifer stand auf gleicher Höhe mit dem letzten Verteidiger oder dahinter, das Tor zählt.",
+      "vi": "Kiểm tra việt vị. Cầu thủ tấn công đứng ngang hoặc sau hậu vệ cuối cùng, nên bàn thắng được công nhận."
      },
      {
       "en": "Onside! The attacker was not ahead of the last defender, so the goal counts.",
       "de": "Kein Abseits! Der Angreifer war nicht vor dem letzten Verteidiger, das Tor zählt.",
-      "vi": "Không việt vị! Tiền đạo không đứng trước hậu vệ cuối cùng, nên bàn thắng được công nhận."
+      "vi": "Không việt vị! Cầu thủ tấn công không đứng trước hậu vệ cuối cùng, nên bàn thắng được công nhận."
      }
     ],
     "expert": {
      "en": "Onside by {var_margin_cm} cm, judged on the frame the pass was played.",
-     "de": "Nicht im Abseits, um {var_margin_cm} cm, bewertet im Bild des Passes.",
-     "vi": "Không việt vị {var_margin_cm} cm, xét theo khung hình lúc chuyền bóng."
+     "de": "Kein Abseits, mit {var_margin_cm} cm Luft, gemessen im Moment der Ballabgabe.",
+     "vi": "Không việt vị, còn cách {var_margin_cm} cm, xét theo khung hình lúc chuyền bóng."
     },
     "fact_ids": [
      "var_margin_cm"
@@ -626,7 +626,7 @@
      {
       "en": "A foul! Something in the build-up was not allowed, so the goal is cancelled.",
       "de": "Ein Foul! Im Aufbau war etwas nicht erlaubt, das Tor ist annulliert.",
-      "vi": "Có phạm lỗi! Pha triển khai có điều không được phép, nên bàn thắng bị hủy."
+      "vi": "Có phạm lỗi! Trong pha triển khai có tình huống không hợp lệ, nên bàn thắng bị hủy."
      }
     ],
     "expert": {
@@ -640,12 +640,12 @@
     "plain": [
      {
       "en": "Foul check. No clear foul was found, so the goal stands.",
-      "de": "Foul-Prüfung. Kein klares Foul gefunden, das Tor zählt.",
+      "de": "Foul-Check. Kein klares Foul gefunden, das Tor zählt.",
       "vi": "Kiểm tra phạm lỗi. Không có lỗi rõ ràng, nên bàn thắng được công nhận."
      },
      {
       "en": "No foul! The video referee saw nothing clear, so the goal stands.",
-      "de": "Kein Foul! Der Video-Schiedsrichter sah nichts Klares, das Tor zählt.",
+      "de": "Kein Foul! Der Video-Schiedsrichter sah kein klares Vergehen, das Tor zählt.",
       "vi": "Không phạm lỗi! Trọng tài video không thấy gì rõ ràng, nên bàn thắng được công nhận."
      }
     ],

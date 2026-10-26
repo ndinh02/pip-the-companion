@@ -9,7 +9,7 @@ const FACTS: Record<string, Fact[]> = {
   var: [
     {
       en: "VAR can only step in for four things: goals, penalties, straight red cards and mistaken identity.",
-      de: "Der VAR darf nur bei vier Dingen eingreifen: Tore, Elfmeter, glatte Rote Karten und Verwechslungen.",
+      de: "Der VAR darf nur in vier Fällen eingreifen: bei Toren, Elfmetern, glatten Roten Karten und Spielerverwechslungen.",
       vi: "VAR chỉ can thiệp bốn tình huống: bàn thắng, phạt đền, thẻ đỏ trực tiếp và nhầm người.",
     },
     {
@@ -19,7 +19,7 @@ const FACTS: Record<string, Fact[]> = {
     },
     {
       en: "For handball, the arm starts at the bottom of the armpit. The shoulder doesn't count.",
-      de: "Beim Handspiel beginnt der Arm unten an der Achsel. Die Schulter zählt nicht.",
+      de: "Beim Handspiel zählt der Arm erst ab der Unterkante der Achsel. Die Schulter zählt nicht.",
       vi: "Với lỗi chạm tay, cánh tay tính từ dưới nách trở xuống. Vai thì không tính.",
     },
     {
@@ -42,14 +42,14 @@ const FACTS: Record<string, Fact[]> = {
     {
       en: "Defenders must stand ten yards from the corner arc until the ball is kicked.",
       de: "Verteidiger müssen zehn Yards vom Eckviertelkreis entfernt stehen, bis der Ball gespielt ist.",
-      vi: "Hậu vệ phải đứng cách cung phạt góc mười thước Anh cho tới khi bóng được đá.",
+      vi: "Hậu vệ phải đứng cách cung phạt góc mười yard (hơn chín mét) cho tới khi bóng được đá.",
     },
   ],
   free_kick: [
     {
       en: "The wall must stand ten yards from the ball. The referee's spray line marks the spot.",
-      de: "Die Mauer muss zehn Yards vom Ball entfernt stehen. Die Sprühlinie des Schiedsrichters zeigt die Stelle.",
-      vi: "Hàng rào phải đứng cách bóng mười thước Anh. Vạch sơn xịt của trọng tài đánh dấu chỗ đó.",
+      de: "Die Mauer muss zehn Yards vom Ball entfernt stehen. Die Linie aus dem Freistoßspray markiert die Stelle.",
+      vi: "Hàng rào phải đứng cách bóng mười yard (hơn chín mét). Vạch sơn xịt của trọng tài đánh dấu chỗ đó.",
     },
     {
       en: "Attackers can't stand right next to a wall of three or more defenders.",
