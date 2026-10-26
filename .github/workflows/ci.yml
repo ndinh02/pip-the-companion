@@ -16,9 +16,9 @@ jobs:
   python:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.9" # the code is written for 3.9 (AGENTS.md)
 
@@ -53,9 +53,9 @@ jobs:
   web:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -86,8 +86,8 @@ jobs:
     runs-on: ubuntu-24.04
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.9"
       - name: Run seed 43 several ways and report the first difference
@@ -107,9 +107,9 @@ jobs:
       - name: Deployment skipped
         if: env.PUBLISH_PROFILE == '' || env.APP_NAME == ''
         run: echo "Set the AZURE_WEBAPP_PUBLISH_PROFILE secret and the AZURE_WEBAPP_NAME variable to deploy."
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: env.PUBLISH_PROFILE != '' && env.APP_NAME != ''
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         if: env.PUBLISH_PROFILE != '' && env.APP_NAME != ''
         with:
           node-version: "22"
