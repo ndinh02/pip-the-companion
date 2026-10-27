@@ -1,6 +1,6 @@
 # Pip — next steps
 
-Updated: 2026-10-14  
+Updated: 2026-10-27  
 Purpose: turn the current prototype into a credible, testable hackathon submission before the feature freeze on 2026-10-24.
 
 ## The judge's priority
@@ -34,15 +34,15 @@ A fresh browser can open the public URL, complete the demo without any local sof
 The brief's agent design is strong; it needs one working, inspectable vertical slice. Do not imply an agent exists until it does.
 
 - [x] LLM route: Foundry Local on the owner's Mac (installed 2026-10-16); Azure OpenAI as a later fallback.
-- [ ] Build one bounded content workflow:
+- [x] Build one bounded content workflow (2026-10-27: three recorded runs — reviewed templates, single Foundry Local writer, and a multi-agent run (writer, verifier, editor, translator) where every number is fetched through an MCP server; rejection, retry and template fallback all demonstrated in the traces):
   1. Read only code-computed facts through tools/functions.
   2. Produce one English question and one explanation with `fact_ids` and placeholders.
   3. Run the existing copy/fact/schema checks.
   4. Demonstrate a rejected incorrect claim and template or retry fallback.
   5. Save only approved, pre-generated cards for runtime replay.
-- [ ] Show the trace in `/console`: input facts, fire/hold decision, checker result, and final approved card.
-- [ ] Build the **"Catch me lying"** proof: intentionally corrupt one stat, visibly fail the checker, then restore the checked output. The product must never send the corrupted result to viewers.
-- [ ] Add a small repeatable evaluation set: at least several moments in EN, DE, and VI, with reported numeric-faithfulness, banned-word, schema, and no-repeat results.
+- [x] Show the trace in `/console` (2026-10-27): input facts, fire/hold decision, checker result, final approved card — and a switch between the three recorded runs.
+- [x] Build the **"Catch me lying"** proof (in the templates run): two writers sabotaged on purpose, visibly rejected by the checker, one repaired after feedback, one fallen back; the shipped cards are unchanged.
+- [ ] Add a small repeatable evaluation set: at least several moments in EN, DE, and VI, with reported numeric-faithfulness, banned-word, schema, and no-repeat results. (Per-run checker statistics — first-try passes, retries, fallbacks — are recorded in every trace; a standalone repeatable eval set is still missing.)
 
 ### Definition of done
 
@@ -53,11 +53,11 @@ A judge can watch one generated card travel from checked facts through the bound
 The existing `BroadcastChannel` transport is a good single-device fallback, but it does not connect separate phones.
 
 - [x] Owner chose **polling** (2026-10-16).
-- [ ] Keep `web/src/lib/channel.ts` as the one transport boundary, so the TV and phone screens do not need a redesign.
+- [x] Keep `web/src/lib/channel.ts` as the one transport boundary: hosted rooms go over HTTP polling, the dev fallback over BroadcastChannel — the screens never talk to the transport directly.
 - [x] Minimum messages implemented over polling: join (hello), current state, answer, follow/unfollow.
 - [x] Server-validates room codes, id formats, message size and rate limits; the screen also rejects unknown answer/player ids.
-- [ ] Store only the privacy-approved temporary data. No names, free text, accounts, tracking across matches, or viewer profiles.
-- [ ] Test TV + two physically separate phones on different networks/browsers.
+- [x] Store only the privacy-approved temporary data: rooms live in server memory only — no names, free text, accounts, tracking across matches, or viewer profiles.
+- [ ] Test TV + two physically separate phones on different networks/browsers. (The owner tested the hosted app with one real phone on 2026-10-26 — QR join and play work; the two-phone, two-network case is still untested.)
 
 ### Definition of done
 
@@ -75,11 +75,11 @@ The required pipeline is nearly represented already. Make the evidence explicit.
 | Render | TV lower-third, phone, console | Test at TV-sized 1080p and record it |
 | Personalise | Language and Follow player | Clearly demonstrate casual/expert depth and per-phone language |
 
-- [ ] Keep every visible number code-filled from `facts` or tracking data; never let model text invent a number.
-- [ ] Keep the no-betting check in CI and run it on every generated match file.
+- [x] Keep every visible number code-filled from `facts` or tracking data, never invented by model text — enforced by the checker on every run; in the multi-agent run the writer fetched all 70 numbers through the MCP server and typed none.
+- [x] Keep the no-betting check in CI and run it on every generated match file (`npm run check:copy` plus the checker on every recorded run).
 - [ ] Confirm DE/VI copy with the owner. Until checked, visibly keep it marked as draft in source/review material.
 - [x] Resolve documentation drift: name is **Pip** (2026-10-16), team blue `#2E7FC4`, build status in README.
-- [ ] Add `SECURITY.md`: threat model, no-free-text decision, room-code validation, rate limits, expiry, and integrity-demo behavior.
+- [x] Add `SECURITY.md`: threat model, no-free-text decision, room-code validation, rate limits, expiry, and integrity-demo behavior.
 
 ## P4 — gather evidence that the product helps a room
 
